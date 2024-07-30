@@ -1,1 +1,6 @@
 /config/
+/.bsp/
+/.idea/
+/project/target/
+/project/project/
+/target/
