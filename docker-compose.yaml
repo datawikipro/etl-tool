@@ -1,0 +1,61 @@
+services:
+  airflow_postgres:
+    image: postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "airflow" ]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+  airflow_mariadb:
+    image: mariadb:latest
+    container_name: mariadb-compose
+    environment:
+      MYSQL_ROOT_PASSWORD: my-secret-pw
+      MYSQL_DATABASE: 1win
+    ports:
+      - "3306:3306"
+  airflow_airflow:
+    build:
+      context: .
+    container_name: airflow
+    privileged: true
+    environment:
+      PORT: 8080
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow_postgres/airflow
+      _AIRFLOW_DB_MIGRATE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
+    volumes:
+      - /Users/aleksey.chernousov/IdeaProjects/dataWiki.pro/di_migration/output/1win.pro/:/root/airflow/dags
+      - /Users/aleksey.chernousov/IdeaProjects/dataWiki.pro/di_migration/output/1win.pro/:/opt/airflow/dags
+      - /Users/aleksey.chernousov/IdeaProjects/1win/etl-tool:/root/airflow/scala_tool
+      - /Users/aleksey.chernousov/IdeaProjects/1win/etl-tool:/opt/airflow/scala_tool
+    command: airflow standalone
+    ports:
+      - '22:22'
+      - '8080:8080'
+    restart: "no"
+    depends_on:
+      airflow_postgres:
+        condition: service_healthy
+  idmap_postgres:
+    image: postgres
+    environment:
+      POSTGRES_USER: idmap
+      POSTGRES_PASSWORD: idmap
+      POSTGRES_DB: idmap
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "airflow" ]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always

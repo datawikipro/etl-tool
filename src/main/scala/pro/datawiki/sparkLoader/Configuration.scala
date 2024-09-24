@@ -1,3 +1,5 @@
+package pro.datawiki.sparkLoader
+
 import scopt.OptionParser
 import org.joda.time.DateTime
 
