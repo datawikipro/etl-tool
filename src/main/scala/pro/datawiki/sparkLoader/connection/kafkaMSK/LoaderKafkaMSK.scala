@@ -4,8 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import pro.datawiki.sparkLoader.SparkObject
-import pro.datawiki.sparkLoader.connection.{DatabaseTrait, ConnectionTrait,QueryTrait}
+import pro.datawiki.sparkLoader.connection.kafka.LoaderKafka.getLines
+import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait, QueryTrait}
 
 import java.nio.file.{Files, Paths}
 import java.util.Properties
@@ -29,14 +30,9 @@ class LoaderKafkaMSK(configYaml: YamlConfig) extends ConnectionTrait,QueryTrait 
   }
 }
 
-object LoaderKafkaMSK{
+object LoaderKafkaMSK  extends YamlClass {
   def apply(inConfig:String):LoaderKafkaMSK = {
-
-    val lines: String = Files.readString(Paths.get(inConfig))
-
-    val mapper: ObjectMapper = new ObjectMapper(new YAMLFactory())
-    mapper.registerModule(DefaultScalaModule)
-    val configYaml: YamlConfig = mapper.readValue(lines, classOf[YamlConfig])
+    val configYaml: YamlConfig = mapper.readValue(getLines(inConfig), classOf[YamlConfig])
     return new LoaderKafkaMSK(configYaml)
   }
 }

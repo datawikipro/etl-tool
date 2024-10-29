@@ -4,16 +4,18 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import pro.datawiki.sparkLoader.SparkObject
+import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
+import pro.datawiki.sparkLoader.configuration.{RunConfig, YamlConfigTarget}
 import pro.datawiki.sparkLoader.connection.ConnectionTrait
+import pro.datawiki.sparkLoader.connection.kafka.LoaderKafka.getLines
 
 import java.nio.file.{Files, Paths}
 
 class LoaderS3(configYaml: YamlConfig) extends ConnectionTrait {
-  
-  def modifySpark() :Unit={
+
+  def modifySpark(): Unit = {
     val connectionTimeOut = "600000"
-    
+
     SparkObject.setHadoopConfiguration("fs.s3a.access.key", getS3AccessKeyAws)
     SparkObject.setHadoopConfiguration("fs.s3a.secret.key", getS3SecretKeyAws)
     SparkObject.setHadoopConfiguration("fs.s3a.connection.timeout", connectionTimeOut)
@@ -26,21 +28,21 @@ class LoaderS3(configYaml: YamlConfig) extends ConnectionTrait {
     //spark.sparkContext.hadoopConfiguration.set("fs.s3a.connection.ssl.enabled", "true")
   }
 
-  def getS3AccessKeyAws:String = configYaml.s3accessKeyAws
-  def getS3SecretKeyAws:String = configYaml.s3secretKeyAws
+  def getS3AccessKeyAws: String = configYaml.s3accessKeyAws
 
-  override def writeDf(location:String,df:DataFrame): Unit={
-    df.write.mode("overwrite").parquet(s"s3a://bigdata-stg/$location")
+  def getS3SecretKeyAws: String = configYaml.s3secretKeyAws
+
+  override def writeDf(location: YamlConfigTarget, df: DataFrame, autoInsertIdmapCCD:Boolean,columnsLogicKey:List[String]): Unit = {
+    location.partitionKey match
+      case "" => df.write.mode("overwrite").parquet(s"s3a://bigdata-stg/${location.targetFile}")
+      case _ => df.write.mode("overwrite").parquet(s"s3a://bigdata-stg/${location.targetFile}/partition_key=${RunConfig.getPartition}")
   }
 
 }
 
-object LoaderS3{
-  def apply (inConfig:String):LoaderS3 = {
-    val mapper: ObjectMapper = new ObjectMapper(new YAMLFactory())
-    mapper.registerModule(DefaultScalaModule)
-    var configYaml: YamlConfig = mapper.readValue(Files.readString(Paths.get(inConfig)), classOf[YamlConfig])
-    val loader = new LoaderS3(configYaml)
+object LoaderS3 extends YamlClass {
+  def apply(inConfig: String): LoaderS3 = {
+    val loader = new LoaderS3(mapper.readValue(getLines(inConfig), classOf[YamlConfig]))
     loader.modifySpark()
     return loader
   }

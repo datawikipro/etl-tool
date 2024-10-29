@@ -4,13 +4,15 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import pro.datawiki.sparkLoader.SparkObject
-import pro.datawiki.sparkLoader.connection.{DatabaseTrait, QueryTrait, ConnectionTrait}
+import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait, QueryTrait}
 import org.apache.spark.sql.streaming.{StreamingQuery, Trigger}
+
 import java.nio.file.{Files, Paths}
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.avro._
+import org.apache.spark.sql.avro.*
 import org.apache.spark.sql.functions.col
+
 import java.nio.file.{Files, Paths}
 import java.time.LocalDateTime
 import java.util.Properties
@@ -63,14 +65,9 @@ class LoaderKafka(configYaml: YamlConfig) extends ConnectionTrait, QueryTrait {
   }
 }
 
-object LoaderKafka {
+object LoaderKafka  extends YamlClass {
   def apply(inConfig: String): LoaderKafka = {
-
-    val lines: String = Files.readString(Paths.get(inConfig))
-
-    val mapper: ObjectMapper = new ObjectMapper(new YAMLFactory())
-    mapper.registerModule(DefaultScalaModule)
-    val configYaml: YamlConfig = mapper.readValue(lines, classOf[YamlConfig])
+    val configYaml: YamlConfig = mapper.readValue(getLines(inConfig), classOf[YamlConfig])
     return new LoaderKafka(configYaml)
   }
 }

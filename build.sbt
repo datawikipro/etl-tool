@@ -1,4 +1,5 @@
 import sbt.Keys.libraryDependencies
+
 import scala.collection.Seq
 
 ThisBuild / version := "0.1.0-SNAPSHOT"
@@ -9,7 +10,20 @@ lazy val root = (project in file("."))
   .settings(
     name := "etl-tool"
   )
+assemblyMergeStrategy in assembly := {
+  case PathList("META-INF", xs @ _*) =>
+    xs map {_.toLowerCase} match {
+      case ("manifest.mf" :: Nil) | ("index.list" :: Nil) | ("dependencies" :: Nil) =>
+        MergeStrategy.discard
+      case ps @ (x :: xs) if ps.last.endsWith(".sf") || ps.last.endsWith(".dsa") =>
+        MergeStrategy.discard
+      case "services" :: _ =>  MergeStrategy.filterDistinctLines
+      case _ => MergeStrategy.first
+    }
+  case _ => MergeStrategy.first
+}
 
+assembly / mainClass := Some("pro.datawiki.sparkLoader.sparkRun")
 val sparkVersion = "3.4.3"
 val hadoopVersion = "3.4.0"
 val jacksonDataformatVersion = "2.14.2"
@@ -47,6 +61,9 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonDataformatVersion,
 
   "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" %jacksonDataformatVersion ,
+  "com.lihaoyi" %% "os-lib" % "0.10.1",
+  "com.github.mwiede" % "jsch" % "0.2.20",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5"
 )
 
 dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % jacksonDataformatVersion

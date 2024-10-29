@@ -1,7 +1,8 @@
 package pro.datawiki.sparkLoader.connection.mysql
 
-case class YamlServerHost(
+case class YamlGatewaySsh(
                            host: String,
                            port: String,
-                           database: String
+                           user: String,
+                           keyLocation: String
                          )
