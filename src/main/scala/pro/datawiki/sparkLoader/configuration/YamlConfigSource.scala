@@ -1,35 +1,65 @@
 package pro.datawiki.sparkLoader.configuration
 
-import pro.datawiki.sparkLoader.configuration.yamlConfigSource.{YamlConfigSourceDBTable, YamlConfigSourceKafkaTopic}
+import org.apache.spark.sql.{DataFrame, Row}
+import pro.datawiki.sparkLoader.configuration.SegmentationEnum.{full, random}
+import pro.datawiki.sparkLoader.configuration.parent.LogicClass
+import pro.datawiki.sparkLoader.connection.Connection
+import pro.datawiki.sparkLoader.configuration.yamlConfigSource.{YamlConfigSourceAdHoc, YamlConfigSourceDBSQL, YamlConfigSourceDBTable, YamlConfigSourceFileSystem, YamlConfigSourceKafkaTopic, YamlConfigSourceSelenium}
 
 class YamlConfigSource(sourceName: String,
                        objectName: String,
+                       segmentation: String,
                        sourceDb: YamlConfigSourceDBTable,
-                       sourceKafkaTopic: YamlConfigSourceKafkaTopic
-                      ) {
+                       sourceSQL: YamlConfigSourceDBSQL,
+                       sourceFileSystem: YamlConfigSourceFileSystem,
+                       sourceKafkaTopic: YamlConfigSourceKafkaTopic,
+                       sourceSelenium: YamlConfigSourceSelenium,
+                       adHoc: YamlConfigSourceAdHoc
+                      ) extends LogicClass{
+
   def getSourceName: String = sourceName
 
   def getObjectName: String = objectName
 
-  def getSource: YamlConfigSourceTrait = {
-    var checkCounter: Int = 0
-    var task: YamlConfigSourceTrait = null
-
-    if sourceDb != null then {
-      task = sourceDb
-      checkCounter += 1
+  def getSegmentation: SegmentationEnum = {
+    if isAdHoc then {
+      return SegmentationEnum.adHoc
     }
-    if sourceKafkaTopic != null then {
-      task = sourceKafkaTopic
-      checkCounter += 1
+    if segmentation == null then {
+      return SegmentationEnum.full
     }
-    
-    checkCounter match
-      case 0 => throw Exception()
-      case 1 => return task
+    segmentation match
+      case "random" => return SegmentationEnum.random
+      case "full" => return SegmentationEnum.full
+      case "partition" => return SegmentationEnum.partition
       case _ => throw Exception()
-    
   }
 
+  def getSegments: List[String] = {
+    return getSource.getSegments(Connection.getConnection(sourceName))
+  }
+
+  def getSource: YamlConfigSourceTrait = {
+    reset()
+    setLogic(sourceDb)
+    setLogic(sourceSQL)
+    setLogic(sourceFileSystem)
+    setLogic(sourceKafkaTopic)
+    setLogic(sourceSelenium)
+
+    super.getLogic match
+      case x:YamlConfigSourceTrait => return x
+      case _ => throw Exception()
+  }
+
+  def isAdHoc: Boolean={
+    adHoc match
+      case null => false
+      case _ => true
+  }
+
+  def getAdhocRow: List[Row] = {
+    return adHoc.getAdhocRow
+  }
 
 }

@@ -1,10 +1,9 @@
 package pro.datawiki.sparkLoader.transformation
 
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions.{col, concat_ws}
 import pro.datawiki.sparkLoader
-import pro.datawiki.sparkLoader.SparkObject
-import pro.datawiki.sparkLoader.connection.{Connection, ConnectionTrait, DatabaseTrait, QueryTrait}
-import org.apache.spark.sql.functions.{col, concat_ws, length, lit}
+import pro.datawiki.sparkLoader.connection.{Connection, DatabaseTrait}
 
 import scala.jdk.CollectionConverters.*
 
@@ -70,9 +69,4 @@ object TransformationIdMap {
         case _ => throw Exception()
     
   }
-
-  def initTable(domainName: String): Unit = {
-
-  }
-
 }

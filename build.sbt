@@ -24,12 +24,16 @@ assemblyMergeStrategy in assembly := {
 }
 
 assembly / mainClass := Some("pro.datawiki.sparkLoader.sparkRun")
-val sparkVersion = "3.4.3"
-val hadoopVersion = "3.4.0"
-val jacksonDataformatVersion = "2.14.2"
+val sparkVersion = "3.4.4"
+val hadoopVersion = "3.4.1"
+val jacksonDataformatVersion = "2.18.2"
 val json4sVersion = "3.7.0-M11"
-val awsSdk = "1.12.765"
-val awsSdkNew = "2.28.6"
+val awsSdkVersion = "1.12.779"
+val postgresqlVersion = "42.7.4"
+val clickhouseVersion = "0.6.5"
+val mysqlVersion = "8.0.33"
+val jodaTimeVersion = "2.13.0"
+val ioMinioVersion =  "8.5.14"
 
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion,
@@ -48,22 +52,28 @@ libraryDependencies ++= Seq(
   "org.apache.hadoop" % "hadoop-client" % hadoopVersion,
   "org.apache.hadoop" % "hadoop-client-api" % hadoopVersion,
   "org.apache.hadoop" % "hadoop-hdfs" % hadoopVersion,
-  "mysql" % "mysql-connector-java" % "8.0.33",
-  "org.postgresql" % "postgresql" % "42.7.3",
   "com.github.scopt" %% "scopt" % "4.1.0",
-  "joda-time" % "joda-time" % "2.12.7",
-  "io.minio" % "minio" % "8.5.11",
-  "com.amazonaws" % "aws-java-sdk" % awsSdk,
-  "com.amazonaws" % "aws-java-sdk-s3" % awsSdk,
-  "com.amazonaws" % "aws-java-sdk-bundle" % awsSdk,
-  "com.amazonaws" % "aws-java-sdk-glue" % awsSdk,
+  "joda-time" % "joda-time" % jodaTimeVersion,
+
+  "com.amazonaws" % "aws-java-sdk" % awsSdkVersion,
+  "com.amazonaws" % "aws-java-sdk-s3" % awsSdkVersion,
+  "com.amazonaws" % "aws-java-sdk-bundle" % awsSdkVersion,
+  "com.amazonaws" % "aws-java-sdk-glue" % awsSdkVersion,
 
   "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonDataformatVersion,
-
   "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" %jacksonDataformatVersion ,
-  "com.lihaoyi" %% "os-lib" % "0.10.1",
-  "com.github.mwiede" % "jsch" % "0.2.20",
+  "com.lihaoyi" %% "os-lib" % "0.11.3",
+  "com.github.mwiede" % "jsch" % "0.2.21",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5"
+)
+libraryDependencies ++= Seq(
+  "mysql" % "mysql-connector-java" % mysqlVersion,
+  "org.postgresql" % "postgresql" % postgresqlVersion,
+  "com.clickhouse" % "clickhouse-jdbc" % clickhouseVersion,
+  "io.minio" % "minio" % ioMinioVersion,
+)
+libraryDependencies ++= Seq(
+  "org.seleniumhq.selenium" % "selenium-java" % "4.27.0"
 )
 
 dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % jacksonDataformatVersion

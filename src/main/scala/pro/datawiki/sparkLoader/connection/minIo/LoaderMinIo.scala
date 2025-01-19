@@ -1,42 +1,46 @@
 package pro.datawiki.sparkLoader.connection.minIo
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import org.apache.spark.sql.{DataFrame, SparkSession}
-import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
+import org.apache.spark.sql.DataFrame
 import pro.datawiki.sparkLoader.SparkObject.spark
-import pro.datawiki.sparkLoader.configuration.YamlConfigTarget
-import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait, QueryTrait}
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DataWarehouseTrait, FileSystemTrait, WriteMode}
+import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
 
-import java.nio.file.{Files, Paths}
-
-class LoaderMinIo(configYaml: YamlConfig) extends ConnectionTrait {
+class LoaderMinIo(configYaml: YamlConfig) extends ConnectionTrait, DataWarehouseTrait, FileSystemTrait {
 
   def modifySpark(): Unit = {
     val connectionTimeOut = "600000"
     SparkObject.setHadoopConfiguration("fs.s3a.endpoint", getMinIoHost)
-    SparkObject.setHadoopConfiguration("fs.s3a.access.key", getS3AccessKeyAws)
-    SparkObject.setHadoopConfiguration("fs.s3a.secret.key", getS3SecretKeyAws)
+    SparkObject.setHadoopConfiguration("fs.s3a.access.key", getAccessKey)
+    SparkObject.setHadoopConfiguration("fs.s3a.secret.key", getSecretKey)
     SparkObject.setHadoopConfiguration("fs.s3a.establish.timeout", "5000")
     SparkObject.setHadoopConfiguration("fs.s3a.path.style.access", "true")
   }
 
   private def getMinIoHost: String = configYaml.minioHost
 
-  def getS3AccessKeyAws: String = configYaml.s3accessKeyAws
+  private def getAccessKey: String = configYaml.accessKey
 
-  def getS3SecretKeyAws: String = configYaml.s3secretKeyAws
+  private def getSecretKey: String = configYaml.secretKey
+  
+  override def readDf(location: String, segmentName:String): DataFrame = {
+    val df: DataFrame = segmentName match
+      case null => SparkObject.spark.read.parquet(s"s3a://${configYaml.bucket}/$location/")
+      case _ => SparkObject.spark.read.parquet(s"s3a://${configYaml.bucket}/$location/$segmentName/")
 
-  override def writeDf(location: YamlConfigTarget, df: DataFrame,autoInsertIdmapCCD:Boolean,columnsLogicKey:List[String]): Unit = {
-    df.write.mode("overwrite").parquet(s"s3a://tmp/$location.")
-  }
-
-  def readFile(location: String): String = {
-    val df = SparkObject.spark.read.textFile(s"s3a://tmp/$location")
     df.printSchema()
     df.show()
-    return ""
+    return df
+  }
+
+  override def writeDf(location: String, df: DataFrame, writeMode: WriteMode): Unit = {
+    df.write.mode(writeMode.toString).parquet(s"s3a://${configYaml.bucket}/$location/")
+  }
+
+  override def getSegments(location: String): List[String] = {
+    throw Exception()
+//    val file = new File(s"s3a://${configYaml.bucket}/$location/")
+//    val list = file.listFiles.filter(_.isFile).map(_.getPath).toList
+//    return list
   }
 }
 

@@ -1,15 +1,9 @@
 package pro.datawiki.sparkLoader.connection.kafkaMSK
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.DataFrame
 import pro.datawiki.sparkLoader.connection.kafka.LoaderKafka.getLines
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, QueryTrait}
 import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
-import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait, QueryTrait}
-
-import java.nio.file.{Files, Paths}
-import java.util.Properties
 
 class LoaderKafkaMSK(configYaml: YamlConfig) extends ConnectionTrait,QueryTrait {
 

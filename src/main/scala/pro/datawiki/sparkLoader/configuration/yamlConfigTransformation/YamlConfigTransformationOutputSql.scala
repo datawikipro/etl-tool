@@ -8,7 +8,7 @@ case class YamlConfigTransformationOutputSql(
                                               sourceName: String,
                                               sql: String
                                             ) extends YamlConfigTransformationTrait {
-  override def getDataFrame(): DataFrame = {
+  override def getDataFrame: DataFrame = {
     val df: DataFrame = Connection.getConnection(sourceName) match
       case x: DatabaseTrait => x.getDataFrameBySQL(s"${sql}")
       case _ => throw Exception()

@@ -11,7 +11,7 @@ case class YamlConfigTransformationIdmap(
                                           tenantName: String,
                                           idmaps: List[YamlConfigTransformationIdmapTemplate]
                                         ) extends YamlConfigTransformationTrait {
-  override def getDataFrame(): DataFrame = {
+  override def getDataFrame: DataFrame = {
     var df = SparkObject.spark.sql(s"select * from ${sourceName}")
     df.show()
     idmaps.foreach(j => {

@@ -4,13 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.jcraft.jsch.{JSch, Session}
-import org.apache.spark.sql.functions.{coalesce, col, hash, md5}
-import org.apache.spark.sql.{DataFrame, SparkSession}
-import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
-import pro.datawiki.sparkLoader.configuration.YamlConfigTarget
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions.{coalesce, col, md5}
 import pro.datawiki.sparkLoader.configuration.yamlConfigTarget.YamlConfigTargetColumn
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait}
 import pro.datawiki.sparkLoader.transformation.TransformationIdMap
+import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
 
 import java.nio.file.{Files, Paths}
 import java.util.Properties
@@ -130,36 +129,36 @@ class LoaderMySql(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait
     idmapNew.addNewKeys(res)
   }
 
-  override def writeDf(location:
-                       YamlConfigTarget, 
-                       df: DataFrame,
-                       autoInsertIdmapCCD: Boolean, 
-                       columnsLogicKey: List[String]): Unit = {
-    var rkKey: String = null
-    var ccd: String = null
-    var tenantName: String = null
-    var domainName: String = null
-    location.columns.foreach(i => {
-      if i.isNewCCD then
-        ccd = i.columnName
-        rkKey = s"${i.domainName}_rk"
-        tenantName = i.tenantName
-        domainName = i.domainName
-    })
-
-    df.show()
-
-    writeDF(df = df, columns = location.columns, ccdColumnName = ccd, targetFile = location.targetFile,columnsLogicKey=columnsLogicKey)
-    if autoInsertIdmapCCD then {
-      mergeRk(
-        df = df, 
-        tenantName = tenantName, 
-        domainName = domainName, 
-        ccdColumnName = ccd, 
-        columnsLogicKey = columnsLogicKey, 
-        targetFile = location.targetFile)
-    }
-  }
+//  override def writeDf(location:
+//                       YamlConfigTarget, 
+//                       df: DataFrame,
+//                       autoInsertIdmapCCD: Boolean, 
+//                       columnsLogicKey: List[String]): Unit = {
+//    var rkKey: String = null
+//    var ccd: String = null
+//    var tenantName: String = null
+//    var domainName: String = null
+//    location.columns.foreach(i => {
+//      if i.isNewCCD then
+//        ccd = i.columnName
+//        rkKey = s"${i.domainName}_rk"
+//        tenantName = i.tenantName
+//        domainName = i.domainName
+//    })
+//
+//    df.show()
+//
+//    writeDF(df = df, columns = location.columns, ccdColumnName = ccd, targetFile = location.targetFile,columnsLogicKey=columnsLogicKey)
+//    if autoInsertIdmapCCD then {
+//      mergeRk(
+//        df = df, 
+//        tenantName = tenantName, 
+//        domainName = domainName, 
+//        ccdColumnName = ccd, 
+//        columnsLogicKey = columnsLogicKey, 
+//        targetFile = location.targetFile)
+//    }
+//  }
 
   override def close(): Unit = {
     if session != null then {

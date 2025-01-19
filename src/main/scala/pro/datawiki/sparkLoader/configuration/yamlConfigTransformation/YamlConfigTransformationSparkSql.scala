@@ -7,9 +7,10 @@ import pro.datawiki.sparkLoader.configuration.YamlConfigTransformationTrait
 case class YamlConfigTransformationSparkSql(
                                              sql: String
                                            ) extends YamlConfigTransformationTrait {
-  override def getDataFrame(): DataFrame = {
+  override def getDataFrame: DataFrame = {
     val df: DataFrame = SparkObject.spark.sql(sql)
-    df.show()
+    df.printSchema()
+    df.show(200)
     return df
   }
 

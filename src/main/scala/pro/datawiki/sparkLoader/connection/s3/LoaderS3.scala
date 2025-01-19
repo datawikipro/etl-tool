@@ -1,15 +1,8 @@
 package pro.datawiki.sparkLoader.connection.s3
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import org.apache.spark.sql.{DataFrame, SparkSession}
-import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
-import pro.datawiki.sparkLoader.configuration.{RunConfig, YamlConfigTarget}
 import pro.datawiki.sparkLoader.connection.ConnectionTrait
 import pro.datawiki.sparkLoader.connection.kafka.LoaderKafka.getLines
-
-import java.nio.file.{Files, Paths}
+import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
 
 class LoaderS3(configYaml: YamlConfig) extends ConnectionTrait {
 
@@ -31,12 +24,6 @@ class LoaderS3(configYaml: YamlConfig) extends ConnectionTrait {
   def getS3AccessKeyAws: String = configYaml.s3accessKeyAws
 
   def getS3SecretKeyAws: String = configYaml.s3secretKeyAws
-
-  override def writeDf(location: YamlConfigTarget, df: DataFrame, autoInsertIdmapCCD:Boolean,columnsLogicKey:List[String]): Unit = {
-    location.partitionKey match
-      case "" => df.write.mode("overwrite").parquet(s"s3a://bigdata-stg/${location.targetFile}")
-      case _ => df.write.mode("overwrite").parquet(s"s3a://bigdata-stg/${location.targetFile}/partition_key=${RunConfig.getPartition}")
-  }
 
 }
 

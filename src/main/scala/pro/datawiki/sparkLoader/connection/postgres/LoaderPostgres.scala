@@ -1,22 +1,21 @@
 package pro.datawiki.sparkLoader.connection.postgres
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.DataFrame
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DataWarehouseTrait, DatabaseTrait, WriteMode}
 import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
-import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait}
 
-import java.nio.file.{Files, Paths}
 import java.util.Properties
-import org.apache.spark.sql.functions.{col, concat_ws, lit}
 
-class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait {
+class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait, DataWarehouseTrait {
 
   override def getDataFrameBySQL(sql: String): DataFrame = {
     SparkObject.spark.sqlContext.read.jdbc(getJdbc, s"""($sql) a """, getProperties)
   }
 
+  override def readDf(location: String,segmentName:String): DataFrame = throw Exception()
+  override def writeDf(location: String, df: DataFrame, columnsLogicKey: List[String], writeMode: WriteMode): Unit = {
+    df.write.mode(writeMode.toString).jdbc(getJdbc, location, getProperties)
+  }
   override def insertCCdToIdmap(df: DataFrame,
                                 domainName: String,
                                 tenantName: String,

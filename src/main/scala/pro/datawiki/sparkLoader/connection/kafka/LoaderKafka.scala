@@ -1,22 +1,9 @@
 package pro.datawiki.sparkLoader.connection.kafka
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import org.apache.spark.sql.{DataFrame, SparkSession}
-import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
-import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait, QueryTrait}
-import org.apache.spark.sql.streaming.{StreamingQuery, Trigger}
-
-import java.nio.file.{Files, Paths}
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.avro.*
-import org.apache.spark.sql.functions.col
-
-import java.nio.file.{Files, Paths}
-import java.time.LocalDateTime
-import java.util.Properties
-import org.apache.spark.sql.avro.functions.from_avro
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, QueryTrait}
+import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
 
 class LoaderKafka(configYaml: YamlConfig) extends ConnectionTrait, QueryTrait {
   override def getDataFrameFromTopic(topic: String): DataFrame = {

@@ -6,6 +6,6 @@ case class YamlConfigTarget(connection: String,
                             targetFile:String,
                             autoInsertIdmapCCD: Boolean,
                             columns: List[YamlConfigTargetColumn],
-                            columnsLogicKey:List[String],
+                            columnsLogicKey:List[String] = List.apply(),
                             partitionKey:String
                            )

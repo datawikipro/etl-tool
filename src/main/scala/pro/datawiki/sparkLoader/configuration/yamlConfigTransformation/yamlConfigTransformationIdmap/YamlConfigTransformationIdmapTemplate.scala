@@ -3,7 +3,7 @@ package pro.datawiki.sparkLoader.configuration.yamlConfigTransformation.yamlConf
 case class YamlConfigTransformationIdmapTemplate(
                                                   domainName: String,
                                                   isGenerated: Boolean,
-                                                  rkKey:String,
+                                                  rkKey: String,
                                                   systemCode: String,
                                                   columnNames: List[String]
                                                 )
