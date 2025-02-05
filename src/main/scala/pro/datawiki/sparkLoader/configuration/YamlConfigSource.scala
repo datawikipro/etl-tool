@@ -4,7 +4,7 @@ import org.apache.spark.sql.{DataFrame, Row}
 import pro.datawiki.sparkLoader.configuration.SegmentationEnum.{full, random}
 import pro.datawiki.sparkLoader.configuration.parent.LogicClass
 import pro.datawiki.sparkLoader.connection.Connection
-import pro.datawiki.sparkLoader.configuration.yamlConfigSource.{YamlConfigSourceAdHoc, YamlConfigSourceDBSQL, YamlConfigSourceDBTable, YamlConfigSourceFileSystem, YamlConfigSourceKafkaTopic, YamlConfigSourceSelenium}
+import pro.datawiki.sparkLoader.configuration.yamlConfigSource.{YamlConfigSourceAdHoc, YamlConfigSourceDBSQL, YamlConfigSourceDBTable, YamlConfigSourceFileSystem, YamlConfigSourceKafkaTopic, YamlConfigSourceWeb}
 
 class YamlConfigSource(sourceName: String,
                        objectName: String,
@@ -13,7 +13,7 @@ class YamlConfigSource(sourceName: String,
                        sourceSQL: YamlConfigSourceDBSQL,
                        sourceFileSystem: YamlConfigSourceFileSystem,
                        sourceKafkaTopic: YamlConfigSourceKafkaTopic,
-                       sourceSelenium: YamlConfigSourceSelenium,
+                       sourceWeb: YamlConfigSourceWeb,
                        adHoc: YamlConfigSourceAdHoc
                       ) extends LogicClass{
 
@@ -45,7 +45,7 @@ class YamlConfigSource(sourceName: String,
     setLogic(sourceSQL)
     setLogic(sourceFileSystem)
     setLogic(sourceKafkaTopic)
-    setLogic(sourceSelenium)
+    setLogic(sourceWeb)
 
     super.getLogic match
       case x:YamlConfigSourceTrait => return x

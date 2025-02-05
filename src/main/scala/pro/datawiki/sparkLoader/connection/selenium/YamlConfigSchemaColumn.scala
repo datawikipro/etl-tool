@@ -1,103 +1,139 @@
 package pro.datawiki.sparkLoader.connection.selenium
 
-import org.apache.spark.sql.types.{ArrayType, DataType, DateType, IntegerType, Metadata, StringType, StructField, StructType, TimestampType}
-import org.openqa.selenium.{By, WebDriver, WebElement}
-import org.openqa.selenium.chrome.ChromeDriver
-import org.openqa.selenium.edge.EdgeDriver
-import pro.datawiki.sparkLoader.YamlClass
-import pro.datawiki.sparkLoader.configuration.parent.LogicClass
-import pro.datawiki.sparkLoader.connection.ConnectionTrait
-import org.apache.spark.sql.{Row}
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.types.*
 
-import java.time.Duration
-import scala.jdk.CollectionConverters.*
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import scala.jdk.CollectionConverters.*
 
-case class YamlConfigSchemaColumn(
-                                   column: String,
-                                   `type`: String,
-                                   subType: List[YamlConfigSchemaColumn],
-                                   default: String,
-                                 ) {
-  def getDefault: String = {
-    if default == "${now()}" then {
-      val currentDateTime: LocalDateTime = LocalDateTime.now()
+class YamlConfigSchemaColumn(
+                              column: String,
+                              `type`: String,
+                              subType: List[YamlConfigSchemaColumn],
+                              default: String,
+                            ) {
+  def getColumn:String = column
+  def getType:String = `type`
+  def getSubType:List[YamlConfigSchemaColumn] = subType
+  def getDefault:String = default
 
-      val formatter: DateTimeFormatter = getType match
-        case DateType => DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        case TimestampType => DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-        case StringType => DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        case _ => throw Exception()
-      return currentDateTime.format(formatter)
-    }
+//  private def getDefaultValue: SeleniumType = {
+//    if default == "${now()}" then {
+//      val currentDateTime: LocalDateTime = LocalDateTime.now()
+//
+//      val formatter: DateTimeFormatter = getDataType match
+//        case DateType => DateTimeFormatter.ofPattern("yyyy-MM-dd")
+//        case TimestampType => DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+//        case StringType => DateTimeFormatter.ofPattern("yyyy-MM-dd")
+//        case _ => throw Exception()
+//      return SeleniumString(currentDateTime.format(formatter))
+//    }
+//
+//    if default == "${seq}" then {
+//      return SeleniumString(LoaderSelenium.getId.toString)
+//    }
+//    getDataType match
+//      case x: StringType => return SeleniumString(default)
+//      case x: IntegerType => return SeleniumString(default)
+//      case x: DateType => return SeleniumString(default)
+//      case x: ArrayType => return SeleniumArray.apply()
+//      case _ => throw Exception()
+//    throw Exception()
+//  }
 
-    if default == "${seq}" then {
-      return LoaderSelenium.getId.toString
-    }
-    getType match
-      case x: StringType => return default
-      case x: IntegerType => return default
-      case x: DateType => return default
-      //case x: DatetimeType => return default
-      case _ => throw Exception()
-    throw Exception()
-  }
+  def getStructField(in:SeleniumList): SparkRowAttribute = {
+    var value = in.getValueByKey(column)
 
-  def getType: DataType = {
     `type` match
-      case "string" => return StringType
-      case "integer" => return StringType //IntegerType
-      case "date" => return StringType //DateType
-      case "timestamp" => StringType //TimestampType
-      case "array" =>
-        var subStruct: List[StructField] = List.apply()
-        subType.foreach(i => subStruct = subStruct :+ i.getStructField)
-        return ArrayType(StructType(subStruct))
-      case "seq" => return IntegerType
-      case _ => throw Exception()
-  }
-
-  def getStructField: StructField = {
-    return StructField(name = column, dataType = getType, nullable = false, metadata = Metadata.empty)
-  }
-
-  def getColumnByKeyValue(in: KeyValue): Any = {
-    if in.key != column then {
-      return null
-    }
-    if in.value == null then {
-      return getDefault
-    }
-
-    getType match
-      case x: ArrayType =>
-        var list: List[Row] = List.apply()
-        in.value match
-          case y: List[List[KeyValue]] => {
-            y.foreach(z => {
-              var list2: List[Any] = List.apply()
-              subType.foreach(j => {
-                list2 = list2 :+ j.getColumnByListKeyValue(z)
-              })
-              list = list :+ Row.apply(list2: _*)
-            })
+      case "string" => {
+        val result: String = value match
+          case null => default
+          case x: SeleniumString => {
+            val a = x.getValue
+             a match
+              case null => default
+              case _ => a
           }
           case _ => throw Exception()
-        return list
-      case _ => return in.value
-  }
 
-  def getColumnByListKeyValue(in: List[KeyValue]): Any = {
-    in.foreach(i => {
-      val a = getColumnByKeyValue(i)
-      if a != null then {
-        return a
+        return SparkRowAttribute(column, SparkRowElementString(result))
+
       }
-    })
-    getType match
-      case x: ArrayType => return List.apply()
-      case _ => getDefault
+      case "integer" => {
+        throw Exception()
+        //return StructField(name = column, dataType = StringType, nullable = false, metadata = Metadata.empty) //IntegerType
+        }
+      case "date" => {
+        value match
+          case null => {
+            default match
+              case "${now()}" =>{
+                val currentDateTime: LocalDateTime = LocalDateTime.now()
+                val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                val result = currentDateTime.format(formatter)
+                return SparkRowAttribute(column, SparkRowElementString(result))
+              }
+              case _=> throw Exception()
+          }
+          case _ => throw Exception()
+        }
+      case "timestamp" =>        {
+        value match
+          case null => {
+            default match
+              case "${now()}" =>{
+                val currentDateTime: LocalDateTime = LocalDateTime.now()
+                val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                val result = currentDateTime.format(formatter)
+                return SparkRowAttribute(column, SparkRowElementString(result))
+
+              }
+              case _=> throw Exception()
+
+          }
+          case _ => throw Exception()           }
+      case "array" => {
+        var subStruct: List[SparkRowAttribute] = List.apply()
+
+        val result:SeleniumArray = value match
+          case null => {
+            val a: List[SeleniumList] = List.apply(SeleniumList.apply())
+            new SeleniumArray(a)
+          }
+          case x: SeleniumArray => {
+            x
+          }
+          case _ => {
+            throw Exception()
+          }
+        var listSparkRowElementRow: List[SparkRowElementRow] = List.apply()
+        result.list.foreach(j=> {
+          var list1: List[SparkRowAttribute] = List.apply()
+          subType.foreach(i => list1 = list1 :+ i.getStructField(j))
+          listSparkRowElementRow = listSparkRowElementRow.appended(SparkRowElementRow(list1)) 
+        })
+        
+        return SparkRowAttribute(column, SparkRowElementList(listSparkRowElementRow))
+//        return SparkRowAttribute(column, SparkRowElementList(subStruct))
+//        return StructField(name = column, dataType = ArrayType(StructType(subStruct)), nullable = false, metadata = Metadata.empty)
+      }
+      case "seq" => {
+        val result: String = value match
+          case null => {
+            default match
+              case "${seq}" => LoaderSelenium.getId.toString
+              case _ => throw Exception()
+          }
+          case x: SeleniumString => x.getValue
+          case _ => throw Exception()
+
+        return SparkRowAttribute(column, SparkRowElementString(result))
+        throw Exception()
+        //return StructField(name = column, dataType = StringType, nullable = false, metadata = Metadata.empty)
+      }
+      case _ => throw Exception()
+
   }
 
 }

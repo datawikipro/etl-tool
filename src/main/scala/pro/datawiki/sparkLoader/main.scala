@@ -13,9 +13,8 @@ def sparkRun(configLocation: String, partition: String): Unit = {
       Execute.setCache(etlConfig.getCacheSource)
       Execute.setTarget(etlConfig.getTarget.connection)
       Execute.run(etlConfig)
-      Execute.writeTarget(etlConfig.getTarget.targetFile, etlConfig.getTarget.columnsLogicKey)
+      Execute.writeTarget(etlConfig.getTarget)
 //    } finally {
 //      Connection.closeConnections()
 //    }
-
 }

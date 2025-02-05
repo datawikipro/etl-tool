@@ -3,38 +3,89 @@ package pro.datawiki.sparkLoader.connection.postgres
 import org.apache.spark.sql.DataFrame
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DataWarehouseTrait, DatabaseTrait, WriteMode}
 import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
-
+import java.sql.{Connection, DriverManager, ResultSet}
 import java.util.Properties
+import com.typesafe.scalalogging.LazyLogging
+import pro.datawiki.sparkLoader.transformation.TransformationCache
 
-class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait, DataWarehouseTrait {
-
+class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait, DataWarehouseTrait, LazyLogging {
   override def getDataFrameBySQL(sql: String): DataFrame = {
     SparkObject.spark.sqlContext.read.jdbc(getJdbc, s"""($sql) a """, getProperties)
   }
 
-  override def readDf(location: String,segmentName:String): DataFrame = throw Exception()
-  override def writeDf(location: String, df: DataFrame, columnsLogicKey: List[String], writeMode: WriteMode): Unit = {
+  override def readDf(location: String, segmentName: String): DataFrame = throw Exception()
+
+  override def writeDf(location: String, df: DataFrame, writeMode: WriteMode): Unit = {
     df.write.mode(writeMode.toString).jdbc(getJdbc, location, getProperties)
   }
+
+  override def readDf(location: String): DataFrame = throw Exception()
+
+  override def writeDf(location: String, df: DataFrame, columnsLogicKey: List[String],columns:List[String], writeMode: WriteMode): Unit = {
+    val cache = new TransformationCache(this)
+    cache.saveTable(df)
+
+    var orList:List[String] = List.apply()
+    var joinList:List[String] = List.apply()
+
+    columns.foreach(i => orList = orList.appended(s"   or src.${i} <> tgt.${i}"))
+    columnsLogicKey.foreach(i => joinList = joinList.appended(s"src.${i} = tgt.${i}"))
+    val sql: String =
+      s"""create table ${cache.getLocation}_2 as
+         |with src as (select * from ${location} where valid_to_dttm = to_date('2100','yyyy')),
+         |     tgt as (select * from ${cache.getLocation})
+         |select case when src.${columnsLogicKey.head} is not null then 'Update' else 'Insert' end as update_command,
+         |       now() as new_date,
+         |       tgt.*
+         |  from tgt
+         |  left join src on ${joinList.mkString(" and ")}
+         |where src.${columnsLogicKey.head} is null
+         |${orList.mkString("\n")}
+         |""".stripMargin
+
+    val stm = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
+    stm.execute(sql)
+    val sql2: String =
+      s"""
+         |update ${location} tgt
+         |   set valid_to_dttm = new_date - interval '1 microsecond'
+         |  from ${cache.getLocation}_2 src
+         | where tgt.valid_to_dttm = to_date('2100','yyyy')
+         |   and src.update_command = 'Update'
+         |   and ${joinList.mkString(" and ")}""".stripMargin
+    stm.execute(sql2)
+
+    val sql3: String =
+      s"""
+         |insert into ${location}(${(columnsLogicKey:::columns).mkString(", ")},valid_from_dttm,valid_to_dttm)
+         |select ${(columnsLogicKey:::columns).mkString(", ")}, new_date as valid_from_dttm,to_date('2100','yyyy') as valid_to_dttm
+         |  from ${cache.getLocation}_2
+         |""".stripMargin
+    stm.execute(sql3)
+    stm.execute(s"""drop table ${cache.getLocation}_2""")
+    stm.execute(s"""drop table ${cache.getLocation}""")
+
+  }
+
   override def insertCCdToIdmap(df: DataFrame,
                                 domainName: String,
                                 tenantName: String,
                                 hasRk: Boolean): Unit = {
-    val tempNameDf=s"""${domainName}_${tenantName}_df"""
-    val tempNameMinus=s"""${domainName}_${tenantName}_dfMinus"""
-    
+    val tempNameDf = s"""${domainName}_${tenantName}_df"""
+    val tempNameMinus = s"""${domainName}_${tenantName}_dfMinus"""
+
     df.createTempView(tempNameDf)
     getIdmapDataFrame(domainName = domainName, tenantName = tenantName).createTempView(tempNameMinus)
-    val colList =  hasRk match
-      case true =>  List.apply(s"'$tenantName' as tenant", "df.ccd", "df.rk")
+    val colList = hasRk match
+      case true => List.apply(s"'$tenantName' as tenant", "df.ccd", "df.rk")
       case false => List.apply(s"'$tenantName' as tenant", "df.ccd")
     val sql =
       s"""select ${colList.mkString(", ")}
-        | from $tempNameDf df
-        | left join $tempNameMinus df_minus using (ccd)
-        |where df_minus.rk is null
-        |""".stripMargin
-    
+         | from $tempNameDf df
+         | left join $tempNameMinus df_minus using (ccd)
+         |where df_minus.rk is null
+         |""".stripMargin
+
     val df2 = SparkObject.spark.sql(sql)
     df2.show()
     df2.write.mode("append").jdbc(getJdbc, domainName, getProperties)
@@ -56,6 +107,7 @@ class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTr
     return s"jdbc:postgresql://${db.host}:${db.port}/${db.database}"
   }
 
+  var conn: Connection = DriverManager.getConnection(getJdbc, getProperties)
   def getJdbc: String = {
     if configYaml.server.replica != null then {
       configYaml.server.replica.foreach(i => {
@@ -63,6 +115,9 @@ class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTr
       })
     }
     return getJdbcDb(configYaml.server.master)
+  }
+  override def close():Unit = {
+    conn.close()
   }
 }
 

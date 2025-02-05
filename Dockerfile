@@ -46,8 +46,11 @@ ENV PATH=${PATH}:$JAVA_HOME/bin
 ENV JAVA_OPTS='--add-exports java.base/sun.nio.ch=ALL-UNNAMED'
 #ENV SBT_OPTS='-Xmx4G'
 
-#COPY . /source/
-#RUN cd /source/
-#RUN sbt build
+RUN yum install -y openssh-server
+RUN echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+RUN echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
 
+RUN echo 'Docker!' | passwd --stdin root
+
+#ENTRYPOINT [ "sh", "-c"]
 CMD ["/usr/sbin/init"]

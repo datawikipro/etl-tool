@@ -15,6 +15,6 @@ case class YamlConfigTemplateGetText(
                      ) extends LogicClass {
   
   def getSubElements(webElement: WebElement): KeyValue = {
-     return KeyValue(parameter, webElement.getText)
+     return KeyValue(parameter, SeleniumString(webElement.getText))
   }
 }

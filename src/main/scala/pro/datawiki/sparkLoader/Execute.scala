@@ -1,8 +1,8 @@
 package pro.datawiki.sparkLoader
 
 import org.apache.spark.sql.DataFrame
-import pro.datawiki.sparkLoader.configuration.{EltConfig, SegmentationEnum, YamlConfigConnections, YamlConfigSource, YamlConfigTransformation}
-import pro.datawiki.sparkLoader.connection.{Connection, ConnectionTrait}
+import pro.datawiki.sparkLoader.configuration.{EltConfig, SegmentationEnum, YamlConfigConnections, YamlConfigSource, YamlConfigTarget, YamlConfigTransformation}
+import pro.datawiki.sparkLoader.connection.{Connection, ConnectionTrait, WriteMode}
 import pro.datawiki.sparkLoader.source.Source
 import pro.datawiki.sparkLoader.target.Target
 import pro.datawiki.sparkLoader.transformation.{Transformation, TransformationCache, TransformationIdMap}
@@ -17,7 +17,7 @@ object Execute {
   }
 
   def setCache(in: String): Unit = {
-    TransformationCache.setCache(in)
+    TransformationCache.setBaseCache(in)
   }
 
   def setTarget(in: String): Unit = {
@@ -45,10 +45,10 @@ object Execute {
       case _ => throw Exception()
   }
 
-  def writeTarget(targetFile: String, columnsLogicKey: List[String]): Unit = {
-    columnsLogicKey.isEmpty match
-      case true => Target.writeTarget(targetFile)
-      case false => Target.writeTarget(targetFile, columnsLogicKey)
+  def writeTarget(target: YamlConfigTarget): Unit = {
+    target.uniqueKey.isEmpty match
+      case true => Target.writeTarget(target.targetFile,target.getMode)
+      case false => Target.writeTarget(target.targetFile, target.uniqueKey,target.getColumns,target.getMode)
 
   }
 

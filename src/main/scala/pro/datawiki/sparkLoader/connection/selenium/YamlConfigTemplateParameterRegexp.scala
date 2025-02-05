@@ -19,7 +19,7 @@ case class YamlConfigTemplateParameterRegexp(
     if result.head.groupCount != parameters.length then throw Exception()
 
     for (a <- parameters.indices) {
-      lst = lst :+ KeyValue(parameters(a), result.head.group(a + 1))
+      lst = lst :+ KeyValue(parameters(a), SeleniumString(result.head.group(a + 1)))
     }
 
     return lst

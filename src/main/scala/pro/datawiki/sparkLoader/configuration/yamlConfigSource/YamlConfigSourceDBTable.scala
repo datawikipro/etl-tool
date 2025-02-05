@@ -1,6 +1,6 @@
 package pro.datawiki.sparkLoader.configuration.yamlConfigSource
 
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Row}
 import pro.datawiki.sparkLoader.configuration.yamlConfigSource.yamlConfigSourceDBTable.YamlConfigSourceDBTableColumn
 import pro.datawiki.sparkLoader.configuration.{RunConfig, YamlConfigSourceTrait}
 import pro.datawiki.sparkLoader.connection.{Connection, ConnectionTrait, DatabaseTrait}
@@ -8,7 +8,7 @@ import pro.datawiki.sparkLoader.connection.{Connection, ConnectionTrait, Databas
 case class YamlConfigSourceDBTable(
                                     tableSchema: String,
                                     tableName: String,
-                                    tableColumns: List[YamlConfigSourceDBTableColumn],
+                                    tableColumns: List[YamlConfigSourceDBTableColumn] = List.apply(),
                                     partitionKey: String
                                   ) extends YamlConfigSourceTrait {
   def getColumnNames: List[String] = {
@@ -24,10 +24,17 @@ case class YamlConfigSourceDBTable(
     var df: DataFrame = null
     src match
       case x: DatabaseTrait =>
-        return x.getDataFrameBySQL(
-          s"""select ${getColumnNames.mkString(",")}
-             |  from ${tableSchema}.${tableName}
-             |  """.stripMargin)
+        getColumnNames.isEmpty match
+          case true =>
+            return x.getDataFrameBySQL(
+              s"""select *
+                 |  from ${tableSchema}.${tableName}
+                 |  """.stripMargin)
+          case false =>
+            return x.getDataFrameBySQL(
+              s"""select ${getColumnNames.mkString(",")}
+                 |  from ${tableSchema}.${tableName}
+                 |  """.stripMargin)
       case _ => throw Exception()
   }
 
@@ -36,11 +43,18 @@ case class YamlConfigSourceDBTable(
 
     var df: DataFrame = null
     src match
-      case x: DatabaseTrait =>
-        return x.getDataFrameBySQL(
-          s"""select ${getColumnNames.mkString(",")}
-             |  from ${tableSchema}.${tableName}
-             | where $partitionKey = ${RunConfig.getPartition}""".stripMargin)
+      case x: DatabaseTrait => {
+        getColumnNames.isEmpty match
+          case false => return x.getDataFrameBySQL(
+            s"""select ${getColumnNames.mkString(",")}
+               |  from ${tableSchema}.${tableName}
+               | where $partitionKey = ${RunConfig.getPartition}""".stripMargin)
+          case true => return x.getDataFrameBySQL(
+            s"""select *
+               |  from ${tableSchema}.${tableName}
+               | where $partitionKey = ${RunConfig.getPartition}""".stripMargin)
+      }
+
       case _ => throw Exception()
   }
 
@@ -52,5 +66,15 @@ case class YamlConfigSourceDBTable(
     }
   }
 
-  override def getSegments(connection: ConnectionTrait): List[String] = throw Exception()
+  override def getDataFrameSegmentation(sourceName: String, segmentName: String): DataFrame = {
+    throw Exception()
+  }
+
+  override def getDataFrameAdHoc(sourceName: String, adHoc: Row): DataFrame = {
+    throw Exception()
+  }
+
+  override def getSegments(connection: ConnectionTrait): List[String] = {
+    throw Exception()
+  }
 }

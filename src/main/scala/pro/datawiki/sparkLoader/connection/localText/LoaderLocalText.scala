@@ -3,7 +3,7 @@ package pro.datawiki.sparkLoader.connection.localText
 import org.apache.spark.sql.DataFrame
 import pro.datawiki.sparkLoader.SparkObject.spark
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DataWarehouseTrait, WriteMode}
-import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
+import pro.datawiki.sparkLoader.{LogMode, SparkObject, YamlClass}
 
 class LoaderLocalText(configYaml: YamlConfig) extends ConnectionTrait, DataWarehouseTrait {
 
@@ -12,8 +12,10 @@ class LoaderLocalText(configYaml: YamlConfig) extends ConnectionTrait, DataWareh
       case null => SparkObject.spark.read.text(s"${configYaml.folder}/$location")
       case _ => SparkObject.spark.read.text(s"${configYaml.folder}/$location/$segmentName")
 
-    df.printSchema()
-    df.show()
+    if LogMode.isDebug then {
+      df.printSchema()
+      df.show()
+    }
     return df
   }
 
@@ -21,12 +23,19 @@ class LoaderLocalText(configYaml: YamlConfig) extends ConnectionTrait, DataWareh
     df.write.mode(writeMode.toString).text(s"${configYaml.folder}/${location}")
   }
 
+  override def readDf(location: String): DataFrame = throw Exception()
+
+  override def writeDf(location: String, df: DataFrame, columnsLogicKey: List[String],columns:List[String], writeMode: WriteMode): Unit = throw Exception()
+
   def readFile(location: String): String = {
     val df = SparkObject.spark.read.textFile(s"${configYaml.folder}/$location")
-    df.printSchema()
-    df.show()
+    if LogMode.isDebug then {
+      df.printSchema()
+      df.show()
+    }
     return ""
   }
+
 }
 
 object LoaderLocalText  extends YamlClass {

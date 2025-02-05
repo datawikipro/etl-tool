@@ -3,7 +3,7 @@ package pro.datawiki.sparkLoader.connection.kafka
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.avro.*
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, QueryTrait}
-import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
+import pro.datawiki.sparkLoader.{LogMode, SparkObject, YamlClass}
 
 class LoaderKafka(configYaml: YamlConfig) extends ConnectionTrait, QueryTrait {
   override def getDataFrameFromTopic(topic: String): DataFrame = {
@@ -25,8 +25,10 @@ class LoaderKafka(configYaml: YamlConfig) extends ConnectionTrait, QueryTrait {
 
       //.option("mode", "DROPMALFORMED")
       .load()
+    if LogMode.isDebug then {
+      df.printSchema()
       df.show()
-    df.printSchema()
+    }
 
 //    val jsonFormatSchema = new String(Files.readAllBytes(Paths.get("conf/webhook.avsc")))
 //    val jmap = new java.util.HashMap[String, String]()

@@ -15,10 +15,14 @@ object Source {
         df = src.getDataFrame(sourceName = source.getSourceName)
       }
       case SegmentationEnum.adHoc => {
-        val cache = new TransformationCache()
+        val cache:TransformationCache = TransformationCache.apply()
         source.getAdhocRow.foreach(i=> {
-          val res =src.getDataFrameAdHoc(sourceName = source.getSourceName, adHoc = i)
-          cache.saveTable(res)
+          //try {
+            val res =src.getDataFrameAdHoc(sourceName = source.getSourceName, adHoc = i)
+            cache.saveTable(res)
+          //} catch
+          //  case _ => println("Skip")
+          
         })
         df = cache.readTable
       }

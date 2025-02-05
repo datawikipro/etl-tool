@@ -10,6 +10,9 @@ class YamlClass {
   val mapper: ObjectMapper = new ObjectMapper(new YAMLFactory())
   mapper.registerModule(DefaultScalaModule)
   
-  def getLines(inConfig:String):String = Files.readString(Paths.get(inConfig))
+  def getLines(inConfig:String):String = {
+    val a = Files.readString(Paths.get(inConfig))
+    return a
+  }
   
 }

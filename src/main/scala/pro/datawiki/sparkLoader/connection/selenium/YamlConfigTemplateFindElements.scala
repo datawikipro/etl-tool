@@ -24,25 +24,25 @@ case class YamlConfigTemplateFindElements(
       case _ => return true
   }
 
-  def getSubElements(webElement: WebElement): (List[KeyValue]) = {
+  def getSubElements(webElement: WebElement): SeleniumList = {
     var elems = webElement.findElements(by.getBy).asScala.toList
     //TODO
     if filter.isElementId then {
        elems = List.apply(elems(filter.getElementId))
     }
-    var seleniumSplitResult: List[List[KeyValue]] = List.apply()
-    var seleniumResult: List[KeyValue] = List.apply()
+    var seleniumSplitResult:SeleniumArray = SeleniumArray.apply()
+    var seleniumResult: SeleniumList = SeleniumList.apply()
 
     elems.foreach(elem => {
-      val keyValueResult: List[KeyValue] = ProcessElement.processTemplates(webElement = elem, template = template,filter = filter, action=action)
+      val keyValueResult: SeleniumList = ProcessElement.processTemplates(webElement = elem, template = template,filter = filter, action=action)
       isSplitResult match
-        case true => seleniumSplitResult = seleniumSplitResult :+ keyValueResult
-        case false => seleniumResult = seleniumResult ::: keyValueResult
+        case true => seleniumSplitResult.appendElement(keyValueResult) 
+        case false => seleniumResult.appendElements(keyValueResult)
     })
     if isSplitResult then {
-      return List.apply(KeyValue(splitResult,seleniumSplitResult))
+      return SeleniumList(List.apply(KeyValue(splitResult, seleniumSplitResult)))
     }
-    return (seleniumResult)
+    return seleniumResult
 
   }
 }

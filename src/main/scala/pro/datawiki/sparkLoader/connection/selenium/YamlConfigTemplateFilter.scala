@@ -27,11 +27,15 @@ class YamlConfigTemplateFilter(
     return true
   }
 
-  def checkRegexp(in:List[KeyValue]): Boolean = {
-    in.foreach(i=>
+  def checkRegexp(in:SeleniumList): Boolean = {
+    in.getList.foreach(i=>
       if i.key == varName then {
         val pattern1: Regex = s"${regexp}".r
-        return pattern1.matches(i.value.toString)
+        val res = i.value match
+          case x: SeleniumString => x.getValue
+          case _=> throw Exception()
+        val tst = pattern1.matches(res)
+        return tst
       }
     )
     return false

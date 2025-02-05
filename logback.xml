@@ -1,0 +1,5 @@
+<configuration>
+    <logger name="com.amazonaws" level="ERROR"/>
+    <logger name="org.apache" level="ERROR" />
+    <logger name="httpclient" level="ERROR" />
+</configuration>

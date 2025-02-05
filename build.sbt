@@ -8,7 +8,9 @@ ThisBuild / scalaVersion := "3.4.2"
 
 lazy val root = (project in file("."))
   .settings(
-    name := "etl-tool"
+    name := "etl-tool",
+    assembly / assemblyJarName := "etl-tool.jar",
+    assembly / mainClass := Some("pro.datawiki.sparkLoader.sparkRun"),
   )
 assemblyMergeStrategy in assembly := {
   case PathList("META-INF", xs @ _*) =>
@@ -23,17 +25,17 @@ assemblyMergeStrategy in assembly := {
   case _ => MergeStrategy.first
 }
 
-assembly / mainClass := Some("pro.datawiki.sparkLoader.sparkRun")
 val sparkVersion = "3.4.4"
 val hadoopVersion = "3.4.1"
 val jacksonDataformatVersion = "2.18.2"
 val json4sVersion = "3.7.0-M11"
-val awsSdkVersion = "1.12.779"
-val postgresqlVersion = "42.7.4"
-val clickhouseVersion = "0.6.5"
+val awsSdkVersion = "1.12.780"
+val postgresqlVersion = "42.7.5"
+val clickhouseVersion = "0.6.4"
+
 val mysqlVersion = "8.0.33"
 val jodaTimeVersion = "2.13.0"
-val ioMinioVersion =  "8.5.14"
+val ioMinioVersion =  "8.5.17"
 
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion,
@@ -63,7 +65,7 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonDataformatVersion,
   "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" %jacksonDataformatVersion ,
   "com.lihaoyi" %% "os-lib" % "0.11.3",
-  "com.github.mwiede" % "jsch" % "0.2.21",
+  "com.github.mwiede" % "jsch" % "0.2.22",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5"
 )
 libraryDependencies ++= Seq(
@@ -73,7 +75,8 @@ libraryDependencies ++= Seq(
   "io.minio" % "minio" % ioMinioVersion,
 )
 libraryDependencies ++= Seq(
-  "org.seleniumhq.selenium" % "selenium-java" % "4.27.0"
+  "org.seleniumhq.selenium" % "selenium-java" % "4.28.0",
+  "com.softwaremill.sttp.client4" %% "core" % "4.0.0-M25"
 )
 
 dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % jacksonDataformatVersion

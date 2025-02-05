@@ -16,7 +16,7 @@ class YamlConfigTemplateFindElement(
                                      action: String
                                    ) {
 
-  def getSubElements(webElement: WebElement): (List[KeyValue]) = {
+  def getSubElements(webElement: WebElement): SeleniumList = {
     try {
       val elem = webElement.findElement(by.getBy)
       val keyValueResult = ProcessElement.processTemplates(webElement = elem, template = template, action = action)
@@ -24,7 +24,7 @@ class YamlConfigTemplateFindElement(
     }
     catch
       case _ => {
-        if ignoreError then return List.apply()
+        if ignoreError then return SeleniumList.apply()
         throw Exception()
       }
   }

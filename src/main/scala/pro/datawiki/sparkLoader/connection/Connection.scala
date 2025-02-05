@@ -1,6 +1,7 @@
 package pro.datawiki.sparkLoader.connection
 
 import pro.datawiki.sparkLoader.connection.clickhouse.LoaderClickHouse
+import pro.datawiki.sparkLoader.connection.jsonApi.LoaderJsonApi
 import pro.datawiki.sparkLoader.connection.kafka.LoaderKafka
 import pro.datawiki.sparkLoader.connection.kafkaMSK.LoaderKafkaMSK
 import pro.datawiki.sparkLoader.connection.kafkaSaslSSL.LoaderKafkaSaslSSL
@@ -44,6 +45,7 @@ object Connection {
       case "localJson" => LoaderLocalJson(configLocation)
       case "localParquet" => LoaderLocalParquet(configLocation)
       case "selenium" => LoaderSelenium(configLocation)
+      case "jsonApi" => LoaderJsonApi(configLocation)
       case _ =>
         throw Exception()
   }

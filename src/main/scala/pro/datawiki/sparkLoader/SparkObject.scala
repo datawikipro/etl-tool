@@ -11,8 +11,14 @@ object SparkObject extends LazyLogging  {
   //conf.set("spark.executor.heartbeatInterval", "20000")
   //conf.set("spark.network.timeout", "30000")
   println("--------------------Start session------------------------------------")
-  val spark = SparkSession.builder().appName("helloSpark").config(conf).master("local[*]").getOrCreate()
-  spark.sparkContext.setLogLevel("WARN")
+  val spark = SparkSession.builder().
+    appName("helloSpark").
+    config(conf).
+    master("local[1]").
+    //master("spark://10.5.0.151:7077").
+    getOrCreate()
+  spark.sparkContext.setLogLevel("ERROR")
+  
   println("--------------------Start end session------------------------------------")
   
   def setHadoopConfiguration(key:String,value:String):Unit={

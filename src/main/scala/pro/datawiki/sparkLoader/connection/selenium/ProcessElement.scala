@@ -6,8 +6,8 @@ object ProcessElement {
   
   private def processTemplate(webElement: WebElement,
                               template: YamlConfigTemplate
-                      ): (List[KeyValue]) = {
-    val keyValueResult: List[KeyValue] = template.getSubElements(webElement)
+                      ): SeleniumList = {
+    val keyValueResult: SeleniumList = template.getSubElements(webElement)
     return keyValueResult
   }
 
@@ -15,15 +15,18 @@ object ProcessElement {
                        template: List[YamlConfigTemplate],
                        filter: YamlConfigTemplateFilter = YamlConfigTemplateFilter(elementId = null, varName = null, regexp = null),
                        action: String
-                     ): List[KeyValue] = {
-    var keyValueResult: List[KeyValue] = List.apply()
+                     ): SeleniumList = {
+    var keyValueResult: SeleniumList = SeleniumList.apply()
+    if filter.isRegexp then {
+println("a")
+    }
     template.foreach(i => {
-      keyValueResult = keyValueResult ::: processTemplate(webElement = webElement, template = i)
+      keyValueResult.appendElements(processTemplate(webElement = webElement, template = i))
     })
 
     if filter.isRegexp then {
       if !filter.checkRegexp(keyValueResult) then {
-        return List.apply()
+        return SeleniumList.apply()
       }
     }
 

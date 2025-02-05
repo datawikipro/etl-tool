@@ -15,7 +15,7 @@ case class YamlConfigTemplateGetDomAttribute(
                                               parameter: YamlConfigTemplateParameter
                                             ) extends LogicClass {
 
-  def getSubElements(webElement: WebElement): List[KeyValue] = {
+  def getSubElements(webElement: WebElement): SeleniumList = {
     val result: String = webElement.getDomAttribute(value)
     return parameter.getParametersResult(result)
   }

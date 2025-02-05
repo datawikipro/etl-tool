@@ -5,53 +5,44 @@ import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.{ArrayType, Metadata, StructField, StructType}
 
 class YamlConfig(
-                 url: String,
-                 actions: List[Any],
-                 schema: List[YamlConfigSchemaColumn],
-                 template: List[YamlConfigTemplate]
-               ) {
-  def copy:YamlConfig = {
-    new YamlConfig(url=url,      actions= actions,      schema= schema,      template= template)
-  }
-  
-  var modifiedSchema:List[YamlConfigSchemaColumn] = schema
-  var modifiedUrl:String = url
+                  url: String,
+                  schema: List[YamlConfigSchemaColumn],
+                  template: List[YamlConfigTemplate]
+                ) {
+  def getUrl: String = url
 
-  def getUrl:String = modifiedUrl
+  def getInSchema: List[YamlConfigSchemaColumn] = schema
+
   def getTemplate: List[YamlConfigTemplate] = template
+}
 
-  def modifyConfig(key:String, value: String): Unit = {
-    modifiedUrl = modifiedUrl.replace("""${""" + key + """}""", value)
-    var newSchema:List[YamlConfigSchemaColumn] = List.apply()
-    modifiedSchema.foreach(i=> {
-      i.default match
-        case null => newSchema = newSchema :+ YamlConfigSchemaColumn(column = i.column, `type` = i.`type`,subType = i.subType, default = i.default)
-        case _ => newSchema = newSchema :+ YamlConfigSchemaColumn(column = i.column, `type` = i.`type`,subType = i.subType, default = i.default.replace("""${""" + key + """}""", value))
+
+object YamlConfig {
+  def apply(in: YamlConfig,row: Row): YamlConfig = {
+    if row == null then return in
+    
+    var modifiedSchema: List[YamlConfigSchemaColumn] = in.getInSchema
+    var modifiedUrl: String = in.getUrl
+        
+    row.schema.fields.foreach(j => {
+      val key = j.name
+      val value = row.get(row.fieldIndex(j.name)).toString
+      modifiedUrl = modifiedUrl.replace("""${""" + key + """}""", value)
+      var newSchema: List[YamlConfigSchemaColumn] = List.apply()
+      modifiedSchema.foreach(i => {
+        i.getDefault match
+          case null => newSchema = newSchema :+ YamlConfigSchemaColumn(column = i.getColumn, `type` = i.getType, subType = i.getSubType, default = i.getDefault)
+          case _ => newSchema = newSchema :+ YamlConfigSchemaColumn(column = i.getColumn, `type` = i.getType, subType = i.getSubType, default = i.getDefault.replace("""${""" + key + """}""", value))
+      })
+      modifiedSchema = newSchema
     })
-    modifiedSchema = newSchema
+    
+    return new YamlConfig(url = modifiedUrl, schema = modifiedSchema, template = in.getTemplate)
+
+
   }
 
-  def convertToSchema(in: List[KeyValue]): Row = {
-    var lst: List[Any] = List.apply()
-    if modifiedSchema == null then {
-      throw Exception()
-    }
-    modifiedSchema.foreach(i => {
-      lst = lst :+ i.getColumnByListKeyValue(in)
-    })
-    val tst = Row.apply(lst: _*)
+  def modifyConfig(modifiedUrl: String,modifiedSchema: List[YamlConfigSchemaColumn],key: String, value: String): Unit = {
 
-    return tst
-  }
-
-  def getSchema: StructType = {
-    var lst: List[StructField] = List.apply()
-    modifiedSchema.foreach(i => {
-      lst = lst :+ i.getStructField
-    })
-
-    val sch = StructType(lst)
-
-    return sch
   }
 }

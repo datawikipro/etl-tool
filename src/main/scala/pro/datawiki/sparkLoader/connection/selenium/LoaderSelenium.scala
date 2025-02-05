@@ -5,7 +5,7 @@ import org.openqa.selenium.chrome.{ChromeDriver, ChromeOptions}
 import org.openqa.selenium.{By, WebDriver, WebElement}
 import pro.datawiki.sparkLoader.connection.ConnectionTrait
 import pro.datawiki.sparkLoader.connection.selenium.LoaderSelenium.getWebDriver
-import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
+import pro.datawiki.sparkLoader.{LogMode, SparkObject, YamlClass}
 
 import java.time.Duration
 
@@ -13,36 +13,31 @@ import java.time.Duration
 class LoaderSelenium(configYaml: YamlConfig) extends ConnectionTrait {
 
   def run(row: Row): DataFrame = {
-    var newConfigYaml: YamlConfig = configYaml.copy
-    if row != null then {
-      row.schema.fields.foreach(i => {
-        newConfigYaml.modifyConfig(i.name, row.get(row.fieldIndex(i.name)).toString)
-      })
-    }
-
+    var df: DataFrame = null
     val webDriver = getWebDriver
     //Open web application
-
+    val newConfigYaml = YamlConfig.apply(in = configYaml, row = row)
     webDriver.get(newConfigYaml.getUrl)
     webDriver.manage.timeouts.implicitlyWait(Duration.ofSeconds(5))
 
     val html: WebElement = webDriver.findElement(By.tagName("html"))
-    var result: List[KeyValue] = List.apply()
-    //try {
-      newConfigYaml.getTemplate.foreach(i => {
-        val a = i.getSubElements(html)
-        result = result ::: a
-      })
-    //} catch
-//      case _ => println("skip")
-    val list: Seq[Row] = Seq.apply(newConfigYaml.convertToSchema(result))
+    val result: SeleniumList = SeleniumList.apply()
 
-    val rowsRDD = SparkObject.spark.sparkContext.parallelize(list)//.map(Row.fromSeq)
+    newConfigYaml.getTemplate.foreach(i => result.appendElements(i.getSubElements(html)))
 
-    val df: DataFrame = SparkObject.spark.createDataFrame(rowsRDD, newConfigYaml.getSchema)
-    df.printSchema()
-    df.show()
+
+    val sparkRow = SparkRow.apply(result, newConfigYaml)
+    val rowsRDD = SparkObject.spark.sparkContext.parallelize(Seq.apply(sparkRow.getRow))
+    df = SparkObject.spark.createDataFrame(rowsRDD, sparkRow.getSchema)
+    if LogMode.isDebug then {
+      df.printSchema()
+      df.show()
+    }
     return df
+  }
+
+  override def close(): Unit = {
+    LoaderSelenium.close()
   }
 }
 
@@ -53,14 +48,10 @@ object LoaderSelenium extends YamlClass {
   }
 
   var webDriver: WebDriver = null
-  var pageStart = 0
 
   def getWebDriver: WebDriver = {
-    pageStart += 1
-    println(pageStart)
     if webDriver != null then {
       sequenceId = 0
-      Thread.sleep(2000)
       return webDriver
     }
     val options = new ChromeOptions();
@@ -68,9 +59,9 @@ object LoaderSelenium extends YamlClass {
     options.addArguments("--disable-gpu")
     options.addArguments("--no-sandbox")
     options.addArguments("--window-size=1400,800")
+    options.addArguments("--disable-dev-shm-usage")
+    options.addArguments("--shm-size=2g")
     webDriver = ChromeDriver(options);
-    //Creating webdriver instance
-    webDriver.manage.timeouts.implicitlyWait(Duration.ofSeconds(5))
     return webDriver
   }
 
@@ -79,5 +70,10 @@ object LoaderSelenium extends YamlClass {
   def getId: Int = {
     sequenceId += 1
     return sequenceId
+  }
+
+  def close(): Unit = {
+    if webDriver == null then return
+    webDriver.close()
   }
 }

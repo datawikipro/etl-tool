@@ -20,7 +20,7 @@ case class YamlConfigTemplate(
                                getText: YamlConfigTemplateGetText,
                              ) extends LogicClass {
 
-  def getSubElements(webElement: WebElement): (List[KeyValue]) = {
+  def getSubElements(webElement: WebElement): SeleniumList = {
     reset()
     setLogic(findElement)
     setLogic(findElements)
@@ -30,7 +30,7 @@ case class YamlConfigTemplate(
       case x: YamlConfigTemplateFindElement => return x.getSubElements(webElement)
       case x: YamlConfigTemplateFindElements => return x.getSubElements(webElement)
       case x: YamlConfigTemplateGetDomAttribute => return x.getSubElements(webElement)
-      case x: YamlConfigTemplateGetText => return List(x.getSubElements(webElement))
+      case x: YamlConfigTemplateGetText => return SeleniumList.applyByKeyValue(x.getSubElements(webElement))
       case _ => throw Exception()
     //  val box = webDriver.findElement(By.className("rt-Grid"))
     //  val list: List[WebElement] = box.findElements(By.tagName("a")).asScala.toList
