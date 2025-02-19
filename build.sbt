@@ -31,11 +31,12 @@ val jacksonDataformatVersion = "2.18.2"
 val json4sVersion = "3.7.0-M11"
 val awsSdkVersion = "1.12.780"
 val postgresqlVersion = "42.7.5"
-val clickhouseVersion = "0.6.4"
+val clickhouseVersion = "0.7.2"
 
 val mysqlVersion = "8.0.33"
 val jodaTimeVersion = "2.13.0"
 val ioMinioVersion =  "8.5.17"
+val googleApiVersion = "33.0.0"
 
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion,
@@ -78,5 +79,9 @@ libraryDependencies ++= Seq(
   "org.seleniumhq.selenium" % "selenium-java" % "4.28.0",
   "com.softwaremill.sttp.client4" %% "core" % "4.0.0-M25"
 )
+libraryDependencies ++= Seq(
+  "com.google.api-ads" % "google-ads" % googleApiVersion,
+)
+
 
 dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % jacksonDataformatVersion

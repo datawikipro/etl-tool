@@ -1,8 +1,7 @@
 package pro.datawiki.sparkLoader
 
-import org.apache.spark.sql.DataFrame
-import pro.datawiki.sparkLoader.configuration.{EltConfig, SegmentationEnum, YamlConfigConnections, YamlConfigSource, YamlConfigTarget, YamlConfigTransformation}
-import pro.datawiki.sparkLoader.connection.{Connection, ConnectionTrait, WriteMode}
+import pro.datawiki.sparkLoader.configuration.{EltConfig, SegmentationEnum, YamlConfigConnections, YamlConfigTarget}
+import pro.datawiki.sparkLoader.connection.Connection
 import pro.datawiki.sparkLoader.source.Source
 import pro.datawiki.sparkLoader.target.Target
 import pro.datawiki.sparkLoader.transformation.{Transformation, TransformationCache, TransformationIdMap}

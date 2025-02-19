@@ -1,8 +1,6 @@
 services:
   scala:
     image: datawiki/etl-tool:0.2
-#    build:
-#      context: .
     privileged: true
     container_name: scala
     volumes:

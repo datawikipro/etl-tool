@@ -6,7 +6,7 @@ import pro.datawiki.sparkLoader.connection.{ConnectionTrait, QueryTrait}
 import pro.datawiki.sparkLoader.{LogMode, SparkObject, YamlClass}
 
 class LoaderKafka(configYaml: YamlConfig) extends ConnectionTrait, QueryTrait {
-  override def getDataFrameFromTopic(topic: String): DataFrame = {
+  override def getDataFrameBatchFromTopic(topic: String): DataFrame = {
     val df = SparkObject.spark
       .read
       .format("kafka")

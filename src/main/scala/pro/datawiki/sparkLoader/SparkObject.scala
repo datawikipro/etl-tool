@@ -18,7 +18,7 @@ object SparkObject extends LazyLogging  {
     //master("spark://10.5.0.151:7077").
     getOrCreate()
   spark.sparkContext.setLogLevel("ERROR")
-  
+
   println("--------------------Start end session------------------------------------")
   
   def setHadoopConfiguration(key:String,value:String):Unit={

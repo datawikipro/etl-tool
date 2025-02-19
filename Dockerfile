@@ -2,8 +2,9 @@ FROM amazonlinux
 
 RUN mkdir /opt/jars/
 COPY .cache /root/.cache
+COPY config /root/config
 
-RUN yum install -y wget passwd tar java
+RUN yum install -y wget passwd tar java-17-amazon-corretto
 RUN yum update -y
 ## Support
 RUN yum install -y mc vim file htop
@@ -29,9 +30,6 @@ ENV SPARK_LOCAL_HOSTNAME=localhost
 ENV JAVA_HOME=/usr/lib/jvm/java-23-amazon-corretto/
 ENV PATH=${PATH}:$JAVA_HOME/bin
 ENV JAVA_OPTS='--add-exports java.base/sun.nio.ch=ALL-UNNAMED'
-## Google chrome
-COPY docker/google.repo /etc/yum.repos.d/google-chrome.repo
-RUN yum install -y google-chrome
 ## SSH connect
 RUN yum install -y openssh-server
 RUN echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
@@ -39,6 +37,7 @@ RUN sed -i -e 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ss
 
 RUN echo 'Docker!' | passwd --stdin root
 ## Install App
+RUN echo 'Docker!' | passwd --stdin root
 RUN wget https://github.com/datawikipro/etl-tool/archive/refs/heads/main.zip
 RUN yum install -y unzip
 RUN unzip main.zip
@@ -809,5 +808,11 @@ RUN ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/javax/activatio
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/apache/zookeeper/zookeeper/3.8.4/zookeeper-3.8.4.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/apache/zookeeper/zookeeper-jute/3.8.4/zookeeper-jute-3.8.4.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/github/luben/zstd-jni/1.5.2-5/zstd-jni-1.5.2-5.jar /opt/jars/
+## Google chrome
+COPY docker/google.repo /etc/yum.repos.d/google-chrome.repo
+RUN yum install -y google-chrome
+## Compile
+RUN cd /opt/etl-tool
+#RUN sbt compile package
 
 CMD ["/usr/sbin/init"]

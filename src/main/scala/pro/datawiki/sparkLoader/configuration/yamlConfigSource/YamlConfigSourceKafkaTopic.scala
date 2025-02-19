@@ -13,7 +13,7 @@ case class YamlConfigSourceKafkaTopic(
     val src = Connection.getConnection(sourceName)
     src match
       case x: QueryTrait => {
-        return x.getDataFrameFromTopic(topic)
+        return x.getDataFrameBatchFromTopic(topic)
       }
       case _ => throw Exception()
   }

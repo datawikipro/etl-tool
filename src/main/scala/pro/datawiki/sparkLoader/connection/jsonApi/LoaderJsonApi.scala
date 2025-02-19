@@ -1,32 +1,38 @@
 package pro.datawiki.sparkLoader.connection.jsonApi
 
+import org.apache.hadoop.classification.InterfaceAudience.Private
+import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.{DataFrame, Row}
 import pro.datawiki.sparkLoader.connection.ConnectionTrait
-import pro.datawiki.sparkLoader.connection.localJson.LoaderLocalJson
 import pro.datawiki.sparkLoader.transformation.TransformationCache
-import pro.datawiki.sparkLoader.{LogMode, SparkObject, YamlClass}
+import pro.datawiki.sparkLoader.{LogMode, YamlClass}
 import sttp.client4.*
-import org.apache.spark.sql.functions.lit
 
 class LoaderJsonApi(in: YamlConfig) extends ConnectionTrait {
-  private val localCache: TransformationCache = new TransformationCache(LoaderLocalJson("config/unico/connection/local.yaml"))
+  private var cache: TransformationCache = null
 
-  def getValue(in:String, row: Row):String ={
+  @Private
+  def localCache: TransformationCache = {
+    if cache == null then cache = TransformationCache()
+    return cache
+  }
+
+  def getValue(in: String, row: Row): String = {
     var result: String = in
     if row != null then {
-      row.schema.fields.foreach(j => 
-        result = result.replace("""${""" + j.name + """}""", row.get(row.fieldIndex(j.name)).toString))
+      row.schema.fields.foreach(j =>
+        result = result.replace(s"""$${${j.name}}""", row.get(row.fieldIndex(j.name)).toString))
     }
     return result
   }
-  
+
   def run(row: Row): DataFrame = {
     val backend = DefaultSyncBackend()
-    val request = basicRequest
-    in.cookies.foreach(i=> {
-      request.cookie(i.key,getValue(i.value,row))
+    var request = basicRequest
+    in.cookies.foreach(i => {
+      request = request.cookie(i.key, getValue(i.value, row))
     })
-    val response = request.get(uri = uri"${getValue(in.getUrl,row)}").send(backend)
+    val response = request.get(uri = uri"${getValue(in.getUrl, row)}").send(backend)
 
     val resTxt = response.body match {
       case Left(e) => throw Exception(s"Got response exception:\n$e")

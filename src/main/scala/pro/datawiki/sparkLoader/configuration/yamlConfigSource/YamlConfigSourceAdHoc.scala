@@ -12,6 +12,7 @@ class YamlConfigSourceAdHoc(
                              columnId: List[String]
                            ) {
   def getAdhocRow: List[Row] = {
-    return SparkObject.spark.sql(s"select ${columnId.mkString(",")} from $sourceObjectName").collect().toList
+    val sql = s"select ${columnId.mkString(",")} from $sourceObjectName"
+    return SparkObject.spark.sql(sql).collect().toList
   }
 }

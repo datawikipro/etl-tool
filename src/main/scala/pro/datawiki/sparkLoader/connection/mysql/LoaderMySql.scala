@@ -12,6 +12,7 @@ import pro.datawiki.sparkLoader.transformation.TransformationIdMap
 import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
 
 import java.nio.file.{Files, Paths}
+import java.sql.Connection
 import java.util.Properties
 
 class LoaderMySql(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait {
@@ -83,6 +84,8 @@ class LoaderMySql(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait
     return getJdbcDb(configYaml.server.master, configYaml.gateway)
   }
 
+  @Override
+  def getConnection: Connection = {throw Exception()}
   def writeDF(df: DataFrame,
               columns: List[YamlConfigTargetColumn],
               ccdColumnName: String,

@@ -5,7 +5,8 @@ import scala.reflect.io.File
 case class YamlConfig(
                   url: String,
                   schema: YamlConfigSchema,
-                  cookies: List[KeyValue] = List.apply()   
+                  apiToken: String,   
+                  cookies: List[KeyValue] = List.apply()
                 ) {
   def getUrl: String = url
   //def getSchema:String = schema.getSchema

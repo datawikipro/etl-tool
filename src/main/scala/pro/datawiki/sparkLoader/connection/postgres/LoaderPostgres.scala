@@ -10,7 +10,10 @@ import pro.datawiki.sparkLoader.transformation.TransformationCache
 
 class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait, DataWarehouseTrait, LazyLogging {
   override def getDataFrameBySQL(sql: String): DataFrame = {
-    SparkObject.spark.sqlContext.read.jdbc(getJdbc, s"""($sql) a """, getProperties)
+    val df = SparkObject.spark.sqlContext.read.jdbc(getJdbc, s"""($sql) a """, getProperties)
+    df.printSchema()
+    df.show()
+    return df
   }
 
   override def readDf(location: String, segmentName: String): DataFrame = throw Exception()
@@ -43,7 +46,7 @@ class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTr
          |${orList.mkString("\n")}
          |""".stripMargin
 
-    val stm = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
+    val stm = getConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
     stm.execute(sql)
     val sql2: String =
       s"""
@@ -106,8 +109,15 @@ class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTr
   private def getJdbcDb(db: YamlServerHost): String = {
     return s"jdbc:postgresql://${db.host}:${db.port}/${db.database}"
   }
+  
+  var connection: Connection = null
 
-  var conn: Connection = DriverManager.getConnection(getJdbc, getProperties)
+  @Override
+  def getConnection: Connection = {
+    if connection == null then connection = DriverManager.getConnection(getJdbc, getProperties)
+    return connection
+  }
+
   def getJdbc: String = {
     if configYaml.server.replica != null then {
       configYaml.server.replica.foreach(i => {
@@ -116,8 +126,9 @@ class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTr
     }
     return getJdbcDb(configYaml.server.master)
   }
+  
   override def close():Unit = {
-    conn.close()
+    getConnection.close()
   }
 }
 

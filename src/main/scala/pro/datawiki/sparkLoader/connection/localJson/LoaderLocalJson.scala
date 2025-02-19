@@ -11,7 +11,6 @@ import java.io.File
 class LoaderLocalJson(configYaml: YamlConfig) extends ConnectionTrait, DataWarehouseTrait, FileSystemTrait {
   
   def saveRaw(in:String,location: String):Unit={
-    
     reflect.io.File(s"${configYaml.folder}/${location.replace(".","/")}").writeAll(in)
   }
   
