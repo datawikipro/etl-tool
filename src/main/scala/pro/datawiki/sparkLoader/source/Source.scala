@@ -6,6 +6,8 @@ import pro.datawiki.sparkLoader.transformation.TransformationCache
 
 object Source {
 
+  var isEmpty = true
+
   def run(source: YamlConfigSource, segmentName: String): Unit = {
     val src = source.getSource
     var df: DataFrame = null
@@ -19,11 +21,14 @@ object Source {
         val rows = source.getAdhocRow
         if rows.isEmpty then throw Exception()
         rows.foreach(i => {
-          //try {
-          val res = src.getDataFrameAdHoc(sourceName = source.getSourceName, adHoc = i)
-          cache.saveTable(res)
-          //} catch
-          //  case _ => println("Skip")
+          try {
+            val tmp = src.getDataFrameAdHoc(sourceName = source.getSourceName, adHoc = i)
+            val res: DataFrame = tmp._1
+            val partition: String = tmp._2
+
+            cache.saveTable(res)
+          } catch
+            case _ => println("Skip")
 
         })
         df = cache.readTable

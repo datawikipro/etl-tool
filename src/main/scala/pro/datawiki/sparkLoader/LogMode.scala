@@ -1,5 +1,9 @@
 package pro.datawiki.sparkLoader
 
 object LogMode {
-  def isDebug: Boolean = true
+  var isDebug: Boolean = false
+  def setDebug(in:Boolean):Unit = {
+    isDebug = in
+  } 
+  
 }

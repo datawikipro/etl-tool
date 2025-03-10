@@ -45,10 +45,7 @@ object Execute {
   }
 
   def writeTarget(target: YamlConfigTarget): Unit = {
-    target.uniqueKey.isEmpty match
-      case true => Target.writeTarget(target.targetFile,target.getMode)
-      case false => Target.writeTarget(target.targetFile, target.uniqueKey,target.getColumns,target.getMode)
-
+      target.writeTarget()
   }
 
 }

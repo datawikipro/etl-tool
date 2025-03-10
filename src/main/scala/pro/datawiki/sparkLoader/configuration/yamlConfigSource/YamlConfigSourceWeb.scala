@@ -10,7 +10,7 @@ import pro.datawiki.sparkLoader.source.Source
 case class YamlConfigSourceWeb(
                                      run: String
                                    ) extends YamlConfigSourceTrait {
-  override def getDataFrameAdHoc(sourceName: String, adHoc: Row): DataFrame = {
+  override def getDataFrameAdHoc(sourceName: String, adHoc: Row): (DataFrame, String) = {
     val src = Connection.getConnection(sourceName)
     src match
       case x: LoaderSelenium => return x.run(adHoc)
@@ -18,12 +18,13 @@ case class YamlConfigSourceWeb(
       case _ => throw Exception()
   }
   
-  override def getDataFrame(sourceName: String): DataFrame = {
+  override def getDataFrame(sourceName: String):  DataFrame = {
     val src = Connection.getConnection(sourceName)
-    src match
-      case x: LoaderSelenium => return x.run(null)
-      case x: LoaderJsonApi => return x.run(null)
+    val a =src match
+      case x: LoaderSelenium => x.run(null)
+      case x: LoaderJsonApi => x.run(null)
       case _ => throw Exception()
+    return a._1 
   }
 
   override def getSegments(connection: ConnectionTrait): List[String] = throw Exception()

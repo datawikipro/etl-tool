@@ -1,6 +1,7 @@
 package pro.datawiki.sparkLoader.configuration.yamlConfigTransformation
 
 import org.apache.spark.sql.DataFrame
+import pro.datawiki.sparkLoader.LogMode
 import pro.datawiki.sparkLoader.configuration.YamlConfigTransformationTrait
 import pro.datawiki.sparkLoader.connection.{Connection, DatabaseTrait}
 
@@ -12,7 +13,10 @@ case class YamlConfigTransformationOutputSql(
     val df: DataFrame = Connection.getConnection(sourceName) match
       case x: DatabaseTrait => x.getDataFrameBySQL(s"${sql}")
       case _ => throw Exception()
-    df.show()
+    if LogMode.isDebug then {
+      df.printSchema()
+      df.show()
+    }
     return df
   }
 

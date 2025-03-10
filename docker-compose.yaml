@@ -1,11 +1,11 @@
 services:
   scala:
-    image: datawiki/etl-tool:0.2
+    image: datawiki/etl-tool:0.3.4
     privileged: true
     container_name: scala
     volumes:
       - .:/source/
-      - ./.sbt:/root/.sbt
-      - ./.cache:/root/.cache
+#      - ./.sbt:/root/.sbt
+#      - ./.cache:/root/.cache
     #ports:
     #  - '22:22'

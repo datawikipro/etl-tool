@@ -1,14 +1,15 @@
 package pro.datawiki.sparkLoader.connection.minIo.minioBase
 
 import com.typesafe.scalalogging.LazyLogging
-import io.minio.{BucketExistsArgs, MakeBucketArgs, MinioClient, UploadObjectArgs}
+import io.minio.{BucketExistsArgs, CopyObjectArgs, CopySource, ListObjectsArgs, MakeBucketArgs, MinioClient, RemoveObjectArgs, UploadObjectArgs}
 import pro.datawiki.sparkLoader.SparkObject
-import pro.datawiki.sparkLoader.connection.ConnectionTrait
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, WriteMode}
 
 import java.io.File
 import java.net.{InetSocketAddress, Socket}
 
 class LoaderMinIo(configYaml: YamlConfig) extends ConnectionTrait, LazyLogging {
+
   val minioClient: MinioClient = MinioClient.builder()
     .endpoint(getMinIoHost)
     .credentials(getAccessKey, getSecretKey)
@@ -26,8 +27,30 @@ class LoaderMinIo(configYaml: YamlConfig) extends ConnectionTrait, LazyLogging {
 
       minioClient.uploadObject(UploadObjectArgs.builder().`object`(location).bucket(configYaml.bucket).filename(inLocation).build())
     } finally {
-      new File (location).delete()
+      new File(location).delete()
     }
+  }
+
+  def moveTablePartition(sourceSchema: String, oldTable: String, newTable: String, partitionName: List[String], writeMode: WriteMode): Boolean = {
+
+    // Список объектов в исходной папке
+    val listArgs = ListObjectsArgs.builder()
+      .bucket(sourceSchema)
+      .prefix(oldTable)
+      .recursive(true)
+      .build()
+
+    val objects = minioClient.listObjects(listArgs)
+    objects.forEach { result =>
+      val sourceObject = result.get().objectName()
+      val destinationObject = newTable + sourceObject.stripPrefix(oldTable)
+      val copySource = CopySource.builder().bucket(sourceSchema).`object`(sourceObject).build()
+      val copyArgs = CopyObjectArgs.builder().source(copySource).bucket(configYaml.bucket).`object`(destinationObject).build()
+      minioClient.copyObject(copyArgs)
+      val removeArgs = RemoveObjectArgs.builder().bucket(sourceSchema).`object`(sourceObject).build()
+      minioClient.removeObject(removeArgs)
+    }
+    return true
   }
 
   def modifySpark(): Unit = {

@@ -24,9 +24,15 @@ class LoaderLocalJson(configYaml: YamlConfig) extends ConnectionTrait, DataWareh
     return df
   }
 
-  override def writeDf(location: String, df: DataFrame, writeMode: WriteMode): Unit = {
+  override def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = {
     df.write.mode(writeMode.toString).json(s"${configYaml.folder}/${location.replace(".","/")}")
   }
+
+  override def writeDfPartitionDirect(df: DataFrame,location: String, partitionName: List[String], partitionValue: List[String], writeMode: WriteMode): Unit = {
+    writeDf(df, s"$location/$partitionName", writeMode)
+  }
+
+  override def writeDfPartitionAuto(df: DataFrame, location: String, partitionName: List[String], writeMode: WriteMode): Unit =  throw Exception()
 
   override def getSegments(location: String): List[String] = {
     val file = new File(s"${configYaml.folder}/${location.replace(".","/")}")
@@ -34,7 +40,8 @@ class LoaderLocalJson(configYaml: YamlConfig) extends ConnectionTrait, DataWareh
     return list
   }
 
-  override def writeDf(location: String, df: DataFrame, columnsLogicKey: List[String],columns:List[String], writeMode: WriteMode): Unit = throw Exception()
+  override def moveTablePartition(oldTableSchema: String, oldTable: String, newTableSchema: String, newTable: String, partitionName: List[String], writeMode: WriteMode): Boolean = throw Exception()
+  override def writeDf(df: DataFrame, location: String, columnsLogicKey: List[String],columns:List[String], writeMode: WriteMode): Unit = throw Exception()
 }
 
 object LoaderLocalJson extends YamlClass {

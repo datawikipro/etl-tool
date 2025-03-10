@@ -1,4 +1,4 @@
-FROM amazonlinux
+FROM amazonlinux:2023
 
 RUN mkdir /opt/jars/
 COPY .cache /root/.cache
@@ -27,7 +27,7 @@ RUN mv scala3-3.4.2 /opt/scala
 ENV SCALA_HOME=/opt/scala
 ENV PATH=${PATH}:$SCALA_HOME/bin
 ENV SPARK_LOCAL_HOSTNAME=localhost
-ENV JAVA_HOME=/usr/lib/jvm/java-23-amazon-corretto/
+ENV JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto/
 ENV PATH=${PATH}:$JAVA_HOME/bin
 ENV JAVA_OPTS='--add-exports java.base/sun.nio.ch=ALL-UNNAMED'
 ## SSH connect
@@ -36,8 +36,7 @@ RUN echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 RUN sed -i -e 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
 
 RUN echo 'Docker!' | passwd --stdin root
-## Install App
-RUN echo 'Docker!' | passwd --stdin root
+# Install App
 RUN wget https://github.com/datawikipro/etl-tool/archive/refs/heads/main.zip
 RUN yum install -y unzip
 RUN unzip main.zip
@@ -514,7 +513,6 @@ RUN ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/javax/activatio
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/vladsch/flexmark/flexmark-util-sequence/0.62.2/flexmark-util-sequence-0.62.2.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/vladsch/flexmark/flexmark-util-visitor/0.62.2/flexmark-util-visitor-0.62.2.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/geny_3/1.1.1/geny_3-1.1.1.jar /opt/jars/  &&\
-    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/code/gson/gson/2.9.0/gson-2.9.0.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/guava/guava/33.4.0-jre/guava-33.4.0-jre.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/inject/guice/4.2.3/guice-4.2.3.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/apache/hadoop/hadoop-annotations/3.4.1/hadoop-annotations-3.4.1.jar /opt/jars/  &&\
@@ -538,9 +536,7 @@ RUN ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/javax/activatio
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/glassfish/hk2/hk2-api/2.6.1/hk2-api-2.6.1.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/glassfish/hk2/hk2-locator/2.6.1/hk2-locator-2.6.1.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/glassfish/hk2/hk2-utils/2.6.1/hk2-utils-2.6.1.jar /opt/jars/  &&\
-    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/apache/httpcomponents/httpclient/4.5.13/httpclient-4.5.13.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/apache/httpcomponents/client5/httpclient5/5.2.1/httpclient5-5.2.1.jar /opt/jars/  &&\
-    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/apache/httpcomponents/httpcore/4.4.13/httpcore-4.4.13.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/apache/httpcomponents/core5/httpcore5/5.2.4/httpcore5-5.2.4.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/apache/httpcomponents/core5/httpcore5-h2/5.2.4/httpcore5-h2-5.2.4.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/apache/ivy/ivy/2.5.1/ivy-2.5.1.jar /opt/jars/  &&\
@@ -726,9 +722,7 @@ RUN ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/javax/activatio
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/codehaus/plexus/plexus-component-annotations/1.5.5/plexus-component-annotations-1.5.5.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/codehaus/plexus/plexus-utils/3.0.22/plexus-utils-3.0.22.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/postgresql/postgresql/42.7.5/postgresql-42.7.5.jar /opt/jars/  &&\
-    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/protobuf/protobuf-java/3.21.9/protobuf-java-3.21.9.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/net/sf/py4j/py4j/0.10.9.7/py4j-0.10.9.7.jar /opt/jars/  &&\
-    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/re2j/re2j/1.1/re2j-1.1.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/ch/qos/reload4j/reload4j/1.2.22/reload4j-1.2.22.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/roaringbitmap/RoaringBitmap/0.9.47/RoaringBitmap-0.9.47.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/rocksdb/rocksdbjni/7.9.2/rocksdbjni-7.9.2.jar /opt/jars/  &&\
@@ -807,12 +801,58 @@ RUN ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/javax/activatio
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/tukaani/xz/1.9/xz-1.9.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/apache/zookeeper/zookeeper/3.8.4/zookeeper-3.8.4.jar /opt/jars/  &&\
     ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/apache/zookeeper/zookeeper-jute/3.8.4/zookeeper-jute-3.8.4.jar /opt/jars/  &&\
-    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/github/luben/zstd-jni/1.5.2-5/zstd-jni-1.5.2-5.jar /opt/jars/
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/github/luben/zstd-jni/1.5.2-5/zstd-jni-1.5.2-5.jar /opt/jars/ &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/android/annotations/4.1.1.4/annotations-4.1.1.4.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/api/api-common/2.34.0/api-common-2.34.0.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/api/gax/2.51.0/gax-2.51.0.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/api/gax-grpc/2.51.0/gax-grpc-2.51.0.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/api/grpc/proto-google-common-protos/2.42.0/proto-google-common-protos-2.42.0.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/api-ads/google-ads/33.0.0/google-ads-33.0.0.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/api-ads/google-ads-codegen/33.0.0/google-ads-codegen-33.0.0.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/api-ads/google-ads-stubs-lib/33.0.0/google-ads-stubs-lib-33.0.0.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/api-ads/google-ads-stubs-v16/33.0.0/google-ads-stubs-v16-33.0.0.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/api-ads/google-ads-stubs-v17/33.0.0/google-ads-stubs-v17-33.0.0.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/auth/google-auth-library-credentials/1.24.0/google-auth-library-credentials-1.24.0.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/auth/google-auth-library-oauth2-http/1.24.0/google-auth-library-oauth2-http-1.24.0.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/auto/auto-common/1.2/auto-common-1.2.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/auto/service/auto-service/1.0.1/auto-service-1.0.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/auto/value/auto-value-annotations/1.10.4/auto-value-annotations-1.10.4.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/code/gson/gson/2.10.1/gson-2.10.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/http-client/google-http-client/1.44.2/google-http-client-1.44.2.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/http-client/google-http-client-gson/1.44.2/google-http-client-gson-1.44.2.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/protobuf/protobuf-java/3.25.3/protobuf-java-3.25.3.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/protobuf/protobuf-java-util/3.25.3/protobuf-java-util-3.25.3.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/google/re2j/re2j/1.7/re2j-1.7.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/com/squareup/javapoet/1.11.1/javapoet-1.11.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/grpc/grpc-alts/1.65.1/grpc-alts-1.65.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/grpc/grpc-api/1.65.1/grpc-api-1.65.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/grpc/grpc-auth/1.65.1/grpc-auth-1.65.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/grpc/grpc-context/1.65.1/grpc-context-1.65.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/grpc/grpc-core/1.65.1/grpc-core-1.65.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/grpc/grpc-googleapis/1.65.1/grpc-googleapis-1.65.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/grpc/grpc-grpclb/1.65.1/grpc-grpclb-1.65.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/grpc/grpc-inprocess/1.65.1/grpc-inprocess-1.65.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/grpc/grpc-netty-shaded/1.65.1/grpc-netty-shaded-1.65.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/grpc/grpc-protobuf/1.65.1/grpc-protobuf-1.65.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/grpc/grpc-protobuf-lite/1.65.1/grpc-protobuf-lite-1.65.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/grpc/grpc-services/1.65.1/grpc-services-1.65.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/grpc/grpc-stub/1.65.1/grpc-stub-1.65.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/grpc/grpc-util/1.65.1/grpc-util-1.65.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/grpc/grpc-xds/1.65.1/grpc-xds-1.65.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/opencensus/opencensus-api/0.31.1/opencensus-api-0.31.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/opencensus/opencensus-contrib-http-util/0.31.1/opencensus-contrib-http-util-0.31.1.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/opencensus/opencensus-proto/0.2.0/opencensus-proto-0.2.0.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/io/perfmark/perfmark-api/0.26.0/perfmark-api-0.26.0.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/javax/annotation/javax.annotation-api/1.3.2/javax.annotation-api-1.3.2.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/apache/httpcomponents/httpclient/4.5.14/httpclient-4.5.14.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/apache/httpcomponents/httpcore/4.4.16/httpcore-4.4.16.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/codehaus/mojo/animal-sniffer-annotations/1.23/animal-sniffer-annotations-1.23.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/conscrypt/conscrypt-openjdk-uber/2.5.2/conscrypt-openjdk-uber-2.5.2.jar /opt/jars/  &&\
+    ln -sf /root/.cache/coursier/v1/https/repo1.maven.org/maven2/org/threeten/threetenbp/1.6.9/threetenbp-1.6.9.jar /opt/jars/
 ## Google chrome
 COPY docker/google.repo /etc/yum.repos.d/google-chrome.repo
 RUN yum install -y google-chrome
 ## Compile
-RUN cd /opt/etl-tool
-#RUN sbt compile package
+RUN cd /opt/etl-tool; sbt compile package
 
 CMD ["/usr/sbin/init"]

@@ -20,7 +20,7 @@ case class YamlConfigSourceKafkaTopic(
 
   override def getDataFrameSegmentation(sourceName: String, segmentName: String): DataFrame = throw Exception()
 
-  override def getDataFrameAdHoc(sourceName: String, adHoc: Row): DataFrame = throw Exception()
+  override def getDataFrameAdHoc(sourceName: String, adHoc: Row): (DataFrame, String) = throw Exception()
   
   override def getSegments(connection: ConnectionTrait): List[String] = throw Exception()
 }

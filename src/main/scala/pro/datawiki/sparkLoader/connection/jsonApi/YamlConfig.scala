@@ -1,14 +1,19 @@
 package pro.datawiki.sparkLoader.connection.jsonApi
 
-import scala.reflect.io.File
-
 case class YamlConfig(
                   url: String,
-                  schema: YamlConfigSchema,
-                  apiToken: String,   
+                  schemas: List[YamlConfigSchema] = List.apply(),
+                  apiToken: String,
                   cookies: List[KeyValue] = List.apply()
                 ) {
   def getUrl: String = url
-  //def getSchema:String = schema.getSchema
-  def getSchemaFile:String = schema.getSchemaFile
+
+  def getSchemaByDataFrame(df: String):String = {
+    if schemas.isEmpty then return null
+    schemas.foreach(i=>{
+      val result = i.getSchemaByDataFrame(df)
+      if result != null then return result
+    })
+    throw Exception()
+  }
 }

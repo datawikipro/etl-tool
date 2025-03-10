@@ -2,16 +2,21 @@ package pro.datawiki.sparkLoader.transformation
 
 import org.apache.spark.sql.DataFrame
 import pro.datawiki.sparkLoader
+import pro.datawiki.sparkLoader.connection.WriteMode.overwrite
 import pro.datawiki.sparkLoader.connection.localJson.LoaderLocalJson
+import pro.datawiki.sparkLoader.connection.minIo.minioBase.LoaderMinIo
 import pro.datawiki.sparkLoader.connection.minIo.minioJson.LoaderMinIoJson
-import pro.datawiki.sparkLoader.connection.{Connection, DataWarehouseTrait, WriteMode}
+import pro.datawiki.sparkLoader.connection.{Connection, DataWarehouseTrait, DatabaseTrait, WriteMode}
 
 import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
 class TransformationCache(connect: DataWarehouseTrait) {
 
-  val location: String = s"${Random.alphanumeric.filter(_.isLetter).take(16).mkString}"
+  val location: String = connect match
+    case x: LoaderMinIo => s"${Random.alphanumeric.filter(_.isLetter).take(16).mkString}"
+    case x: DatabaseTrait => s"tmp.${Random.alphanumeric.filter(_.isLetter).take(16).mkString}"
+    case _ => throw Exception()
 
   def getLocation: String = location
 
@@ -23,7 +28,16 @@ class TransformationCache(connect: DataWarehouseTrait) {
   }
 
   def saveTable(in: DataFrame): Unit = {
-    connect.writeDf(location, in, WriteMode.append)
+    connect.writeDf(in, location, WriteMode.append)
+  }
+
+  def saveTablePartitionAuto(df: DataFrame,
+                             partitionName: List[String]): Unit = {
+    connect.writeDfPartitionAuto(df, location, partitionName, overwrite)
+  }
+
+  def moveTablePartition(targetSchema: String, targetLocation: String, partitionName: List[String]): Boolean = {
+    connect.moveTablePartition(targetSchema, location, targetSchema, targetLocation, partitionName, overwrite)
   }
 
   def readTable: DataFrame = {

@@ -35,12 +35,16 @@ class LoaderMinIoParquet(configYaml: YamlConfig) extends LoaderMinIo(configYaml)
   }
 
   @Override
-  def writeDf(location: String, df: DataFrame, writeMode: WriteMode): Unit = {
+  def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = {
     df.write.mode(writeMode.toString).parquet(s"s3a://${configYaml.bucket}/${location.replace(".", "/")}/")
   }
 
+  override def writeDfPartitionDirect(df: DataFrame,location: String, partitionName: List[String], partitionValue: List[String], writeMode: WriteMode): Unit = {
+    writeDf(df, s"$location/$partitionName", writeMode)
+  }
+  override def writeDfPartitionAuto(df: DataFrame, location: String, partitionName: List[String], writeMode: WriteMode): Unit =  throw Exception()
   @Override
-  def writeDf(location: String, df: DataFrame, columnsLogicKey: List[String], columns: List[String], writeMode: WriteMode): Unit = throw Exception()
+  def writeDf(df: DataFrame, location: String, columnsLogicKey: List[String], columns: List[String], writeMode: WriteMode): Unit = throw Exception()
 
   @Override
   def getSegments(location: String): List[String] = {

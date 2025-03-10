@@ -19,13 +19,17 @@ class LoaderLocalText(configYaml: YamlConfig) extends ConnectionTrait, DataWareh
     return df
   }
 
-  override def writeDf(location: String, df: DataFrame, writeMode: WriteMode): Unit = {
+  override def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = {
     df.write.mode(writeMode.toString).text(s"${configYaml.folder}/${location}")
   }
 
+  override def writeDfPartitionDirect(df: DataFrame,location: String, partitionName: List[String], partitionValue: List[String], writeMode: WriteMode): Unit = {
+    writeDf(df, s"$location/$partitionName", writeMode)
+  }
+  override def writeDfPartitionAuto(df: DataFrame, location: String, partitionName: List[String], writeMode: WriteMode): Unit =  throw Exception()
   override def readDf(location: String): DataFrame = throw Exception()
 
-  override def writeDf(location: String, df: DataFrame, columnsLogicKey: List[String],columns:List[String], writeMode: WriteMode): Unit = throw Exception()
+  override def writeDf(df: DataFrame, location: String, columnsLogicKey: List[String],columns:List[String], writeMode: WriteMode): Unit = throw Exception()
 
   def readFile(location: String): String = {
     val df = SparkObject.spark.read.textFile(s"${configYaml.folder}/$location")

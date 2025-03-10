@@ -32,7 +32,6 @@ val json4sVersion = "3.7.0-M11"
 val awsSdkVersion = "1.12.780"
 val postgresqlVersion = "42.7.5"
 val clickhouseVersion = "0.7.2"
-
 val mysqlVersion = "8.0.33"
 val jodaTimeVersion = "2.13.0"
 val ioMinioVersion =  "8.5.17"
@@ -64,7 +63,8 @@ libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-java-sdk-glue" % awsSdkVersion,
 
   "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonDataformatVersion,
-  "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" %jacksonDataformatVersion ,
+  "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" %jacksonDataformatVersion,
+
   "com.lihaoyi" %% "os-lib" % "0.11.3",
   "com.github.mwiede" % "jsch" % "0.2.22",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5"

@@ -14,8 +14,22 @@ case class YamlConfigSourceFileSystem(
   override def getDataFrame(sourceName: String): DataFrame = {
     val src = Connection.getConnection(sourceName)
     src match
-      case x: DataWarehouseTrait =>
-        return x.readDf(tableName)
+      case x: DataWarehouseTrait => {
+        var df: DataFrame = x.readDf(s"$tableName")
+        df.show()
+
+        df = RunConfig.getPartition match
+          case "All" => df
+          case _ => df.filter(s"""run_id='${RunConfig.getPartition}'""")
+        df.show()
+
+        df = RunConfig.getSubPartition match
+          case null => df
+          case _ => df.filter(s"""batch_id='${RunConfig.getSubPartition}'""")
+        df.show()
+
+        return df
+      }
       case _ => throw Exception()
   }
 
@@ -23,11 +37,13 @@ case class YamlConfigSourceFileSystem(
     val src = Connection.getConnection(sourceName)
     src match
       case x: DataWarehouseTrait =>
-        return x.readDf(tableName, segmentName)
+        RunConfig.getPartition match
+          case "All" => return x.readDf(s"$tableName", segmentName)
+          case _ =>  return x.readDf(s"$tableName/${RunConfig.getPartition}/", segmentName)
       case _ => throw Exception()
   }
 
-  override def getDataFrameAdHoc(sourceName: String, adHoc: Row): DataFrame = {
+  override def getDataFrameAdHoc(sourceName: String, adHoc: Row): (DataFrame, String) = {
     throw Exception()
   }
   

@@ -13,7 +13,7 @@ case class YamlConfigTransformationSparkSql(
     val df: DataFrame = SparkObject.spark.sql(sql)
     if LogMode.isDebug then {
       df.printSchema()
-      df.show(200)
+      df.show()
     }
     return df
   }

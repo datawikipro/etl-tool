@@ -22,10 +22,14 @@ class LoaderLocalParquet(configYaml: YamlConfig) extends ConnectionTrait, DataWa
     return df
   }
   
-  override def writeDf(location: String, df: DataFrame, writeMode: WriteMode): Unit = {
+  override def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = {
     df.write.mode(writeMode.toString).parquet(s"${configYaml.folder}/${location.replace(".","/")}")
   }
 
+  override def writeDfPartitionDirect(df: DataFrame,location: String, partitionName: List[String], partitionValue: List[String], writeMode: WriteMode): Unit = {
+    writeDf(df, s"$location/$partitionName", writeMode)
+  }
+  override def writeDfPartitionAuto(df: DataFrame, location: String, partitionName: List[String], writeMode: WriteMode): Unit =  throw Exception()
   override def getSegments(location: String): List[String] = {
     val file = new File(s"${configYaml.folder}/${location}")
     val list =  file.listFiles.filter(_.isFile).map(_.getPath).toList
@@ -34,7 +38,7 @@ class LoaderLocalParquet(configYaml: YamlConfig) extends ConnectionTrait, DataWa
 
   override def readDf(location: String): DataFrame = throw Exception()
 
-  override def writeDf(location: String, df: DataFrame, columnsLogicKey: List[String],columns:List[String], writeMode: WriteMode): Unit = throw Exception()
+  override def writeDf(df: DataFrame, location: String, columnsLogicKey: List[String],columns:List[String], writeMode: WriteMode): Unit = throw Exception()
 }
 
 object LoaderLocalParquet  extends YamlClass {

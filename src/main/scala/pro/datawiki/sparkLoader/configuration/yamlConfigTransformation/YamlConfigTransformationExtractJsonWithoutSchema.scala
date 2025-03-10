@@ -90,7 +90,7 @@ case class YamlConfigTransformationExtractJsonWithoutSchema(
     columns.foreach(i => selectedColumns = selectedColumns ::: getSelectColumn("", i, df.schema.fields.toList))
 
     val fields: Array[StructField] = schema.fields
-    val df2 = df.select(selectedColumns: _*)
+    val df2 = df.select(selectedColumns*)
 //    df2.printSchema()
 //    df2.show()
     return df2

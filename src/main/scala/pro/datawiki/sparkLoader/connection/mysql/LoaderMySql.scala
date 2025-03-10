@@ -97,7 +97,7 @@ class LoaderMySql(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait
         cols1 = cols1.appended(i.columnName)
     })
     
-    df.select(cols1.map(col): _*).createTempView("newRow")
+    df.select(cols1.map(col)*).createTempView("newRow")
     
     getDataFrameBySQL(s"select ${columnsLogicKey.mkString(", ")} from $targetFile").createTempView("indb")
     
@@ -123,9 +123,9 @@ class LoaderMySql(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait
     val targetDf = getDataFrameBySQL(
       s"""select ${ccdColumnName}, ${columnsLogicKey.mkString(",")}
          |  from ${targetFile}""".stripMargin).
-      select(col(s"${ccdColumnName}").as("ccd"), md5(coalesce(columnsLogicKey.map(col): _*)).as("hash"))
+      select(col(s"${ccdColumnName}").as("ccd"), md5(coalesce(columnsLogicKey.map(col)*)).as("hash"))
     targetDf.show()
-    val dfPlusHash = df.select(col(s"${domainName}_rk").as("rk"), md5(coalesce(columnsLogicKey.map(col): _*)).as("hash"))
+    val dfPlusHash = df.select(col(s"${domainName}_rk").as("rk"), md5(coalesce(columnsLogicKey.map(col)*)).as("hash"))
     dfPlusHash.show()
     val res = dfPlusHash.join(targetDf, "hash").filter("rk is not null")
     res.show()

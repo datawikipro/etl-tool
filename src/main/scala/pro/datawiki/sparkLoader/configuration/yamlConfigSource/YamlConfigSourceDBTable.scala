@@ -9,9 +9,10 @@ case class YamlConfigSourceDBTable(
                                     tableSchema: String,
                                     tableName: String,
                                     tableColumns: List[YamlConfigSourceDBTableColumn] = List.apply(),
-                                    partitionKey: String
-                                  ) extends YamlConfigSourceTrait {
-  def getColumnNames: List[String] = {
+                                    partitionKey: String,
+                                    filter: String,
+                                    limit: Int) extends YamlConfigSourceTrait {
+  private def getColumnNames: List[String] = {
     var lst: List[String] = List.empty
     tableColumns.foreach(i =>
       lst = lst.appended(i.columnName)
@@ -19,21 +20,34 @@ case class YamlConfigSourceDBTable(
     return lst
   }
 
+  private def getSQLColumnList:String = {
+    getColumnNames.isEmpty match
+      case true => "*"
+      case false =>getColumnNames.mkString(",")
+  }
+
+  private def getSQLWhere:String = {
+    filter match
+      case null => ""
+      case _ => s"where $filter"
+  }
+
+  private def getSQLLimit: String = {
+    limit match
+      case 0 => ""
+      case _ => s"limit $limit"
+  }
+
   private def getTable(sourceName: String): DataFrame = {
     val src = Connection.getConnection(sourceName)
     var df: DataFrame = null
     src match
       case x: DatabaseTrait =>
-        getColumnNames.isEmpty match
-          case true =>
             return x.getDataFrameBySQL(
-              s"""select *
+              s"""select ${getSQLColumnList}
                  |  from ${tableSchema}.${tableName}
-                 |  """.stripMargin)
-          case false =>
-            return x.getDataFrameBySQL(
-              s"""select ${getColumnNames.mkString(",")}
-                 |  from ${tableSchema}.${tableName}
+                 |  $getSQLWhere
+                 |  $getSQLLimit
                  |  """.stripMargin)
       case _ => throw Exception()
   }
@@ -70,7 +84,7 @@ case class YamlConfigSourceDBTable(
     throw Exception()
   }
 
-  override def getDataFrameAdHoc(sourceName: String, adHoc: Row): DataFrame = {
+  override def getDataFrameAdHoc(sourceName: String, adHoc: Row): (DataFrame, String) = {
     throw Exception()
   }
 

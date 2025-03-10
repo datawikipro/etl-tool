@@ -12,7 +12,7 @@ import java.time.Duration
 
 class LoaderSelenium(configYaml: YamlConfig) extends ConnectionTrait {
 
-  def run(row: Row): DataFrame = {
+  def run(row: Row):  (DataFrame, String) = {
     var df: DataFrame = null
     val webDriver = getWebDriver
     //Open web application
@@ -33,7 +33,7 @@ class LoaderSelenium(configYaml: YamlConfig) extends ConnectionTrait {
       df.printSchema()
       df.show()
     }
-    return df
+    return (df, null)
   }
 
   override def close(): Unit = {
