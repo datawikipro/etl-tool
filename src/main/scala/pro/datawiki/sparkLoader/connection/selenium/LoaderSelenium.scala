@@ -3,6 +3,7 @@ package pro.datawiki.sparkLoader.connection.selenium
 import org.apache.spark.sql.{DataFrame, Row}
 import org.openqa.selenium.chrome.{ChromeDriver, ChromeOptions}
 import org.openqa.selenium.{By, WebDriver, WebElement}
+import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
 import pro.datawiki.sparkLoader.connection.ConnectionTrait
 import pro.datawiki.sparkLoader.connection.selenium.LoaderSelenium.getWebDriver
 import pro.datawiki.sparkLoader.{LogMode, SparkObject, YamlClass}
@@ -12,7 +13,7 @@ import java.time.Duration
 
 class LoaderSelenium(configYaml: YamlConfig) extends ConnectionTrait {
 
-  def run(row: Row):  (DataFrame, String) = {
+  def run(row: Row):  DataFrameTrait = {
     var df: DataFrame = null
     val webDriver = getWebDriver
     //Open web application
@@ -25,7 +26,6 @@ class LoaderSelenium(configYaml: YamlConfig) extends ConnectionTrait {
 
     newConfigYaml.getTemplate.foreach(i => result.appendElements(i.getSubElements(html)))
 
-
     val sparkRow = SparkRow.apply(result, newConfigYaml)
     val rowsRDD = SparkObject.spark.sparkContext.parallelize(Seq.apply(sparkRow.getRow))
     df = SparkObject.spark.createDataFrame(rowsRDD, sparkRow.getSchema)
@@ -33,7 +33,7 @@ class LoaderSelenium(configYaml: YamlConfig) extends ConnectionTrait {
       df.printSchema()
       df.show()
     }
-    return (df, null)
+    return DataFrameOriginal(df)
   }
 
   override def close(): Unit = {

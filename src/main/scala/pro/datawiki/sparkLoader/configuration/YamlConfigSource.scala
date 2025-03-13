@@ -5,6 +5,7 @@ import pro.datawiki.sparkLoader.configuration.SegmentationEnum.{full, random}
 import pro.datawiki.sparkLoader.configuration.parent.LogicClass
 import pro.datawiki.sparkLoader.connection.Connection
 import pro.datawiki.sparkLoader.configuration.yamlConfigSource.{YamlConfigSourceAdHoc, YamlConfigSourceDBSQL, YamlConfigSourceDBTable, YamlConfigSourceFileSystem, YamlConfigSourceKafkaTopic, YamlConfigSourceWeb}
+import pro.datawiki.sparkLoader.transformation.TransformationCacheTrait
 
 class YamlConfigSource(sourceName: String,
                        objectName: String,
@@ -17,6 +18,23 @@ class YamlConfigSource(sourceName: String,
                        adHoc: YamlConfigSourceAdHoc
                       ) extends LogicClass{
 
+  def init():Unit={
+    reset()
+    setLogic(sourceDb)
+    setLogic(sourceSQL)
+    setLogic(sourceFileSystem)
+    setLogic(sourceKafkaTopic)
+    setLogic(sourceWeb)
+  }
+  
+  def getCache: TransformationCacheTrait = {
+    init()
+    super.getLogic match
+      case x: YamlConfigSourceAdHoc => return x.getCache
+      case x: YamlConfigSourceWeb => x.getCache (sourceName)     
+      case _ => throw Exception()
+  }
+  
   def getSourceName: String = sourceName
 
   def getObjectName: String = objectName
@@ -40,12 +58,7 @@ class YamlConfigSource(sourceName: String,
   }
 
   def getSource: YamlConfigSourceTrait = {
-    reset()
-    setLogic(sourceDb)
-    setLogic(sourceSQL)
-    setLogic(sourceFileSystem)
-    setLogic(sourceKafkaTopic)
-    setLogic(sourceWeb)
+    init()
 
     super.getLogic match
       case x:YamlConfigSourceTrait => return x

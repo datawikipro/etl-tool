@@ -16,3 +16,4 @@ object SchemaValidator extends YamlClass{
       case _=> return false
   }
 }
+

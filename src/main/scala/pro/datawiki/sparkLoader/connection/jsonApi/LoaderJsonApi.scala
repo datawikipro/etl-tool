@@ -3,10 +3,11 @@ package pro.datawiki.sparkLoader.connection.jsonApi
 import org.apache.hadoop.classification.InterfaceAudience.Private
 import org.apache.spark.sql.functions.{lit, lit as row}
 import org.apache.spark.sql.{DataFrame, Row}
+import pro.datawiki.datawarehouse.{DataFrameDirty, DataFrameOriginal, DataFrameTrait}
 import pro.datawiki.sparkLoader.configuration.RunConfig
-import pro.datawiki.sparkLoader.connection.Connection.connections
-import pro.datawiki.sparkLoader.connection.ConnectionTrait
-import pro.datawiki.sparkLoader.transformation.TransformationCache
+import pro.datawiki.sparkLoader.connection.Connection
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, FileStorageTrait}
+import pro.datawiki.sparkLoader.transformation.{TransformationCache, TransformationCacheFileStorage, TransformationCacheTrait}
 import pro.datawiki.sparkLoader.{LogMode, YamlClass}
 import sttp.client4.*
 
@@ -15,11 +16,23 @@ import java.time.format.DateTimeFormatter
 import scala.collection.mutable
 
 class LoaderJsonApi(in: YamlConfig) extends ConnectionTrait {
-  private var cache: TransformationCache = null
+  private var cache: TransformationCacheFileStorage = null
 
+  def set(inCache: String): Unit = {
+    val con = Connection.getConnection(inCache)
+     cache = con match
+      case x: FileStorageTrait => TransformationCacheFileStorage(x)
+      case _ => throw Exception()
+  }
+
+  def getCache(sourceName: String):TransformationCacheTrait = {
+    if cache == null then set(sourceName)
+    return cache
+
+  }
   @Private
-  def localCache: TransformationCache = {
-    if cache == null then cache = TransformationCache()
+  def localCache: TransformationCacheFileStorage = {
+    if cache == null then throw Exception()
     return cache
   }
 
@@ -32,7 +45,8 @@ class LoaderJsonApi(in: YamlConfig) extends ConnectionTrait {
     return result
   }
 
-  def run(row: Row): (DataFrame, String) = {
+  def run(row: Row, cache: String): DataFrameTrait = {
+    set(cache)
     var connections: mutable.Map[String, String] = mutable.Map()
     val currentDateTime: LocalDateTime = LocalDateTime.now()
     val nextDateTime: LocalDateTime = LocalDateTime.now().plusDays(1)
@@ -56,19 +70,21 @@ class LoaderJsonApi(in: YamlConfig) extends ConnectionTrait {
       case Left(e) => throw Exception(s"Got response exception:\n$e")
       case Right(r) => r
     }
-    val partition = in.getSchemaByDataFrame(resTxt)
+    val schema = in.getSchemaByDataFrame(resTxt)
     localCache.saveRaw(resTxt)
     var df: DataFrame = localCache.readTable
     if row != null then {
       row.schema.fields.foreach(j => df = df.withColumn(j.name, lit(connections(s"$${${j.name}}"))))
     }
     df = df.withColumn("run_id", lit(RunConfig.getPartition))
-
     if LogMode.isDebug then {
       df.printSchema()
       df.show()
     }
-    return (df, partition)
+    if schema != null then {
+      return new DataFrameDirty(schema, df)
+    }
+    return DataFrameOriginal(df)
   }
 }
 

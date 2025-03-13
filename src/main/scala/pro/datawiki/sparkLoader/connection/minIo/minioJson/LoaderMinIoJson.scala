@@ -3,13 +3,16 @@ package pro.datawiki.sparkLoader.connection.minIo.minioJson
 import org.apache.spark.sql.DataFrame
 import pro.datawiki.sparkLoader.connection.WriteMode.overwrite
 import pro.datawiki.sparkLoader.connection.minIo.minioBase.{LoaderMinIo, YamlConfig}
-import pro.datawiki.sparkLoader.connection.{DataWarehouseTrait, FileSystemTrait, WriteMode}
-import pro.datawiki.sparkLoader.transformation.TransformationCache
+import pro.datawiki.sparkLoader.connection.{DataWarehouseTrait, FileStorageTrait, WriteMode}
+import pro.datawiki.sparkLoader.transformation.{TransformationCache, TransformationCacheFileStorage}
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
+import org.apache.spark.sql.functions.lit
 
-class LoaderMinIoJson(configYaml: YamlConfig) extends LoaderMinIo(configYaml), DataWarehouseTrait, FileSystemTrait {
+class LoaderMinIoJson(configYaml: YamlConfig) extends LoaderMinIo(configYaml), DataWarehouseTrait, FileStorageTrait {
 
-  private val cache: TransformationCache = new TransformationCache(this)
+  private val cache: TransformationCacheFileStorage = new TransformationCacheFileStorage(this)
+
+  override def getFolder(location: String): List[String] = super.getFolder(configYaml.bucket,location)
 
   @Override
   def readDf(location: String, segmentName: String): DataFrame = {
@@ -24,8 +27,21 @@ class LoaderMinIoJson(configYaml: YamlConfig) extends LoaderMinIo(configYaml), D
 
   @Override
   def readDf(location: String): DataFrame = {
-    val df: DataFrame = SparkObject.spark.read.json(s"s3a://${configYaml.bucket}/$location")
+    val df: DataFrame = SparkObject.spark.read.json(super.getLocation(location = location))
 
+    if LogMode.isDebug then {
+      df.printSchema()
+      df.show()
+    }
+    return df
+  }
+
+  override def readDf(location: String, keyPartitions: List[String], valuePartitions: List[String]): DataFrame = {
+    var df: DataFrame = SparkObject.spark.read.json(super.getLocation(location = location, keyPartitions = keyPartitions, valuePartitions = valuePartitions))
+
+    keyPartitions.zipWithIndex.foreach { case (value, index) =>
+      df = df.withColumn(keyPartitions(index), lit(valuePartitions(index)))
+    }
     if LogMode.isDebug then {
       df.printSchema()
       df.show()
@@ -47,19 +63,19 @@ class LoaderMinIoJson(configYaml: YamlConfig) extends LoaderMinIo(configYaml), D
   @Override
   def writeDfPartitionAuto(df: DataFrame, location: String, partitionName: List[String], writeMode: WriteMode): Unit = {
     if writeMode == overwrite then {
-      df.orderBy(partitionName.head,partitionName*).write.partitionBy(partitionName*).mode(writeMode.toString).json(s"s3a://${configYaml.bucket}/${location.replace(".", "/")}/")
-      return 
+      df.orderBy(partitionName.head, partitionName *).write.partitionBy(partitionName *).mode(writeMode.toString).json(s"s3a://${configYaml.bucket}/${location.replace(".", "/")}/")
+      return
     }
     cache.saveTablePartitionAuto(df = df, partitionName = partitionName)
-    cache.moveTablePartition(configYaml.bucket,s"${location.replace(".", "/")}/",partitionName)
+    cache.moveTablePartition(configYaml.bucket, s"${location.replace(".", "/")}/", partitionName)
   }
 
   @Override
-  override def moveTablePartition(oldTableSchema: String, oldTable: String, newTableSchema: String, newTable: String, partitionName: List[String], writeMode: WriteMode): Boolean={
-  super.moveTablePartition(oldTableSchema,oldTable,newTable,partitionName,writeMode)
+  override def moveTablePartition(oldTableSchema: String, oldTable: String, newTableSchema: String, newTable: String, partitionName: List[String], writeMode: WriteMode): Boolean = {
+    super.moveTablePartition(oldTableSchema, oldTable, newTable, partitionName, writeMode)
   }
-  
-  
+
+
   @Override
   def writeDf(df: DataFrame, location: String, columnsLogicKey: List[String], columns: List[String], writeMode: WriteMode): Unit = throw Exception()
 

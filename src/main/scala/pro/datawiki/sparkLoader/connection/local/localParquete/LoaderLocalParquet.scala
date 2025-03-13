@@ -1,14 +1,15 @@
-package pro.datawiki.sparkLoader.connection.localParquete
+package pro.datawiki.sparkLoader.connection.local.localParquete
 
 import org.apache.spark.sql.DataFrame
 import pro.datawiki.sparkLoader.SparkObject.spark
-import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DataWarehouseTrait, FileSystemTrait, WriteMode}
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DataWarehouseTrait, FileStorageTrait, WriteMode}
 import pro.datawiki.sparkLoader.{LogMode, SparkObject, YamlClass}
 
 import java.io.File
 import com.typesafe.scalalogging.LazyLogging
+import pro.datawiki.sparkLoader.connection.local.localBase.{LoaderLocalBase, YamlConfig}
 
-class LoaderLocalParquet(configYaml: YamlConfig) extends ConnectionTrait, DataWarehouseTrait, FileSystemTrait, LazyLogging {
+class LoaderLocalParquet(configYaml: YamlConfig) extends LoaderLocalBase(configYaml), ConnectionTrait, DataWarehouseTrait, FileStorageTrait, LazyLogging {
 
   override def readDf(location: String, segmentName:String): DataFrame = {
     val df: DataFrame = segmentName match
@@ -21,6 +22,10 @@ class LoaderLocalParquet(configYaml: YamlConfig) extends ConnectionTrait, DataWa
     }
     return df
   }
+
+  override def readDf(location: String, keyPartitions: List[String], valuePartitions: List[String]): DataFrame = {
+    readDf(super.getLocation(location = location, keyPartitions = keyPartitions, valuePartitions = keyPartitions))
+  }
   
   override def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = {
     df.write.mode(writeMode.toString).parquet(s"${configYaml.folder}/${location.replace(".","/")}")
@@ -30,11 +35,12 @@ class LoaderLocalParquet(configYaml: YamlConfig) extends ConnectionTrait, DataWa
     writeDf(df, s"$location/$partitionName", writeMode)
   }
   override def writeDfPartitionAuto(df: DataFrame, location: String, partitionName: List[String], writeMode: WriteMode): Unit =  throw Exception()
-  override def getSegments(location: String): List[String] = {
-    val file = new File(s"${configYaml.folder}/${location}")
-    val list =  file.listFiles.filter(_.isFile).map(_.getPath).toList
-    return list
-  }
+  
+//  override def getSegments(location: String): List[String] = {
+//    val file = new File(s"${configYaml.folder}/${location}")
+//    val list =  file.listFiles.filter(_.isFile).map(_.getPath).toList
+//    return list
+//  }
 
   override def readDf(location: String): DataFrame = throw Exception()
 

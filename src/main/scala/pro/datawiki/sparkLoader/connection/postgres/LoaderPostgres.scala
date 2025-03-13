@@ -7,7 +7,8 @@ import pro.datawiki.sparkLoader.{LogMode, SparkObject, YamlClass}
 import java.sql.{Connection, DriverManager, ResultSet}
 import java.util.Properties
 import com.typesafe.scalalogging.LazyLogging
-import pro.datawiki.sparkLoader.transformation.TransformationCache
+import pro.datawiki.datawarehouse.DataFrameOriginal
+import pro.datawiki.sparkLoader.transformation.{TransformationCache, TransformationCacheDatabase}
 
 class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait, DataWarehouseTrait, LazyLogging {
   override def getDataFrameBySQL(sql: String): DataFrame = {
@@ -25,16 +26,11 @@ class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTr
     df.write.mode(writeMode.toString).jdbc(getJdbc, location, getProperties)
   }
 
-  @Override
-  override def writeDfPartitionDirect(df: DataFrame, location: String, partitionName: List[String], partitionValue: List[String], writeMode: WriteMode): Unit ={
-    writeDf(df, location, writeMode)
-  } 
-    
   override def readDf(location: String): DataFrame = throw Exception()
 
   override def writeDf(df: DataFrame, location: String, columnsLogicKey: List[String], columns: List[String], writeMode: WriteMode): Unit = {
-    val cache = new TransformationCache(this)
-    cache.saveTable(df)
+    val cache: TransformationCacheDatabase = new TransformationCacheDatabase(this)
+    cache.saveTable(DataFrameOriginal(df))
 
     var orList: List[String] = List.apply()
     var joinList: List[String] = List.apply()
@@ -105,7 +101,6 @@ class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTr
   override def getIdmapDataFrame(domainName: String, tenantName: String): DataFrame = {
     return getDataFrameBySQL(s"""select ccd, tenant, rk from $domainName where tenant = '$tenantName'""")
   }
-  override def writeDfPartitionAuto(df: DataFrame, location: String, partitionName: List[String], writeMode: WriteMode): Unit =  throw Exception()
 
   def getProperties: Properties = {
     val prop = new java.util.Properties

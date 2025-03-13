@@ -3,8 +3,7 @@ package pro.datawiki.sparkLoader
 import pro.datawiki.sparkLoader.configuration.{EltConfig, SegmentationEnum, YamlConfigConnections, YamlConfigTarget}
 import pro.datawiki.sparkLoader.connection.Connection
 import pro.datawiki.sparkLoader.source.Source
-import pro.datawiki.sparkLoader.target.Target
-import pro.datawiki.sparkLoader.transformation.{Transformation, TransformationCache, TransformationIdMap}
+import pro.datawiki.sparkLoader.transformation.{Transformation, TransformationIdMap}
 
 object Execute {
   def initConnections(connections: List[YamlConfigConnections]):Unit = {
@@ -13,14 +12,6 @@ object Execute {
 
   def setIdmap(in: String): Unit = {
     TransformationIdMap.setIdmap(in)
-  }
-
-  def setCache(in: String): Unit = {
-    TransformationCache.setBaseCache(in)
-  }
-
-  def setTarget(in: String): Unit = {
-    Target.setTarget(in)
   }
 
   def run(etlConfig:EltConfig): Unit = {
@@ -43,9 +34,4 @@ object Execute {
 //        Target.getTargetCache.createOrReplaceTempView("target")
       case _ => throw Exception()
   }
-
-  def writeTarget(target: YamlConfigTarget): Unit = {
-      target.writeTarget()
-  }
-
 }

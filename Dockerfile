@@ -855,4 +855,6 @@ RUN yum install -y google-chrome
 ## Compile
 RUN cd /opt/etl-tool; sbt compile package
 
+ADD config /opt/etl-tool/config
+
 CMD ["/usr/sbin/init"]

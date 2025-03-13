@@ -8,7 +8,7 @@ class SparkRowElementRow(in: List[SparkRowAttribute]) {
   def getRow:Row = {
     var lst2: List[Any] = List.apply()
     in.foreach(i => lst2 = lst2 :+ i.getValue)
-    val tst = Row.apply(lst2: _*)
+    val tst = Row.apply(lst2*)
     return tst
   }
 

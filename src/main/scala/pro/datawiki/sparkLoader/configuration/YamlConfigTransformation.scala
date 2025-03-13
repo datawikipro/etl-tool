@@ -20,7 +20,7 @@ class YamlConfigTransformation(objectName: String,
     setLogic(extractSchema)
     setLogic(extractJsonWithoutSchema)
     super.getLogic match
-      case x:YamlConfigTransformationTrait => return x
+      case x: YamlConfigTransformationTrait => return x
       case _ => throw Exception()
   }
 

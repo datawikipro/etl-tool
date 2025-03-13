@@ -7,7 +7,7 @@ import com.jcraft.jsch.{JSch, Session}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{coalesce, col, md5}
 import pro.datawiki.sparkLoader.configuration.yamlConfigTarget.YamlConfigTargetColumn
-import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait}
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait, WriteMode}
 import pro.datawiki.sparkLoader.transformation.TransformationIdMap
 import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
 
@@ -86,83 +86,87 @@ class LoaderMySql(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait
 
   @Override
   def getConnection: Connection = {throw Exception()}
-  def writeDF(df: DataFrame,
-              columns: List[YamlConfigTargetColumn],
-              ccdColumnName: String,
-              targetFile: String,
-              columnsLogicKey:List[String]): Unit = {
-    var cols1: List[String] = List.apply()
-    columns.foreach(i => {
-      if !i.isNewCCD then
-        cols1 = cols1.appended(i.columnName)
-    })
-    
-    df.select(cols1.map(col)*).createTempView("newRow")
-    
-    getDataFrameBySQL(s"select ${columnsLogicKey.mkString(", ")} from $targetFile").createTempView("indb")
-    
-    var new_df = SparkObject.spark.sql(
-      s"""select newRow.* 
-         |  from newRow
-         |  left join indb using(${columnsLogicKey.mkString(", ")})
-         | where indb.${columnsLogicKey.head} is null
-         |""".stripMargin)
-    
-
-    new_df.write.mode("append").jdbc(getJdbc, targetFile, getProperties)
-  }
-
-  def mergeRk(df: DataFrame, tenantName: String, domainName: String, ccdColumnName: String, columnsLogicKey: List[String], targetFile: String): Unit = {
-    val idmapNew = TransformationIdMap(
-      systemCode = tenantName,
-      domainName = domainName,
-      rkKey = s"${domainName}_rk",
-      isGenerated = true,
-      columnNames = List.apply("ccd"))
-
-    val targetDf = getDataFrameBySQL(
-      s"""select ${ccdColumnName}, ${columnsLogicKey.mkString(",")}
-         |  from ${targetFile}""".stripMargin).
-      select(col(s"${ccdColumnName}").as("ccd"), md5(coalesce(columnsLogicKey.map(col)*)).as("hash"))
-    targetDf.show()
-    val dfPlusHash = df.select(col(s"${domainName}_rk").as("rk"), md5(coalesce(columnsLogicKey.map(col)*)).as("hash"))
-    dfPlusHash.show()
-    val res = dfPlusHash.join(targetDf, "hash").filter("rk is not null")
-    res.show()
-    idmapNew.addNewKeys(res)
-  }
-
-//  override def writeDf(location:
-//                       YamlConfigTarget, 
-//                       df: DataFrame,
-//                       autoInsertIdmapCCD: Boolean, 
-//                       columnsLogicKey: List[String]): Unit = {
-//    var rkKey: String = null
-//    var ccd: String = null
-//    var tenantName: String = null
-//    var domainName: String = null
-//    location.columns.foreach(i => {
-//      if i.isNewCCD then
-//        ccd = i.columnName
-//        rkKey = s"${i.domainName}_rk"
-//        tenantName = i.tenantName
-//        domainName = i.domainName
+//  
+//  def writeDF(df: DataFrame,
+//              columns: List[YamlConfigTargetColumn],
+//              ccdColumnName: String,
+//              targetFile: String,
+//              columnsLogicKey:List[String]): Unit = {
+//    var cols1: List[String] = List.apply()
+//    columns.foreach(i => {
+//      if !i.isNewCCD then
+//        cols1 = cols1.appended(i.columnName)
 //    })
+//    
+//    df.select(cols1.map(col)*).createTempView("newRow")
+//    
+//    getDataFrameBySQL(s"select ${columnsLogicKey.mkString(", ")} from $targetFile").createTempView("indb")
+//    
+//    var new_df = SparkObject.spark.sql(
+//      s"""select newRow.* 
+//         |  from newRow
+//         |  left join indb using(${columnsLogicKey.mkString(", ")})
+//         | where indb.${columnsLogicKey.head} is null
+//         |""".stripMargin)
+//    
 //
-//    df.show()
+//    new_df.write.mode("append").jdbc(getJdbc, targetFile, getProperties)
+//  }
 //
-//    writeDF(df = df, columns = location.columns, ccdColumnName = ccd, targetFile = location.targetFile,columnsLogicKey=columnsLogicKey)
-//    if autoInsertIdmapCCD then {
-//      mergeRk(
-//        df = df, 
-//        tenantName = tenantName, 
-//        domainName = domainName, 
-//        ccdColumnName = ccd, 
-//        columnsLogicKey = columnsLogicKey, 
-//        targetFile = location.targetFile)
-//    }
+//  def mergeRk(df: DataFrame, tenantName: String, domainName: String, ccdColumnName: String, columnsLogicKey: List[String], targetFile: String): Unit = {
+//    val idmapNew = TransformationIdMap(
+//      systemCode = tenantName,
+//      domainName = domainName,
+//      rkKey = s"${domainName}_rk",
+//      isGenerated = true,
+//      columnNames = List.apply("ccd"))
+//
+//    val targetDf = getDataFrameBySQL(
+//      s"""select ${ccdColumnName}, ${columnsLogicKey.mkString(",")}
+//         |  from ${targetFile}""".stripMargin).
+//      select(col(s"${ccdColumnName}").as("ccd"), md5(coalesce(columnsLogicKey.map(col)*)).as("hash"))
+//    targetDf.show()
+//    val dfPlusHash = df.select(col(s"${domainName}_rk").as("rk"), md5(coalesce(columnsLogicKey.map(col)*)).as("hash"))
+//    dfPlusHash.show()
+//    val res = dfPlusHash.join(targetDf, "hash").filter("rk is not null")
+//    res.show()
+//    idmapNew.addNewKeys(res)
 //  }
 
+  //  override def writeDf(location:
+  //                       YamlConfigTarget, 
+  //                       df: DataFrame,
+  //                       autoInsertIdmapCCD: Boolean, 
+  //                       columnsLogicKey: List[String]): Unit = {
+  //    var rkKey: String = null
+  //    var ccd: String = null
+  //    var tenantName: String = null
+  //    var domainName: String = null
+  //    location.columns.foreach(i => {
+  //      if i.isNewCCD then
+  //        ccd = i.columnName
+  //        rkKey = s"${i.domainName}_rk"
+  //        tenantName = i.tenantName
+  //        domainName = i.domainName
+  //    })
+  //
+  //    df.show()
+  //
+  //    writeDF(df = df, columns = location.columns, ccdColumnName = ccd, targetFile = location.targetFile,columnsLogicKey=columnsLogicKey)
+  //    if autoInsertIdmapCCD then {
+  //      mergeRk(
+  //        df = df, 
+  //        tenantName = tenantName, 
+  //        domainName = domainName, 
+  //        ccdColumnName = ccd, 
+  //        columnsLogicKey = columnsLogicKey, 
+  //        targetFile = location.targetFile)
+  //    }
+  //  }
+  override def readDf(location: String): DataFrame = throw Exception()
+
+  override def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = throw Exception()
+  
   override def close(): Unit = {
     if session != null then {
       session.disconnect()

@@ -69,64 +69,11 @@ case class Element(
           }
       }
       case _ => {
-        if jsn.toString == "JNull" then return 
+        if jsn.toString == "JNull" then return
         throw Exception()
       }
   }
 
-}
-
-case class Array(
-                  `arrayElement`: Object
-                ) {
-  def processArray(x: List[JValue]): Unit = {
-    x.foreach(i => `arrayElement`.validateJson(i))
-  }
-}
-
-case class Object(
-                   elements: List[Element]
-                 ) {
-  private def checkArray: Boolean = {
-    elements.length match
-      case 1 => {
-        elements.head.elementType match
-          case SchemaType.Array => return true
-          case _ => return false
-      }
-      case _ => return false
-  }
-
-  private def checkElement(x: JField): Unit = {
-    elements.foreach(i => {
-      if (i.name == x._1) then {
-        i.process(x._2)
-        return
-      }
-    })
-    throw Exception()
-  }
 
 
-  def validateObjects(jFields: List[JField]): Unit = {
-    jFields.foreach(i => checkElement(i))
-  }
-
-  def validateJson(jsn: JValue): Unit = {
-    jsn match
-      case x: JArray => {
-        checkArray match
-          case true => elements.head.array.processArray(x.arr)
-          case false => {
-            throw Exception()
-          }
-      }
-      case x: JObject => {
-        validateObjects(x.obj)
-      }
-      case _ => {
-        throw Exception()
-      }
-
-  }
 }

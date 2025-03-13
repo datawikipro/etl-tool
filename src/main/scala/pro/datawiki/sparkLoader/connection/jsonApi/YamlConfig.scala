@@ -14,6 +14,6 @@ case class YamlConfig(
       val result = i.getSchemaByDataFrame(df)
       if result != null then return result
     })
-    throw Exception()
+    return "error"
   }
 }

@@ -2,25 +2,33 @@ package pro.datawiki.sparkLoader.configuration
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 
 object RunConfig {
   private var partition: String = ""
   private var subPartition: String = ""
 
-  def setPartition(in: String,inSubpartition: String): Unit = {
-    partition = URLEncoder.encode(in, StandardCharsets.UTF_8.toString)
+  def setPartition(inPartition: String, inSubPartition: String): Unit = {
+    val md = MessageDigest.getInstance("SHA-256")
+    val sha= md.digest(inPartition.getBytes("UTF-8")).map("%02x".format(_)).mkString
+    var dt:String = ""
+    try {
+      dt = inPartition.substring(11, 21)
+    } catch
+      case _=> dt = "unknown"
+    partition= s"""${dt}_${sha}"""
 
-    subPartition = URLEncoder.encode(inSubpartition, StandardCharsets.UTF_8.toString)
-    if subPartition == ""
-      then subPartition = null
+    if partition == "" then partition = null
+    
+    subPartition = inSubPartition
+    if subPartition == "" then subPartition = null
 
   }
 
   def getPartition: String = {
     partition
   }
-//run_id=manual__2025-03-08T18%253A42%253A35.220191%252B00%253A00
-      //'manual__2025-03-08T18%3A42%3A35.220191%2B00%3A00'
+
   def getSubPartition: String = {
     subPartition
   }

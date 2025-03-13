@@ -3,12 +3,12 @@ package pro.datawiki.sparkLoader.configuration
 import pro.datawiki.sparkLoader.YamlClass
 
 class EltConfig(
-                 connections: List[YamlConfigConnections],
-                 source: List[YamlConfigSource],
+                 connections: List[YamlConfigConnections] = List.apply(),
+                 source: List[YamlConfigSource] = List.apply(),
                  idmap: String,
                  cache: String,
-                 transformations: List[YamlConfigTransformation],
-                 target: YamlConfigTarget
+                 transformations: List[YamlConfigTransformation] = List.apply(),
+                 target: List[YamlConfigTarget] = List.apply()
                ) {
   var segmentation: SegmentationEnum = SegmentationEnum.full
 
@@ -63,7 +63,7 @@ class EltConfig(
     return connections
   }
 
-  def getTarget: YamlConfigTarget = {
+  def getTarget: List[YamlConfigTarget] = {
     return target
   }
 }

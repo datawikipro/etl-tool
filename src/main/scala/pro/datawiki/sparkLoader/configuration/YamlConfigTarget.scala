@@ -2,10 +2,10 @@ package pro.datawiki.sparkLoader.configuration
 
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.sparkLoader.configuration.yamlConfigTarget.YamlConfigTargetColumn
-import pro.datawiki.sparkLoader.connection.{DataWarehouseTrait, WriteMode}
-import pro.datawiki.sparkLoader.target.Target
+import pro.datawiki.sparkLoader.connection.{Connection,DataWarehouseTrait, FileStorageTrait, WriteMode}
 
 case class YamlConfigTarget(connection: String,
+                            source: String,
                             targetFile: String,
                             autoInsertIdmapCCD: Boolean,
                             columns: List[YamlConfigTargetColumn],
@@ -13,7 +13,7 @@ case class YamlConfigTarget(connection: String,
                             mode: String = "append",
                             partitionBy: List[String] = List.apply()
                            ) {
-  def getMode: WriteMode = {
+  private def getMode: WriteMode = {
     mode match
       case "overwrite" => WriteMode.overwrite
       case "append" => WriteMode.append
@@ -30,27 +30,37 @@ case class YamlConfigTarget(connection: String,
     partitionBy
   }
 
-  def writeTarget(): Unit = {
-    val df = SparkObject.spark.sql("select * from target")
+  def writeTarget(): Boolean = {
+    val df = SparkObject.spark.sql(s"select * from $source")
     if LogMode.isDebug then {
       df.printSchema()
       df.show()
     }
-    Target.getTarget match
-      case x: DataWarehouseTrait =>
-        if uniqueKey.nonEmpty then
-          x.writeDf(df, targetFile, uniqueKey, getColumns, getMode)
-          return
-        else {
-          if partitionBy.nonEmpty then {
-            x.writeDfPartitionAuto(df, targetFile, partitionBy, getMode)
-            return
-          }
-          RunConfig.getPartition match
-            case "All" => x.writeDf(df, s"${targetFile}", getMode)
-            case _ => x.writeDfPartitionDirect(df, targetFile, partitionBy, List.apply(RunConfig.getPartition), getMode)
-            return
+
+    Connection.getConnection(connection) match
+      case x: FileStorageTrait => {
+        if partitionBy.nonEmpty then {
+          x.writeDfPartitionAuto(df, targetFile, partitionBy, getMode)
+          return true
         }
+
+        RunConfig.getPartition match
+          case null => {
+            x.writeDf(df, targetFile, getMode)
+            return true
+          }
+          case _ => x.writeDfPartitionDirect(df, targetFile, partitionBy, List.apply(RunConfig.getPartition), getMode)
+            return true
+
+      }
+      case x: DataWarehouseTrait => {
+        if uniqueKey.nonEmpty then {
+          x.writeDf(df, targetFile, uniqueKey, getColumns, getMode)
+          return true
+        }
+        x.writeDf(df, targetFile, getMode)
+        return true
+      }
       case _ => throw Exception()
   }
 

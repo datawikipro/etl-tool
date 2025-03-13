@@ -70,12 +70,6 @@ class LoaderClickHouse(configYaml: YamlConfig) extends ConnectionTrait, Database
 
   override def writeDf(df: DataFrame, location: String, columnsLogicKey: List[String], columns: List[String], writeMode: WriteMode): Unit = throw Exception()
 
-  override def writeDfPartitionDirect(df: DataFrame, location: String, partitionName: List[String], partitionValue: List[String], writeMode: WriteMode): Unit = {
-    writeDf(df,location,writeMode)
-  }
-
-  override def writeDfPartitionAuto(df: DataFrame, location: String, partitionName: List[String], writeMode: WriteMode): Unit =  throw Exception()
-  
   var connection: Connection = null
 
   @Override

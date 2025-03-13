@@ -1,2 +1,0 @@
-package pro.datawiki.schemaValidator
-

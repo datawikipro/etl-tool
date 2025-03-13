@@ -19,7 +19,7 @@ class SparkRow(attributes: List[SparkRowAttribute]) {
     attributes.foreach(i=> {
       lst = lst.appended(i.getValue)
     })
-    var row: Row =  Row.apply(lst: _*)
+    var row: Row =  Row.apply(lst*)
     return row
   }
 
