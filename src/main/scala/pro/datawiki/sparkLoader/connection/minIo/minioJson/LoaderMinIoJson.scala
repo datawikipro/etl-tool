@@ -9,7 +9,7 @@ import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import org.apache.spark.sql.functions.lit
 
 class LoaderMinIoJson(configYaml: YamlConfig) extends LoaderMinIo(configYaml), DataWarehouseTrait, FileStorageTrait {
-
+  override def saveRaw(in: String, inLocation: String): Unit = super.saveRaw(in,inLocation)
   private val cache: TransformationCacheFileStorage = new TransformationCacheFileStorage(this)
 
   override def getFolder(location: String): List[String] = super.getFolder(configYaml.bucket,location)
@@ -18,10 +18,7 @@ class LoaderMinIoJson(configYaml: YamlConfig) extends LoaderMinIo(configYaml), D
   def readDf(location: String, segmentName: String): DataFrame = {
     val df: DataFrame = SparkObject.spark.read.json(s"s3a://${configYaml.bucket}/$location/$segmentName/")
 
-    if LogMode.isDebug then {
-      df.printSchema()
-      df.show()
-    }
+    LogMode.debugDF(df)
     return df
   }
 
@@ -29,29 +26,24 @@ class LoaderMinIoJson(configYaml: YamlConfig) extends LoaderMinIo(configYaml), D
   def readDf(location: String): DataFrame = {
     val df: DataFrame = SparkObject.spark.read.json(super.getLocation(location = location))
 
-    if LogMode.isDebug then {
-      df.printSchema()
-      df.show()
-    }
+    LogMode.debugDF(df)
     return df
   }
 
   override def readDf(location: String, keyPartitions: List[String], valuePartitions: List[String]): DataFrame = {
     var df: DataFrame = SparkObject.spark.read.json(super.getLocation(location = location, keyPartitions = keyPartitions, valuePartitions = valuePartitions))
-
+    LogMode.debugDF(df)
     keyPartitions.zipWithIndex.foreach { case (value, index) =>
       df = df.withColumn(keyPartitions(index), lit(valuePartitions(index)))
     }
-    if LogMode.isDebug then {
-      df.printSchema()
-      df.show()
-    }
+    LogMode.debugDF(df)
     return df
   }
 
   @Override
   def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = {
-    df.write.mode(writeMode.toString).json(s"s3a://${configYaml.bucket}/${location.replace(".", "/")}/")
+    val target = s"${configYaml.bucket}/${location.replace(".", "/")}/"
+    df.write.mode(writeMode.toString).json(s"s3a://$target")
 
   }
 
@@ -83,4 +75,6 @@ class LoaderMinIoJson(configYaml: YamlConfig) extends LoaderMinIo(configYaml), D
   def getSegments(location: String): List[String] = {
     throw Exception()
   }
+
+  override def getMasterFolder: String = super.getBucketName
 }

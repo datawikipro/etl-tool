@@ -1,7 +1,10 @@
-package pro.datawiki.sparkLoader.connection.selenium
+package pro.datawiki.schemaValidator
 
-import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.types.{ArrayType, Metadata, StructField, StructType}
+import org.apache.spark.sql.{DataFrame, Row}
+import pro.datawiki.schemaValidator.SparkRowAttribute
+import pro.datawiki.sparkLoader.{LogMode, SparkObject}
+import pro.datawiki.sparkLoader.connection.selenium.{SeleniumList, YamlConfig}
 
 class SparkRow(attributes: List[SparkRowAttribute]) {
   def getSchema: StructType = {
@@ -23,21 +26,12 @@ class SparkRow(attributes: List[SparkRowAttribute]) {
     return row
   }
 
-}
-
-object SparkRow {
-  def apply(in:SeleniumList, config: YamlConfig):SparkRow = {
-    if config == null then {
-      throw Exception()
-    }
-    var listFieldsAttribute: List[SparkRowAttribute] = List.apply()
-
-    config.getInSchema.foreach(i => {
-      listFieldsAttribute = listFieldsAttribute.appended(i.getStructField(in))
-    })
-
-    return new SparkRow(listFieldsAttribute)
+  def getDataFrame: DataFrame={
+    val rowsRDD = SparkObject.spark.sparkContext.parallelize(Seq.apply(getRow))
+    val schema = getSchema
+    val df = SparkObject.spark.createDataFrame(rowsRDD, schema)
+    LogMode.debugDF(df)
+    return df
   }
-
-
+  
 }

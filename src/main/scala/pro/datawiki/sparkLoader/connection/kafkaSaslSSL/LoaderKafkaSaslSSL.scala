@@ -23,10 +23,7 @@ class LoaderKafkaSaslSSL(configYaml: YamlConfig) extends ConnectionTrait, QueryT
       .load()
 
     val df2 = df.selectExpr("topic", "CAST(key AS STRING)", "CAST(value AS STRING)", "partition", "offset", "timestamp", "timestampType")
-    if LogMode.isDebug then {
-      df2.printSchema()
-      df2.show()
-    }
+    LogMode.debugDF(df2)
     return df2
   }
 }

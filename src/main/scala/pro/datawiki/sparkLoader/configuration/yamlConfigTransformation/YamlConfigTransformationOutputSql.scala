@@ -13,10 +13,7 @@ case class YamlConfigTransformationOutputSql(
     val df: DataFrame = Connection.getConnection(sourceName) match
       case x: DatabaseTrait => x.getDataFrameBySQL(s"${sql}")
       case _ => throw Exception()
-    if LogMode.isDebug then {
-      df.printSchema()
-      df.show()
-    }
+    LogMode.debugDF(df)
     return df
   }
 

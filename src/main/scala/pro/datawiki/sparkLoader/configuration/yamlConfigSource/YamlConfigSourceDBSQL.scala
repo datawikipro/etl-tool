@@ -2,8 +2,8 @@ package pro.datawiki.sparkLoader.configuration.yamlConfigSource
 
 import org.apache.spark.sql.{DataFrame, Row}
 import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
-import pro.datawiki.sparkLoader.configuration.YamlConfigSourceTrait
 import pro.datawiki.sparkLoader.connection.{Connection, ConnectionTrait, DatabaseTrait}
+import pro.datawiki.sparkLoader.transformation.TransformationCacheTrait
 
 case class YamlConfigSourceDBSQL(
                                   sql: String,
@@ -17,9 +17,9 @@ case class YamlConfigSourceDBSQL(
       case _ => throw Exception()
   }
 
+  override def getDataFrame(sourceName: String, cache: TransformationCacheTrait): DataFrameTrait = throw Exception()
   override def getDataFrameSegmentation(sourceName: String, segmentName: String): DataFrame = throw Exception()
 
-  override def getDataFrameAdHoc(sourceName: String, adHoc: Row): (DataFrameTrait) = throw Exception()
-
   override def getSegments(connection: ConnectionTrait): List[String] = throw Exception()
+
 }

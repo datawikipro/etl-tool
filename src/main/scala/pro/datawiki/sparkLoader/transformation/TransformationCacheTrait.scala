@@ -4,7 +4,8 @@ import org.apache.spark.sql.DataFrame
 import pro.datawiki.datawarehouse.DataFrameTrait
 
 trait TransformationCacheTrait {
-  def readTable: DataFrame
-  def readDirty: List[DataFrameTrait]
+  def readBaseTable(): DataFrame
+  def readDirty(): List[DataFrameTrait]
   def saveTable(in: DataFrameTrait): Unit
+  def append(in:TransformationCacheTrait): Boolean
 }

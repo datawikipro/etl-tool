@@ -6,17 +6,14 @@ import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DataWarehouseTrait,
 import pro.datawiki.sparkLoader.{LogMode, SparkObject, YamlClass}
 
 class LoaderMinIoText(configYaml: YamlConfig) extends LoaderMinIo(configYaml), DataWarehouseTrait, FileStorageTrait {
-
+  override def saveRaw(in: String, inLocation: String): Unit = super.saveRaw(in,inLocation)
   override def getFolder(location: String): List[String] = super.getFolder(configYaml.bucket, location)
 
   @Override
   def readDf(location: String, segmentName: String): DataFrame = {
     val df: DataFrame = SparkObject.spark.read.text(s"s3a://${configYaml.bucket}/$location/$segmentName/")
 
-    if LogMode.isDebug then {
-      df.printSchema()
-      df.show()
-    }
+    LogMode.debugDF(df)
     return df
   }
 
@@ -24,20 +21,14 @@ class LoaderMinIoText(configYaml: YamlConfig) extends LoaderMinIo(configYaml), D
   def readDf(location: String): DataFrame = {
     val df: DataFrame = SparkObject.spark.read.text(super.getLocation(location = location))
 
-    if LogMode.isDebug then {
-      df.printSchema()
-      df.show()
-    }
+    LogMode.debugDF(df)
     return df
   }
 
   override def readDf(location: String, keyPartitions: List[String], valuePartitions: List[String]): DataFrame = {
     val df: DataFrame = SparkObject.spark.read.text(super.getLocation(location = location, keyPartitions = keyPartitions, valuePartitions = valuePartitions))
 
-    if LogMode.isDebug then {
-      df.printSchema()
-      df.show()
-    }
+    LogMode.debugDF(df)
     return df
   }
   @Override

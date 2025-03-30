@@ -1,4 +1,4 @@
-package pro.datawiki.sparkLoader.connection.selenium
+package pro.datawiki.schemaValidator
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.DataType
@@ -13,4 +13,5 @@ class SparkRowElementRow(in: List[SparkRowAttribute]) {
   }
 
   def getSparkRowAttributes:List[SparkRowAttribute] = in
+
 }

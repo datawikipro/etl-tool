@@ -10,16 +10,14 @@ import com.typesafe.scalalogging.LazyLogging
 import pro.datawiki.sparkLoader.connection.local.localBase.{LoaderLocalBase, YamlConfig}
 
 class LoaderLocalParquet(configYaml: YamlConfig) extends LoaderLocalBase(configYaml), ConnectionTrait, DataWarehouseTrait, FileStorageTrait, LazyLogging {
-
+  override def saveRaw(in: String, inLocation: String): Unit = super.saveRaw(in,inLocation)
+  
   override def readDf(location: String, segmentName:String): DataFrame = {
     val df: DataFrame = segmentName match
       case null => SparkObject.spark.read.parquet(s"${configYaml.folder}/$location")
       case _ => SparkObject.spark.read.parquet(s"${configYaml.folder}/$location/$segmentName")
 
-    if LogMode.isDebug then {
-      df.printSchema()
-      df.show()
-    }
+    LogMode.debugDF(df)
     return df
   }
 

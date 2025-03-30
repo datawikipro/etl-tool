@@ -3,8 +3,9 @@ package pro.datawiki.sparkLoader.configuration.yamlConfigSource
 import org.apache.spark.sql.{DataFrame, Row}
 import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
 import pro.datawiki.sparkLoader.configuration.yamlConfigSource.yamlConfigSourceDBTable.YamlConfigSourceDBTableColumn
-import pro.datawiki.sparkLoader.configuration.{RunConfig, YamlConfigSourceTrait}
+import pro.datawiki.sparkLoader.configuration.RunConfig
 import pro.datawiki.sparkLoader.connection.{Connection, ConnectionTrait, DatabaseTrait}
+import pro.datawiki.sparkLoader.transformation.TransformationCacheTrait
 
 case class YamlConfigSourceDBTable(
                                     tableSchema: String,
@@ -85,11 +86,11 @@ case class YamlConfigSourceDBTable(
     throw Exception()
   }
 
-  override def getDataFrameAdHoc(sourceName: String, adHoc: Row): DataFrameTrait = {
+  override def getSegments(connection: ConnectionTrait): List[String] = {
     throw Exception()
   }
 
-  override def getSegments(connection: ConnectionTrait): List[String] = {
-    throw Exception()
+  override def getDataFrame(sourceName: String, cache: TransformationCacheTrait): DataFrameTrait = {
+    return getDataFrame(sourceName)
   }
 }

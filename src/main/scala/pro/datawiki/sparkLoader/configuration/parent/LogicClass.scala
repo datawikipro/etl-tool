@@ -17,9 +17,11 @@ class LogicClass {
 
   def getLogic: Any = {
     counter match
-      case 0 => throw Exception()
       case 1 => return logic
-      case _ => throw Exception()
+      case 0 =>
+        throw Exception()
+      case _ =>
+        throw Exception()
 
   }
 

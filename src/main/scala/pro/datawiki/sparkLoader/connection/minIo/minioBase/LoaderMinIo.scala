@@ -13,6 +13,8 @@ import scala.jdk.CollectionConverters._
 
 class LoaderMinIo(configYaml: YamlConfig) extends ConnectionTrait, LazyLogging {
 
+  def getBucketName:String =  configYaml.bucket
+  
   val minioClient: MinioClient = MinioClient.builder()
     .endpoint(getMinIoHost)
     .credentials(getAccessKey, getSecretKey)

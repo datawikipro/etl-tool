@@ -3,8 +3,9 @@ package pro.datawiki.sparkLoader.configuration.yamlConfigSource
 import org.apache.spark.sql.{DataFrame, Row}
 import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
 import pro.datawiki.sparkLoader.configuration.yamlConfigSource.yamlConfigSourceDBTable.YamlConfigSourceDBTableColumn
-import pro.datawiki.sparkLoader.configuration.{RunConfig, YamlConfigSourceTrait}
+import pro.datawiki.sparkLoader.configuration.RunConfig
 import pro.datawiki.sparkLoader.connection.{Connection, ConnectionTrait, DataWarehouseTrait, DatabaseTrait, FileStorageTrait}
+import pro.datawiki.sparkLoader.transformation.TransformationCacheTrait
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -13,6 +14,7 @@ case class YamlConfigSourceFileSystem(
                                        tableName: String,
                                        tableColumns: List[YamlConfigSourceDBTableColumn],
                                        partitionBy: List[String] = List.apply(),
+                                       where: String,
                                        limit: Int
                                      ) extends YamlConfigSourceTrait {
 
@@ -24,6 +26,8 @@ case class YamlConfigSourceFileSystem(
           case 1 => x.readDf(tableName, partitionBy, List.apply(RunConfig.getPartition))
           case 2 => x.readDf(tableName, partitionBy, List.apply(RunConfig.getPartition, RunConfig.getSubPartition))
           case _ => throw Exception()
+
+        if where != null then df = df.where(where)
         if limit > 0 then df = df.limit(limit)
         return DataFrameOriginal(df)
       }
@@ -36,10 +40,9 @@ case class YamlConfigSourceFileSystem(
         df = RunConfig.getSubPartition match
           case null => df
           case _ => throw Exception()
-        df.show()
-        
+
         if limit > 0 then df = df.limit(limit)
-        
+
         return DataFrameOriginal(df)
       }
       case _ => throw Exception()
@@ -55,12 +58,9 @@ case class YamlConfigSourceFileSystem(
       case _ => throw Exception()
   }
 
-  override def getDataFrameAdHoc(sourceName: String, adHoc: Row): DataFrameTrait = {
-    throw Exception()
+  override def getDataFrame(sourceName: String, cache: TransformationCacheTrait): DataFrameTrait = {
+    return getDataFrame(sourceName= sourceName)
   }
 
-  override def getSegments(connection: ConnectionTrait): List[String] = {
-    connection match
-      case _ => throw Exception()
-  }
+  override def getSegments(connection: ConnectionTrait): List[String] = throw Exception()
 }

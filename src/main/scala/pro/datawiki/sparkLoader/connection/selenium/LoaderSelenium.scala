@@ -4,19 +4,57 @@ import org.apache.spark.sql.{DataFrame, Row}
 import org.openqa.selenium.chrome.{ChromeDriver, ChromeOptions}
 import org.openqa.selenium.{By, WebDriver, WebElement}
 import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
-import pro.datawiki.sparkLoader.connection.ConnectionTrait
+import pro.datawiki.sparkLoader.configuration.RunConfig
+import pro.datawiki.sparkLoader.connection.{Connection, ConnectionTrait, FileStorageTrait}
 import pro.datawiki.sparkLoader.connection.selenium.LoaderSelenium.getWebDriver
+import pro.datawiki.sparkLoader.transformation.{TransformationCacheFileStorage, TransformationCacheTrait}
 import pro.datawiki.sparkLoader.{LogMode, SparkObject, YamlClass}
+import org.apache.spark.sql.functions.{lit, lit as row}
+import pro.datawiki.schemaValidator.{SparkRow, SparkRowAttribute}
 
 import java.time.Duration
 
 
 class LoaderSelenium(configYaml: YamlConfig) extends ConnectionTrait {
+  private var cache: TransformationCacheFileStorage = null
 
-  def run(row: Row):  DataFrameTrait = {
+  def set(inCache: String): Unit = {
+    val con = Connection.getConnection(inCache)
+    cache = con match
+      case x: FileStorageTrait => TransformationCacheFileStorage(x)
+      case _ => throw Exception()
+  }
+
+  private def localCache: TransformationCacheFileStorage = {
+    if cache == null then throw Exception()
+    return cache
+  }
+
+  private def getDataFrameFromJson(resTxt: String): DataFrame = {
+    localCache.saveRaw(resTxt)
+    var df: DataFrame = localCache.readBaseTable()
+    return df
+  }
+
+  private def getDataFrameFromCustom(inSeleniumList: SeleniumList, inYamlConfig: YamlConfig): DataFrame = {
+
+    if inYamlConfig == null then {
+      throw Exception()
+    }
+    var listFieldsAttribute: List[SparkRowAttribute] = List.apply()
+
+    inYamlConfig.getSchema.foreach(i => {
+      listFieldsAttribute = listFieldsAttribute.appended(i.getStructField(inSeleniumList))
+    })
+    val sparkRow = SparkRow(listFieldsAttribute)
+
+    return sparkRow.getDataFrame
+
+  }
+
+  def run(row: Row): DataFrameTrait = {
     var df: DataFrame = null
     val webDriver = getWebDriver
-    //Open web application
     val newConfigYaml = YamlConfig.apply(in = configYaml, row = row)
     webDriver.get(newConfigYaml.getUrl)
     webDriver.manage.timeouts.implicitlyWait(Duration.ofSeconds(5))
@@ -26,13 +64,20 @@ class LoaderSelenium(configYaml: YamlConfig) extends ConnectionTrait {
 
     newConfigYaml.getTemplate.foreach(i => result.appendElements(i.getSubElements(html)))
 
-    val sparkRow = SparkRow.apply(result, newConfigYaml)
-    val rowsRDD = SparkObject.spark.sparkContext.parallelize(Seq.apply(sparkRow.getRow))
-    df = SparkObject.spark.createDataFrame(rowsRDD, sparkRow.getSchema)
-    if LogMode.isDebug then {
-      df.printSchema()
-      df.show()
+    if configYaml.getSchema.length == 1 then {
+      if configYaml.getSchema.head.getType == "json" then {
+        result.getList.head.value.getValue match
+          case x: String => df = getDataFrameFromJson(x)
+          case _ => throw Exception()
+
+      } else {
+        df  = getDataFrameFromCustom(result,newConfigYaml)
+      }
+    } else {
+      df  = getDataFrameFromCustom(result,newConfigYaml)
     }
+
+    LogMode.debugDF(df)
     return DataFrameOriginal(df)
   }
 

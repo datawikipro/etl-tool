@@ -1,7 +1,8 @@
-package pro.datawiki.sparkLoader.connection.selenium
+package pro.datawiki.schemaValidator
 
-import org.apache.spark.sql.types.{ArrayType, DataType, StructField, StructType}
 import org.apache.spark.sql.Row
+import org.apache.spark.sql.types.{ArrayType, DataType, StructField, StructType}
+
 
 class SparkRowElementList(in: Seq[SparkRowElementRow]) extends SparkRowElementType {
   override def getValue: Any = {
@@ -11,6 +12,7 @@ class SparkRowElementList(in: Seq[SparkRowElementRow]) extends SparkRowElementTy
   }
 
   override def getType: DataType = {
+    if in.isEmpty then return ArrayType(StructType(List.apply()))
     val a: SparkRowElementRow = in.head
 
     var subStruct: List[StructField] = List.apply()

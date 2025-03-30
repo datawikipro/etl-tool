@@ -6,12 +6,12 @@ import org.apache.spark.sql.types.{ArrayType, Metadata, StructField, StructType}
 
 class YamlConfig(
                   url: String,
-                  schema: List[YamlConfigSchemaColumn],
-                  template: List[YamlConfigTemplate]
+                  schema: List[YamlConfigSchemaColumn] = List.apply(),
+                  template: List[YamlConfigTemplate] = List.apply()
                 ) {
   def getUrl: String = url
 
-  def getInSchema: List[YamlConfigSchemaColumn] = schema
+  def getSchema: List[YamlConfigSchemaColumn] = schema
 
   def getTemplate: List[YamlConfigTemplate] = template
 }
@@ -21,7 +21,7 @@ object YamlConfig {
   def apply(in: YamlConfig,row: Row): YamlConfig = {
     if row == null then return in
     
-    var modifiedSchema: List[YamlConfigSchemaColumn] = in.getInSchema
+    var modifiedSchema: List[YamlConfigSchemaColumn] = in.getSchema
     var modifiedUrl: String = in.getUrl
         
     row.schema.fields.foreach(j => {

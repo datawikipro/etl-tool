@@ -10,6 +10,10 @@ import java.io.File
 
 class LoaderLocalBase(configYaml: YamlConfig) {
 
+  def saveRaw(in: String, location: String): Unit = {
+    reflect.io.File(getLocation(location)).writeAll(in)
+  }
+  
   def getLocation(location: String): String = {
     return s"${configYaml.folder}/${location.replace(".", "/")}"
   }
@@ -19,7 +23,8 @@ class LoaderLocalBase(configYaml: YamlConfig) {
     keyPartitions.zipWithIndex.foreach { case (value, index) =>
       postfix = s"$postfix/${keyPartitions(index)}=${valuePartitions(index)}"
     }
-    return s"${configYaml.folder}/${postfix}"
+    val tgt = s"${configYaml.folder}/$location/${postfix}"
+    return tgt
   }
 
   def getFolder(location: String): List[String] = {

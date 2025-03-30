@@ -20,13 +20,15 @@ class TransformationCacheDatabase(connect: DatabaseTrait) extends Transformation
   def getLocation: String = location
   
   @Override
-  def saveTable(in: DataFrameTrait): Unit = {
+  def saveTable(in: DataFrameTrait, treadName:String): Unit = {
     in match
-      case x: DataFrameOriginal =>  connect.writeDf(x.get, location, WriteMode.append)
+      case x: DataFrameOriginal => {
+        connect.writeDf(x.get, location, WriteMode.append)
+      }
       case _ => throw Exception()
   }
 
-  override def readDirty: List[DataFrameTrait] = throw Exception()
+  override def readDirty(): List[DataFrameTrait] = throw Exception()
 //
 //  def saveTablePartitionAuto(df: DataFrame,
 //                             partitionName: List[String]): Unit = {
@@ -38,7 +40,11 @@ class TransformationCacheDatabase(connect: DatabaseTrait) extends Transformation
 //  }
 
   @Override
-  def readTable: DataFrame = {
+  def readBaseTable(): DataFrame = {
     connect.readDf(location)
   }
+
+  override def saveTable(in: DataFrameTrait): Unit = throw Exception()
+
+  override def append(in: TransformationCacheTrait): Boolean = throw Exception()
 }

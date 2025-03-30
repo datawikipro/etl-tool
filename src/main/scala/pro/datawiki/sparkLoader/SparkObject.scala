@@ -6,9 +6,10 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-object SparkObject extends LazyLogging  {
+object SparkObject extends LazyLogging {
   var localSpark: SparkSession = null
-  def initSpark():Unit={
+
+  def initSpark(): Unit = {
 
     val conf = new SparkConf()
     conf.set("spark.driver.memory", "4g")
@@ -21,19 +22,20 @@ object SparkObject extends LazyLogging  {
       appName("etl-tool").
       config(conf).
       master("local[1]").
-//      master("spark://192.168.31.81:7077").
+      //      master("spark://192.168.31.81:7077").
       getOrCreate()
     localSpark.sparkContext.setLogLevel("ERROR")
 
     println("--------------------Start end session------------------------------------")
   }
-  def spark:SparkSession = {
+
+  def spark: SparkSession = {
     if localSpark == null then initSpark()
 
     return localSpark
   }
-  
-  def setHadoopConfiguration(key:String,value:String):Unit={
+
+  def setHadoopConfiguration(key: String, value: String): Unit = {
     spark.sparkContext.hadoopConfiguration.set(key, value)
   }
 

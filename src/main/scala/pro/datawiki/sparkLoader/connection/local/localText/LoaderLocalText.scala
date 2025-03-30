@@ -7,16 +7,14 @@ import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DataWarehouseTrait,
 import pro.datawiki.sparkLoader.{LogMode, SparkObject, YamlClass}
 
 class LoaderLocalText(configYaml: YamlConfig) extends LoaderLocalBase(configYaml), ConnectionTrait, FileStorageTrait, DataWarehouseTrait {
-
+  override def saveRaw(in: String, inLocation: String): Unit = super.saveRaw(in,inLocation)
+  
   override def readDf(location: String, segmentName:String): DataFrame = {
     val df: DataFrame = segmentName match
       case null => SparkObject.spark.read.text(s"${configYaml.folder}/$location")
       case _ => SparkObject.spark.read.text(s"${configYaml.folder}/$location/$segmentName")
 
-    if LogMode.isDebug then {
-      df.printSchema()
-      df.show()
-    }
+    LogMode.debugDF(df)
     return df
   }
 

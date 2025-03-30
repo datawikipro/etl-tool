@@ -13,10 +13,7 @@ import pro.datawiki.sparkLoader.transformation.{TransformationCache, Transformat
 class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait, DataWarehouseTrait, LazyLogging {
   override def getDataFrameBySQL(sql: String): DataFrame = {
     val df = SparkObject.spark.sqlContext.read.jdbc(getJdbc, s"""($sql) a """, getProperties)
-    if LogMode.isDebug then {
-      df.printSchema()
-      df.show()
-    }
+    LogMode.debugDF(df)
     return df
   }
 
@@ -30,7 +27,7 @@ class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTr
 
   override def writeDf(df: DataFrame, location: String, columnsLogicKey: List[String], columns: List[String], writeMode: WriteMode): Unit = {
     val cache: TransformationCacheDatabase = new TransformationCacheDatabase(this)
-    cache.saveTable(DataFrameOriginal(df))
+    cache.saveTable(DataFrameOriginal(df),null)
 
     var orList: List[String] = List.apply()
     var joinList: List[String] = List.apply()

@@ -17,6 +17,7 @@ case class YamlConfigTemplate(
                                findElement: YamlConfigTemplateFindElement,
                                findElements: YamlConfigTemplateFindElements,
                                getDomAttribute: YamlConfigTemplateGetDomAttribute,
+                               getDomProperty: YamlConfigTemplateGetDomProperty,
                                getText: YamlConfigTemplateGetText,
                              ) extends LogicClass {
 
@@ -25,11 +26,13 @@ case class YamlConfigTemplate(
     setLogic(findElement)
     setLogic(findElements)
     setLogic(getDomAttribute)
+    setLogic(getDomProperty)
     setLogic(getText)
     getLogic match
       case x: YamlConfigTemplateFindElement => return x.getSubElements(webElement)
       case x: YamlConfigTemplateFindElements => return x.getSubElements(webElement)
       case x: YamlConfigTemplateGetDomAttribute => return x.getSubElements(webElement)
+      case x: YamlConfigTemplateGetDomProperty => return x.getSubElements(webElement)
       case x: YamlConfigTemplateGetText => return SeleniumList.applyByKeyValue(x.getSubElements(webElement))
       case _ => throw Exception()
     //  val box = webDriver.findElement(By.className("rt-Grid"))

@@ -1,8 +1,10 @@
 package pro.datawiki.datawarehouse
 
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{Column, DataFrame}
 
 trait DataFrameTrait {
-  def get: DataFrame = throw Exception()
-  def getPartitionName : String 
+  def get: DataFrame
+  def isValidData: Boolean
+  def getPartitionName : String
+  def addColumn(name:String, columns: Column):Unit
 }

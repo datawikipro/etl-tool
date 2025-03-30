@@ -15,16 +15,10 @@ case class YamlConfigTransformationIdmap(
   override def getDataFrame: DataFrame = {
     val connect= Connection.getConnection(connection)
     var df = SparkObject.spark.sql(s"select * from ${sourceName}")
-    if LogMode.isDebug then {
-      df.printSchema()
-      df.show()
-    }
+    LogMode.debugDF(df)
     idmaps.foreach(j => {
       df = j.addendNewKeys(df,connect)
-      if LogMode.isDebug then {
-        df.printSchema()
-        df.show()
-      }
+      LogMode.debugDF(df)
     })
     return df
   }

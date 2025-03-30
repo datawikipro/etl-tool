@@ -2,6 +2,7 @@ package pro.datawiki.sparkLoader.connection.selenium
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.*
+import pro.datawiki.schemaValidator.{SparkRowAttribute, SparkRowElementList, SparkRowElementRow, SparkRowElementString}
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter

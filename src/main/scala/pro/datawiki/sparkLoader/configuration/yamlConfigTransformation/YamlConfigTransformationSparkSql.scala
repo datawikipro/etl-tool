@@ -11,10 +11,7 @@ case class YamlConfigTransformationSparkSql(
   override def getDataFrame: DataFrame = {
     spark.sql("set spark.sql.legacy.timeParserPolicy=LEGACY")
     val df: DataFrame = SparkObject.spark.sql(sql)
-    if LogMode.isDebug then {
-      df.printSchema()
-      df.show()
-    }
+    LogMode.debugDF(df)
     return df
   }
 

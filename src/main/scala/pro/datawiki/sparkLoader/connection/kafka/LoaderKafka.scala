@@ -25,10 +25,7 @@ class LoaderKafka(configYaml: YamlConfig) extends ConnectionTrait, QueryTrait {
 
       //.option("mode", "DROPMALFORMED")
       .load()
-    if LogMode.isDebug then {
-      df.printSchema()
-      df.show()
-    }
+    LogMode.debugDF(df)
 
 //    val jsonFormatSchema = new String(Files.readAllBytes(Paths.get("conf/webhook.avsc")))
 //    val jmap = new java.util.HashMap[String, String]()

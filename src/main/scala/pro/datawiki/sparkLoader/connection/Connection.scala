@@ -29,7 +29,11 @@ object Connection {
   }
 
   def getConnection(in: String): ConnectionTrait = {
-    return connections(in)
+    try {
+      return connections(in)
+    }catch
+      case _=>
+        throw Exception(s"Connection $in not initialize")
   }
 
   def initConnection(connection: String, configLocation: String): ConnectionTrait = {
