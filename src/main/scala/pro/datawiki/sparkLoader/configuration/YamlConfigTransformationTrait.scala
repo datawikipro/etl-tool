@@ -1,7 +1,9 @@
 package pro.datawiki.sparkLoader.configuration
 
-import org.apache.spark.sql.DataFrame
+import pro.datawiki.sparkLoader.task.{Task, TaskTemplate}
 
 trait YamlConfigTransformationTrait {
-  def getDataFrame:DataFrame
+  def getTaskTemplate: TaskTemplate
+
+  def getTask(in: TaskTemplate): Task
 }

@@ -5,7 +5,7 @@ import org.apache.spark.sql.{Column, DataFrame}
 class DataFrameOriginal(df: DataFrame) extends DataFrameTrait {
   var localDf: DataFrame = df
 
-  override def get: DataFrame = localDf
+  override def getDataFrame: DataFrame = localDf
 
   override def isValidData: Boolean = true
 

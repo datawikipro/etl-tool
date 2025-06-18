@@ -3,7 +3,8 @@ package pro.datawiki.sparkLoader.transformation
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{col, concat_ws}
 import pro.datawiki.sparkLoader
-import pro.datawiki.sparkLoader.connection.{Connection, DatabaseTrait}
+import pro.datawiki.sparkLoader.connection.DatabaseTrait
+import pro.datawiki.sparkLoader.task.Context
 
 import scala.jdk.CollectionConverters.*
 
@@ -12,13 +13,13 @@ object TransformationIdMap {
   var connect: DatabaseTrait = null
 
   def setIdmap(in: String): Unit = {
-    if in  == null then {
-      return 
+    if in == null then {
+      return
     }
 
-    Connection.getConnection(in)  match
-        case x: DatabaseTrait => connect = x
-        case _ => throw Exception()
-    
+    Context.getConnection(in) match
+      case x: DatabaseTrait => connect = x
+      case _ => throw Exception()
+
   }
 }

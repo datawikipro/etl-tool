@@ -8,16 +8,14 @@ import pro.datawiki.sparkLoader.connection.{ConnectionTrait, WriteMode}
 import java.io.File
 import java.net.URLEncoder.*
 import java.net.{InetSocketAddress, Socket}
+import scala.jdk.CollectionConverters.*
 import scala.util.Random
-import scala.jdk.CollectionConverters._
 
-class LoaderMinIo(configYaml: YamlConfig) extends ConnectionTrait, LazyLogging {
+case class LoaderMinIo(configYaml: YamlConfig, timeout: Int = 15 * 1000) extends ConnectionTrait, LazyLogging {
 
-  def getBucketName:String =  configYaml.bucket
-  
   val minioClient: MinioClient = MinioClient.builder()
     .endpoint(getMinIoHost)
-    .credentials(getAccessKey, getSecretKey)
+    .credentials(configYaml.accessKey, configYaml.secretKey)
     .build()
 
   def saveRaw(in: String, inLocation: String): Unit = {
@@ -36,8 +34,17 @@ class LoaderMinIo(configYaml: YamlConfig) extends ConnectionTrait, LazyLogging {
       new File(localFileName).delete()
     }
   }
+  
+  def deleteFolder(sourceSchema: String, folderName: String):Boolean = {
+    val list: List[String] = getListElementsInFolder(sourceSchema, folderName)
 
-  def getListElementsInFolder(sourceSchema: String, oldTable: String): List[String] = {
+    list.foreach(fileFullLocation =>
+      removeFile(sourceSchema, fileFullLocation)
+    )
+    return true
+  }
+
+  private def getListElementsInFolder(sourceSchema: String, oldTable: String): List[String] = {
     var list: List[String] = List.apply()
     val listArgs = ListObjectsArgs.builder()
       .bucket(sourceSchema)
@@ -69,7 +76,7 @@ class LoaderMinIo(configYaml: YamlConfig) extends ConnectionTrait, LazyLogging {
     minioClient.copyObject(copyArgs)
   }
 
-  def removeFile(sourceSchema: String, fileFullLocation: String): Unit = {
+  private def removeFile(sourceSchema: String, fileFullLocation: String): Unit = {
     val removeArgs = RemoveObjectArgs.builder().bucket(sourceSchema).`object`(fileFullLocation).build()
     minioClient.removeObject(removeArgs)
   }
@@ -87,13 +94,11 @@ class LoaderMinIo(configYaml: YamlConfig) extends ConnectionTrait, LazyLogging {
   def modifySpark(): Unit = {
     val connectionTimeOut = "600000"
     SparkObject.setHadoopConfiguration("fs.s3a.endpoint", getMinIoHost)
-    SparkObject.setHadoopConfiguration("fs.s3a.access.key", getAccessKey)
-    SparkObject.setHadoopConfiguration("fs.s3a.secret.key", getSecretKey)
-    SparkObject.setHadoopConfiguration("fs.s3a.establish.timeout", "5000")
+    SparkObject.setHadoopConfiguration("fs.s3a.access.key", configYaml.accessKey)
+    SparkObject.setHadoopConfiguration("fs.s3a.secret.key", configYaml.secretKey)
+    SparkObject.setHadoopConfiguration("fs.s3a.establish.timeout", s"${timeout}")
     SparkObject.setHadoopConfiguration("fs.s3a.path.style.access", "true")
   }
-
-  val timeout: Int = 5000
 
   private def getMinIoHost: String = {
     configYaml.minioHost.foreach(i => {
@@ -111,22 +116,25 @@ class LoaderMinIo(configYaml: YamlConfig) extends ConnectionTrait, LazyLogging {
     throw Exception()
   }
 
-  private def getAccessKey: String = configYaml.accessKey
-
-  private def getSecretKey: String = configYaml.secretKey
-
   def getLocation(location: String): String = {
-    return s"s3a://${configYaml.bucket}/$location/"
+    return s"s3a://${configYaml.bucket}/$location"
   }
+
+  def getLocationWithPostfix(location: String, keyPartitions: List[String], valuePartitions: List[String]): String = {
+    var postfix: String = ""
+    keyPartitions.zipWithIndex.foreach { case (value, index) => postfix += s"${keyPartitions(index)}=${valuePartitions(index)}/"
+    }
+    val location1 = s"$location/${postfix}"
+    return location1
+  }
+
 
   def getLocation(location: String, keyPartitions: List[String], valuePartitions: List[String]): String = {
-    var postfix: String = ""
-    keyPartitions.zipWithIndex.foreach { case (value, index) => {
-      postfix = s"$postfix/${keyPartitions(index)}=${valuePartitions(index)}"
-    }
-    }
-    return s"s3a://${configYaml.bucket}/$location/${postfix}/"
+    val location1 = s"s3a://${configYaml.bucket}/${getLocationWithPostfix(location, keyPartitions, valuePartitions)}"
+    return location1
   }
 
-
+  def getMasterFolder: String = configYaml.bucket
+  
+  override def close(): Unit = {}
 }

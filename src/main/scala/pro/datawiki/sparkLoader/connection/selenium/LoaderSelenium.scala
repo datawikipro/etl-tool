@@ -1,25 +1,27 @@
 package pro.datawiki.sparkLoader.connection.selenium
 
-import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.sql.DataFrame
 import org.openqa.selenium.chrome.{ChromeDriver, ChromeOptions}
+import org.openqa.selenium.support.ui.{ExpectedConditions, WebDriverWait}
 import org.openqa.selenium.{By, WebDriver, WebElement}
 import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
-import pro.datawiki.sparkLoader.configuration.RunConfig
-import pro.datawiki.sparkLoader.connection.{Connection, ConnectionTrait, FileStorageTrait}
+import pro.datawiki.schemaValidator.sparkRow.{SparkRow, SparkRowAttribute}
+import pro.datawiki.sparkLoader.LogMode
 import pro.datawiki.sparkLoader.connection.selenium.LoaderSelenium.getWebDriver
-import pro.datawiki.sparkLoader.transformation.{TransformationCacheFileStorage, TransformationCacheTrait}
-import pro.datawiki.sparkLoader.{LogMode, SparkObject, YamlClass}
-import org.apache.spark.sql.functions.{lit, lit as row}
-import pro.datawiki.schemaValidator.{SparkRow, SparkRowAttribute}
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, FileStorageTrait}
+import pro.datawiki.sparkLoader.task.Context
+import pro.datawiki.sparkLoader.transformation.TransformationCacheFileStorage
+import pro.datawiki.yamlConfiguration.YamlClass
 
 import java.time.Duration
-
+import java.util.concurrent.locks.ReentrantLock
+import scala.collection.mutable
 
 class LoaderSelenium(configYaml: YamlConfig) extends ConnectionTrait {
   private var cache: TransformationCacheFileStorage = null
 
   def set(inCache: String): Unit = {
-    val con = Connection.getConnection(inCache)
+    val con = Context.getConnection(inCache)
     cache = con match
       case x: FileStorageTrait => TransformationCacheFileStorage(x)
       case _ => throw Exception()
@@ -36,11 +38,11 @@ class LoaderSelenium(configYaml: YamlConfig) extends ConnectionTrait {
     return df
   }
 
-  private def getDataFrameFromCustom(inSeleniumList: SeleniumList, inYamlConfig: YamlConfig): DataFrame = {
-
+  private def getDataFrameFromCustom(inSeleniumList: Map[String, SeleniumType], inYamlConfig: YamlConfig): DataFrame = {
     if inYamlConfig == null then {
       throw Exception()
     }
+
     var listFieldsAttribute: List[SparkRowAttribute] = List.apply()
 
     inYamlConfig.getSchema.foreach(i => {
@@ -52,61 +54,84 @@ class LoaderSelenium(configYaml: YamlConfig) extends ConnectionTrait {
 
   }
 
-  def run(row: Row): DataFrameTrait = {
+  def run(row: mutable.Map[String, String], isSync: Boolean): DataFrameTrait = {
     var df: DataFrame = null
-    val webDriver = getWebDriver
+    val webDriver: WebDriver = getWebDriver(isSync)
     val newConfigYaml = YamlConfig.apply(in = configYaml, row = row)
     webDriver.get(newConfigYaml.getUrl)
-    webDriver.manage.timeouts.implicitlyWait(Duration.ofSeconds(5))
+
+    val wait = new WebDriverWait(webDriver, Duration.ofSeconds(60))
+    //val rawField = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("root")));
+    val rawField = wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("html")));
+    wait.until((d) => rawField.getDomProperty("innerHTML").nonEmpty)
 
     val html: WebElement = webDriver.findElement(By.tagName("html"))
-    val result: SeleniumList = SeleniumList.apply()
 
-    newConfigYaml.getTemplate.foreach(i => result.appendElements(i.getSubElements(html)))
+    val result: Map[String, SeleniumType] = newConfigYaml.process(html)
 
     if configYaml.getSchema.length == 1 then {
       if configYaml.getSchema.head.getType == "json" then {
-        result.getList.head.value.getValue match
-          case x: String => df = getDataFrameFromJson(x)
-          case _ => throw Exception()
+        throw Exception() //TODO
+        //        result.getList.head.value.getValue match
+        //          case x: String => df = getDataFrameFromJson(x)
+        //          case _ => throw Exception()
 
       } else {
-        df  = getDataFrameFromCustom(result,newConfigYaml)
+        df = getDataFrameFromCustom(result, newConfigYaml)
       }
     } else {
-      df  = getDataFrameFromCustom(result,newConfigYaml)
+      df = getDataFrameFromCustom(result, newConfigYaml)
     }
 
     LogMode.debugDF(df)
+    if !isSync then webDriver.close()
     return DataFrameOriginal(df)
   }
 
   override def close(): Unit = {
     LoaderSelenium.close()
+    if cache != null then cache.close()
   }
 }
 
 object LoaderSelenium extends YamlClass {
   def apply(inConfig: String): LoaderSelenium = {
-    val loader = new LoaderSelenium(mapper.readValue(getLines(inConfig), classOf[YamlConfig]))
-    return loader
+    try {
+      val loader = new LoaderSelenium(mapper.readValue(getLines(inConfig), classOf[YamlConfig]))
+      return loader
+    } catch
+      case e: Error => throw Exception(e)
   }
 
   var webDriver: WebDriver = null
 
-  def getWebDriver: WebDriver = {
+  private val lock = new ReentrantLock()
+
+  private def getNewWebDriver: WebDriver = {
+    lock.lock()
+    try {
+      val options = new ChromeOptions()
+      options.addArguments("--headless")
+      options.addArguments("--disable-gpu")
+      options.addArguments("--no-sandbox")
+      options.addArguments("--window-size=1400,800")
+      options.addArguments("--disable-dev-shm-usage")
+      options.addArguments("--shm-size=2g")
+      var newWebDriver = ChromeDriver(options)
+      return newWebDriver
+    } finally {
+      lock.unlock()
+    }
+  }
+
+  def getWebDriver(isSync: Boolean): WebDriver = {
+    if !isSync then return getNewWebDriver
+
     if webDriver != null then {
       sequenceId = 0
       return webDriver
     }
-    val options = new ChromeOptions();
-    options.addArguments("--headless")
-    options.addArguments("--disable-gpu")
-    options.addArguments("--no-sandbox")
-    options.addArguments("--window-size=1400,800")
-    options.addArguments("--disable-dev-shm-usage")
-    options.addArguments("--shm-size=2g")
-    webDriver = ChromeDriver(options);
+    webDriver = getNewWebDriver
     return webDriver
   }
 

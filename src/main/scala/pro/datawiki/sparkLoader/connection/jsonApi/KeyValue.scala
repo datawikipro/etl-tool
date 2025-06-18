@@ -1,6 +1,6 @@
 package pro.datawiki.sparkLoader.connection.jsonApi
 
 case class KeyValue(
-                     key:String,
+                     key: String,
                      value: String
-                     )
+                   )

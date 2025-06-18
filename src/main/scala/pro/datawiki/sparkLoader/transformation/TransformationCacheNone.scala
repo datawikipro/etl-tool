@@ -12,7 +12,7 @@ import scala.util.Random
 class TransformationCacheNone(connect: DatabaseTrait) extends TransformationCacheTrait {
 
   @Override
-  def saveTable(in: DataFrameTrait, treadName:String): Unit = throw Exception()
+  def saveTable(in: DataFrameTrait, mode:WriteMode): Unit = throw Exception()
 
   @Override
   def readDirty(): List[DataFrameTrait] = throw Exception()
@@ -25,4 +25,10 @@ class TransformationCacheNone(connect: DatabaseTrait) extends TransformationCach
 
   @Override
   def saveTable(in: DataFrameTrait): Unit = throw Exception()
+
+  override def createNewCache: TransformationCacheTrait = throw Exception()
+
+  override def close(): Unit = throw Exception()
+
+  override def deleteTable(): Unit = throw Exception()
 }

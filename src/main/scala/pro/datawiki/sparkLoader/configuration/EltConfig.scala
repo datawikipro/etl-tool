@@ -1,28 +1,61 @@
 package pro.datawiki.sparkLoader.configuration
 
-import pro.datawiki.sparkLoader.YamlClass
+import pro.datawiki.sparkLoader.connection.ConnectionTrait
+import pro.datawiki.sparkLoader.task.{Context, Task, TaskTemplate}
+import pro.datawiki.sparkLoader.transformation.TransformationIdMap
+import pro.datawiki.yamlConfiguration.YamlClass
+
+import scala.collection.mutable
 
 class EltConfig(
                  connections: List[YamlConfigConnections] = List.apply(),
                  source: List[YamlConfigSource] = List.apply(),
                  idmap: String,
-                 cache: String,
                  transformations: List[YamlConfigTransformation] = List.apply(),
                  target: List[YamlConfigTarget] = List.apply()
                ) {
+
+  def initConnections(): Unit = {
+    connections.foreach(i => Context.setConnection(i.sourceName, ConnectionTrait.initConnection(i.connection, i.configLocation)))
+  }
+
+  def runTask(taskId: String): Boolean = {
+    val task: TaskTemplate = Context.getTaskTemplate(taskId)
+    //    return task.run()
+    throw Exception()
+  }
+
+  def initSources(): Unit = {
+    getSegmentation match
+      case SegmentationEnum.full => {
+        source.foreach(i => {
+          val task: Task = i.createTask()
+          task.run(i.getObjectName, mutable.Map(), true)
+        })
+      }
+      case SegmentationEnum.random =>
+        throw Exception()
+      case _ => throw Exception()
+  }
+
+  def initTransformation(): Unit = {
+    //     transformations.foreach(i => run(i.getObjectName, i.getTransformation))
+    transformations.foreach(i => {
+      val task: Task = i.createTask()
+      task.run(i.getObjectName, mutable.Map(), true)
+    })
+  }
+
   var segmentation: SegmentationEnum = SegmentationEnum.full
 
   def init(): Unit = {
-    getSource.foreach(i => {
+    source.foreach(i => {
       i.getSegmentation match
         case SegmentationEnum.full =>
-        case SegmentationEnum.partition =>
-          segmentation = SegmentationEnum.partition
+        case SegmentationEnum.partition => segmentation = SegmentationEnum.partition
         case SegmentationEnum.random =>
           segmentation match
-            case SegmentationEnum.full => {
-              segmentation = SegmentationEnum.random
-            }
+            case SegmentationEnum.full => segmentation = SegmentationEnum.random
             case SegmentationEnum.random => throw Exception()
             case _ => throw Exception()
         case SegmentationEnum.adHoc =>
@@ -34,44 +67,33 @@ class EltConfig(
     return segmentation
   }
 
-  def getSegments: List[String] = {
-    var listSegments: List[String] = List.apply()
-    getSource.foreach(i => listSegments = listSegments ::: i.getSegments)
-    return listSegments.distinct
-  }
-
-  def getSource: List[YamlConfigSource] = {
-    if source == null then return List.apply()
-    return source
-  }
-
-  def getTransformations: List[YamlConfigTransformation] = {
-    if transformations == null then return List.apply()
-    return transformations
-  }
-
   def getIdmapSource: String = {
     return idmap
   }
 
-  def getCacheSource: String = {
-    return cache
-  }
-
-  def getConnections: List[YamlConfigConnections] = {
-    if connections == null then return List.apply()
-    return connections
-  }
-
-  def getTarget: List[YamlConfigTarget] = {
-    return target
+  def runTarget(): Boolean = {
+    target.length match
+      case 1 => target.head.writeTarget()
+      case 0 => {
+        throw Exception()
+      }
+      case _ => target.foreach(i => {
+        i.writeTarget()
+      })
+      return true
   }
 }
 
 object EltConfig extends YamlClass {
-  def apply(inConfig: String): EltConfig = {
+  def apply(inConfig: String): Boolean = {
     val result = mapper.readValue(getLines(inConfig), classOf[EltConfig])
     result.init()
-    return result
+    result.initConnections()
+    TransformationIdMap.setIdmap(result.getIdmapSource)
+
+    result.initSources()
+    result.initTransformation()
+    
+    result.runTarget()
   }
 }

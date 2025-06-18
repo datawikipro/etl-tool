@@ -10,3 +10,4 @@
 /.sbt/
 /.cache/
 /jars/
+/kafka/

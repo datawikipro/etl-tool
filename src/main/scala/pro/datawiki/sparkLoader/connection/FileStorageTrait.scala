@@ -2,10 +2,12 @@ package pro.datawiki.sparkLoader.connection
 
 import org.apache.spark.sql.DataFrame
 
-trait FileStorageTrait {
+trait FileStorageTrait extends ConnectionTrait{
   def saveRaw(in: String, inLocation: String): Unit
+
   def readDf(location: String): DataFrame
-  def readDf(location: String, keyPartitions:List[String],valuePartitions:List[String]): DataFrame
+
+  def readDf(location: String, keyPartitions: List[String], valuePartitions: List[String]): DataFrame
 
   def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit
 
@@ -21,8 +23,9 @@ trait FileStorageTrait {
                            writeMode: WriteMode): Unit
 
   def moveTablePartition(oldTableSchema: String, oldTable: String, newTableSchema: String, newTable: String, partitionName: List[String], writeMode: WriteMode): Boolean = throw Exception()
-  
-  def getMasterFolder:String = throw Exception()
+
+  def getMasterFolder: String
+
   def getFolder(location: String): List[String]
-  
+  def deleteFolder(location: String): Boolean
 }

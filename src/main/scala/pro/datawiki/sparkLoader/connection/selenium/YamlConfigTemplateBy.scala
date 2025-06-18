@@ -1,25 +1,21 @@
 package pro.datawiki.sparkLoader.connection.selenium
 
-import org.openqa.selenium.{By, WebDriver, WebElement}
-import org.openqa.selenium.chrome.ChromeDriver
-import org.openqa.selenium.edge.EdgeDriver
-import pro.datawiki.sparkLoader.YamlClass
-import pro.datawiki.sparkLoader.connection.ConnectionTrait
+import org.openqa.selenium.By
+import pro.datawiki.yamlConfiguration.LogicClass
 
-import java.time.Duration
 import scala.jdk.CollectionConverters.*
 
-case class YamlConfigTemplateBy(
-                               function: String,
-                               value:String
-                     ) {
-  def getBy:By= {
-    function match
-      case "className" => return By.className(value)
-      case "tagName" => return By.tagName(value)
-      case "ById" => return By.ById(value)
-      case "ByXpath" => return By.xpath(value)
-      case _ => throw Exception()
+case class YamlConfigTemplateBy(className: String, tagName: String, ById: String, ByXpath: String,byCssSelector:String) extends LogicClass {
+
+  def getBy: By = {
+    val value = getLogic(className, tagName, ById, ByXpath, byCssSelector)
+
+    if className     != null then return By.className(className)
+    if tagName       != null then return By.tagName(tagName)
+    if ById          != null then return By.ById(ById)
+    if ByXpath       != null then return By.xpath(ByXpath)
+    if byCssSelector != null then return By.cssSelector(s"""[${byCssSelector}]""")
+    throw Exception()
   }
-  
+
 }

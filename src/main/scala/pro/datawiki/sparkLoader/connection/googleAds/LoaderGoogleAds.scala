@@ -6,24 +6,25 @@ import com.google.auth.oauth2.{AccessToken, GoogleCredentials, ServiceAccountCre
 import org.apache.hadoop.classification.InterfaceAudience.Private
 import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.{DataFrame, Row}
+import pro.datawiki.sparkLoader.LogMode
 import pro.datawiki.sparkLoader.connection.ConnectionTrait
 import pro.datawiki.sparkLoader.transformation.TransformationCache
-import pro.datawiki.sparkLoader.{LogMode, YamlClass}
+import pro.datawiki.yamlConfiguration.YamlClass
 import sttp.client4.*
 
-import scala.util.{Failure, Success, Try}
 import java.io.{File, FileInputStream}
+import scala.util.{Failure, Success, Try}
 
 
 class LoaderGoogleAds(in: YamlConfig) extends ConnectionTrait {
 
   val credentialsPath = in.config
-//  val credentials: GoogleCredentials = ServiceAccountCredentials.fromStream(new FileInputStream(credentialsPath))
-  val credentials: GoogleCredentials =  UserCredentials.newBuilder()
+  //  val credentials: GoogleCredentials = ServiceAccountCredentials.fromStream(new FileInputStream(credentialsPath))
+  val credentials: GoogleCredentials = UserCredentials.newBuilder()
     .setClientId(in.clientId)
     .setClientSecret(in.clientSecret)
-    .setAccessToken(AccessToken(in.accessToken,null))
-//    .setRefreshToken(in.refreshToken)
+    .setAccessToken(AccessToken(in.accessToken, null))
+    //    .setRefreshToken(in.refreshToken)
     .build();
 
   // Initialize Google Ads Client with service account credentials
@@ -41,7 +42,7 @@ class LoaderGoogleAds(in: YamlConfig) extends ConnectionTrait {
   """.stripMargin
 
   // Create a request
-  val customerId =in.customerId  // Replace with your customer ID
+  val customerId = in.customerId // Replace with your customer ID
   val request: SearchGoogleAdsRequest = SearchGoogleAdsRequest.newBuilder()
     .setCustomerId(customerId)
     .setQuery(query)
@@ -60,8 +61,9 @@ class LoaderGoogleAds(in: YamlConfig) extends ConnectionTrait {
     case Failure(exception) =>
       println(s"Error occurred: ${exception.getMessage}")
   }
-}
 
+  override def close(): Unit = {}
+}
 
 
 object LoaderGoogleAds extends YamlClass {

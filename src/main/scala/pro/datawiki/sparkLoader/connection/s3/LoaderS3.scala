@@ -1,8 +1,8 @@
 package pro.datawiki.sparkLoader.connection.s3
 
+import pro.datawiki.sparkLoader.SparkObject
 import pro.datawiki.sparkLoader.connection.ConnectionTrait
-import pro.datawiki.sparkLoader.connection.kafka.LoaderKafka.getLines
-import pro.datawiki.sparkLoader.{SparkObject, YamlClass}
+import pro.datawiki.yamlConfiguration.YamlClass
 
 class LoaderS3(configYaml: YamlConfig) extends ConnectionTrait {
 
@@ -25,6 +25,7 @@ class LoaderS3(configYaml: YamlConfig) extends ConnectionTrait {
 
   def getS3SecretKeyAws: String = configYaml.s3secretKeyAws
 
+  override def close(): Unit = {}
 }
 
 object LoaderS3 extends YamlClass {

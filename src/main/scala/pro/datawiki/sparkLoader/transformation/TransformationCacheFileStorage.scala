@@ -3,46 +3,42 @@ package pro.datawiki.sparkLoader.transformation
 import org.apache.spark.sql.DataFrame
 import pro.datawiki.datawarehouse.{DataFrameDirty, DataFrameOriginal, DataFrameTrait}
 import pro.datawiki.sparkLoader.connection.WriteMode.overwrite
-import pro.datawiki.sparkLoader.connection.local.localJson.LoaderLocalJson
-import pro.datawiki.sparkLoader.connection.{DatabaseTrait, FileStorageTrait, WriteMode}
+import pro.datawiki.sparkLoader.connection.local.localBase.LoaderLocalBase
 import pro.datawiki.sparkLoader.connection.minIo.minioBase.LoaderMinIo
-import pro.datawiki.sparkLoader.connection.minIo.minioJson.LoaderMinIoJson
+import pro.datawiki.sparkLoader.connection.{FileStorageTrait, WriteMode}
 
 import scala.util.Random
 
 class TransformationCacheFileStorage(connect: FileStorageTrait) extends TransformationCacheTrait {
+  override def createNewCache: TransformationCacheTrait = TransformationCacheFileStorage(connect)
 
-  def getConnect:FileStorageTrait =connect
+  def getConnect: FileStorageTrait = connect
 
-  def checkConnect(in : FileStorageTrait):Boolean = {
+  private def checkConnect(in: FileStorageTrait): Boolean = {
     if connect == in then return true
     return false
   }
 
   val loc: String = connect match
     case x: LoaderMinIo => s"${TransformationCache.runCacheSchema}/${Random.alphanumeric.filter(_.isLetter).take(16).mkString}"
+    case x: LoaderLocalBase => s"${TransformationCache.runCacheSchema}/${Random.alphanumeric.filter(_.isLetter).take(16).mkString}"    
     case _ => throw Exception()
 
-  val locTable = s"$loc/table"
-  val locRaw = s"$loc/raw"
+  private val locTable = s"$loc/table"
+  private val locRaw = s"$loc/raw"
 
   @Override
-  def saveRaw(rawData: String): Unit = {
-    connect match
-      case x: FileStorageTrait => x.saveRaw(rawData, locRaw)
-      case _ => throw Exception()
-  }
+  def saveRaw(rawData: String): Unit = connect.saveRaw(rawData, locRaw)
 
   @Override
-  def saveTable(in: DataFrameTrait): Unit = {
+  def saveTable(in: DataFrameTrait, mode:WriteMode): Unit = {
     in match
-      case x: DataFrameOriginal => connect.writeDf(x.get, locTable, WriteMode.append)
-      case x: DataFrameDirty => connect.writeDf(x.get, s"${locTable}/${x.getPartitionName}", WriteMode.append)
+      case x: DataFrameOriginal => connect.writeDf(x.getDataFrame, locTable, mode)
+      case x: DataFrameDirty => connect.writeDf(x.getDataFrame, s"${locTable}/${x.getPartitionName}", mode)
       case _ => throw Exception()
   }
 
-  def saveTablePartitionAuto(df: DataFrame,
-                             partitionName: List[String]): Unit = {
+  def saveTablePartitionAuto(df: DataFrame, partitionName: List[String]): Unit = {
     connect.writeDfPartitionAuto(df, locTable, partitionName, overwrite)
   }
 
@@ -65,7 +61,7 @@ class TransformationCacheFileStorage(connect: FileStorageTrait) extends Transfor
 
   override def append(in: TransformationCacheTrait): Boolean = {
     in match
-      case x:TransformationCacheFileStorage => {
+      case x: TransformationCacheFileStorage => {
         if !x.checkConnect(connect) then throw Exception()
         connect.moveTablePartition(x.getConnect.getMasterFolder,
           x.locTable,
@@ -77,4 +73,11 @@ class TransformationCacheFileStorage(connect: FileStorageTrait) extends Transfor
       case _ => throw Exception()
   }
 
+  override def deleteTable(): Unit = {
+    connect.deleteFolder(loc)
+  }
+  
+  override def close(): Unit = {
+    deleteTable()
+  }
 }

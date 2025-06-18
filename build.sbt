@@ -2,7 +2,7 @@ import sbt.Keys.libraryDependencies
 
 import scala.collection.Seq
 
-ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / version := "0.2.0-SNAPSHOT"
 
 ThisBuild / scalaVersion := "3.4.2"
 
@@ -11,25 +11,25 @@ lazy val root = (project in file("."))
     name := "etl-tool",
     assembly / assemblyJarName := "etl-tool.jar",
     assembly / mainClass := Some("pro.datawiki.sparkLoader.sparkRun"),
-  )
-assemblyMergeStrategy in assembly := {
-  case PathList("META-INF", xs @ _*) =>
-    xs map {_.toLowerCase} match {
-      case ("manifest.mf" :: Nil) | ("index.list" :: Nil) | ("dependencies" :: Nil) =>
-        MergeStrategy.discard
-      case ps @ (x :: xs) if ps.last.endsWith(".sf") || ps.last.endsWith(".dsa") =>
-        MergeStrategy.discard
-      case "services" :: _ =>  MergeStrategy.filterDistinctLines
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", xs @ _*) =>
+        xs map {_.toLowerCase} match {
+          case ("manifest.mf" :: Nil) | ("index.list" :: Nil) | ("dependencies" :: Nil) =>
+            MergeStrategy.discard
+          case ps @ (x :: xs) if ps.last.endsWith(".sf") || ps.last.endsWith(".dsa") =>
+            MergeStrategy.discard
+          case "services" :: _ =>  MergeStrategy.filterDistinctLines
+          case _ => MergeStrategy.first
+        }
       case _ => MergeStrategy.first
     }
-  case _ => MergeStrategy.first
-}
+  )
 
-val sparkVersion = "3.4.4"
+val sparkVersion = "3.5.5"
 val hadoopVersion = "3.4.1"
 val jacksonDataformatVersion = "2.18.2"
 val json4sVersion = "3.7.0-M11"
-val awsSdkVersion = "1.12.780"
+val awsSdkVersion = "1.12.783"
 val postgresqlVersion = "42.7.5"
 val clickhouseVersion = "0.8.2"
 val mysqlVersion = "8.0.33"

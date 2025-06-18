@@ -1,17 +1,19 @@
 package pro.datawiki.sparkLoader.connection.selenium
 
 import org.openqa.selenium.WebElement
-import pro.datawiki.sparkLoader.configuration.parent.LogicClass
+import pro.datawiki.yamlConfiguration.LogicClass
 
+import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 
 case class YamlConfigTemplateGetDomProperty(
-                                              value: String,
-                                              parameter: YamlConfigTemplateParameter
-                                            ) extends LogicClass {
-
-  def getSubElements(webElement: WebElement): SeleniumList = {
+                                             value: String,
+                                             parameter: YamlConfigTemplateParameter
+                                           ) extends LogicClass,YamlConfigTemplateGetterTrait {
+   override def getResult(webElement: WebElement): Map[String, SeleniumType] = {
     val result: String = webElement.getDomProperty(value)
-    return parameter.getParametersResult(result)
+    return parameter.getResult(result)
   }
-} 
+
+
+}

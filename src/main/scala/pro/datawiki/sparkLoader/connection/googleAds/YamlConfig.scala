@@ -10,4 +10,4 @@ case class YamlConfig(
                        accessToken: String,
                        refreshToken: String,
                        customerId: String
-                )
+                     )

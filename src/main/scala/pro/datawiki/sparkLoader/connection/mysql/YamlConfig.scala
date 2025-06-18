@@ -1,7 +1,7 @@
 package pro.datawiki.sparkLoader.connection.mysql
 
-case class YamlConfig(server:YamlServer,
+case class YamlConfig(server: YamlServer,
                       gateway: YamlGateway,
-                      login:String,
-                      password:String,
-                      )
+                      login: String,
+                      password: String,
+                     )
