@@ -8,10 +8,16 @@ import scala.jdk.CollectionConverters.*
 
 case class YamlConfigTemplateGetText(
                                       parameter: String
-                                    ) extends LogicClass,YamlConfigTemplateGetterTrait {
+                                    ) extends LogicClass, YamlConfigTemplateGetterTrait {
   def getResult(webElement: WebElement): Map[String, SeleniumType] = {
-    var result: Map[String, SeleniumType] = Map(parameter-> SeleniumString(webElement.getText))
+    var result: Map[String, SeleniumType] = Map(parameter -> SeleniumString(webElement.getText))
     return result
   }
 
+  def getModified(parameters: mutable.Map[String, String]): YamlConfigTemplateGetText = {
+    return YamlConfigTemplateGetText(
+      parameter = YamlConfig.getModifiedString(parameter, parameters)
+    )
+
+  }
 }

@@ -16,4 +16,11 @@ case class YamlConfigTemplateParameter(
       case x: String => Map(x ->SeleniumString(value))
       case x: YamlConfigTemplateParameterRegexp => x.getResult(value)
   }
+  
+  def getModified(parameters: mutable.Map[String, String]): YamlConfigTemplateParameter = {
+    return YamlConfigTemplateParameter(
+      simple=YamlConfig.getModifiedString(simple, parameters),
+      regexpLogic=regexpLogic.getModified(parameters)
+    )
+  }
 }

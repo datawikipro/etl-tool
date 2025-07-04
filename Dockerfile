@@ -35,4 +35,7 @@ RUN echo 'Docker!' | passwd --stdin root
 COPY docker/google.repo /etc/yum.repos.d/google-chrome.repo
 RUN yum install -y google-chrome
 
+
+
+RUN yum install procps-ng
 CMD ["/usr/sbin/init"]

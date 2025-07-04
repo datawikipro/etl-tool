@@ -10,9 +10,14 @@ import scala.collection.mutable
 class DataFrameLazySparkSql(sql: String,inInitTables: mutable.Map[String, DataFrameTrait]) extends DataFrameTrait {
   var localDf: DataFrame = null
 
+  private def initLocalDf():Unit = {
+    
+  }
+  
   override def getDataFrame: DataFrame = {
+    initLocalDf()
     inInitTables.foreach(i=> {
-      Task.saveDf(i._1, List.apply(i._2))
+      Task.saveDf(i._1, i._2)
     })
     if localDf == null then {
       localDf = SparkObject.spark.sql(sql)
@@ -20,6 +25,9 @@ class DataFrameLazySparkSql(sql: String,inInitTables: mutable.Map[String, DataFr
     }
     return localDf
   }
+
+  override def isEmpty: Boolean = throw Exception()
+
 
   override def isValidData: Boolean = true
 

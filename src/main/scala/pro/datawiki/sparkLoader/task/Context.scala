@@ -10,7 +10,7 @@ import pro.datawiki.sparkLoader.connection.kafka.kafkaSaslSSL.LoaderKafkaSaslSSL
 import pro.datawiki.sparkLoader.connection.local.localJson.LoaderLocalJson
 import pro.datawiki.sparkLoader.connection.local.localParquete.LoaderLocalParquet
 import pro.datawiki.sparkLoader.connection.local.localText.LoaderLocalText
-import pro.datawiki.sparkLoader.connection.minIo.{LoaderMinIo, LoaderMinIoStream, minioJsonStream}
+import pro.datawiki.sparkLoader.connection.minIo.{LoaderMinIo, LoaderMinIoStream, minioStream}
 import pro.datawiki.sparkLoader.connection.mysql.LoaderMySql
 import pro.datawiki.sparkLoader.connection.postgres.LoaderPostgres
 import pro.datawiki.sparkLoader.connection.s3.LoaderS3

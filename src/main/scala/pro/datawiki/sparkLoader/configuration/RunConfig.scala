@@ -7,7 +7,7 @@ object RunConfig {
   private var partition: String = ""
   private var subPartition: String = ""
 
-  def getPartition(in: String): String = {
+  private def getPartition(in: String): String = {
     val patterns: List[Regex] = List.apply(
       """^scheduled__(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\+(\d{2}):(\d{2})$""".r,
       """^manual__(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{6})\+(\d{2}):(\d{2})$""".r

@@ -4,7 +4,7 @@ import org.apache.spark.sql.DataFrame
 import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
 import pro.datawiki.sparkLoader.connection.local.localJson.LoaderLocalJson
 import pro.datawiki.sparkLoader.connection.minIo.minioBase.LoaderMinIo
-import pro.datawiki.sparkLoader.connection.minIo.minioJson.LoaderMinIoJson
+import pro.datawiki.sparkLoader.connection.minIo.minioBatch.LoaderMinIoBatch
 import pro.datawiki.sparkLoader.connection.{DatabaseTrait, FileStorageTrait, WriteMode}
 
 import scala.util.Random

@@ -2,7 +2,7 @@ package pro.datawiki.schemaValidator.projectSchema
 
 import com.fasterxml.jackson.annotation.{JsonIgnore, JsonInclude}
 import org.json4s.JsonAST.{JArray, JInt}
-import org.json4s.{JBool, JObject, JString, JValue}
+import org.json4s.{JBool, JDouble, JObject, JString, JValue}
 import pro.datawiki.schemaValidator.baseSchema.{BaseSchemaBooleanTemplate, BaseSchemaDoubleTemplate, BaseSchemaIntTemplate, BaseSchemaStringTemplate, BaseSchemaTemplate}
 import pro.datawiki.sparkLoader.LogMode
 import pro.datawiki.yamlConfiguration.LogicClass
@@ -51,6 +51,7 @@ case class SchemaElement(
           case "Int" => return SchemaType.Int
           case "Long" => return SchemaType.Long
           case "Boolean" => return SchemaType.Boolean
+          case "Double" => return SchemaType.Double
           case _ => {
             throw Exception()
           }
@@ -84,6 +85,15 @@ case class SchemaElement(
           case _ => {
             return LogMode.getDebugFalse
           }
+      case x: JDouble =>
+        getElementType match
+          case SchemaType.Int => return true
+          case SchemaType.String => return true
+          case SchemaType.Double => return true
+          case _ => {
+            return LogMode.getDebugFalse
+          }
+
       case x: JString =>
         getElementType match
           case SchemaType.String => return true

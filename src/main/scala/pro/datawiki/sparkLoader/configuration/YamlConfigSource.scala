@@ -1,11 +1,12 @@
 package pro.datawiki.sparkLoader.configuration
 
-import pro.datawiki.sparkLoader.configuration.SegmentationEnum.{full, random}
+import java.time.LocalDateTime
 import pro.datawiki.sparkLoader.configuration.yamlConfigSource.*
 import pro.datawiki.sparkLoader.task.*
 import pro.datawiki.sparkLoader.transformation.TransformationCache
 import pro.datawiki.yamlConfiguration.LogicClass
 
+import java.util.{Calendar, Date, TimeZone}
 import scala.concurrent.ExecutionContext
 
 
@@ -17,35 +18,18 @@ class YamlConfigSource(sourceName: String,
                        sourceFileSystem: YamlConfigSourceFileSystem,
                        sourceKafka: YamlConfigSourceKafka,
                        sourceWeb: YamlConfigSourceWeb,
+                       sourceMail: YamlConfigSourceMail,
                        cache: String,
-                       initMode: String
+                       initMode: String,
+                       skipIfEmpty: Boolean = false
                       ) extends LogicClass {
-  val initModeEnum: InitModeEnum = initMode match
-    case "instantly" => InitModeEnum.instantly
-    case "adHoc" => InitModeEnum.adHoc
-    case _ => throw Exception("initMode not defined")
+  private def initModeEnum: InitModeEnum = InitModeEnum(initMode)
+
 
   def getObjectName: String = objectName
 
-  def getSegmentation: SegmentationEnum = {
-    if segmentation == null then {
-      return SegmentationEnum.full
-    }
-    segmentation match
-      case "random" => return SegmentationEnum.random
-      case "full" => return SegmentationEnum.full
-      case "partition" => return SegmentationEnum.partition
-      case _ => throw Exception()
-  }
-
   private def getLogic: Any = {
-    super.getLogic(sourceDb, sourceSQL, sourceFileSystem, sourceKafka, sourceWeb)
-  }
-
-  private def getSource: YamlConfigSourceTrait = {
-    getLogic match
-      case x: YamlConfigSourceTrait => return x
-      case _ => throw Exception()
+    super.getLogic(sourceDb, sourceSQL, sourceFileSystem, sourceKafka, sourceWeb,sourceMail)
   }
 
   def createTask(): Task = {
@@ -53,12 +37,34 @@ class YamlConfigSource(sourceName: String,
       case x: YamlConfigSourceTrait => x.getTaskTemplate(Context.getConnection(sourceName))
       case _ => throw Exception()
 
-
     val task: Task = initModeEnum match
       case InitModeEnum.instantly => TaskSimple(taskTemplate)
       case InitModeEnum.adHoc => TaskAdHocRegister(taskTemplate)
+      case InitModeEnum.consumer => {
+        val timeZone: TimeZone = TimeZone.getTimeZone("UTC")
+        taskTemplate match {
+          case x: TaskTemplateReadEmail =>{
+//            val today: DateTime = {
+//              val cal = Calendar.getInstance(timeZone)
+//              cal.add(Calendar.DAY_OF_MONTH,0)
+//              cal.set(Calendar.HOUR_OF_DAY, 0)
+//              cal.set(Calendar.MINUTE, 0)
+//              cal.set(Calendar.SECOND, 0)
+//              cal.set(Calendar.MILLISECOND, 0)
+//              cal.getTime
+//            }
+            val currentDateTime: LocalDateTime = LocalDateTime.now()
+            x.setTime(currentDateTime)
+
+            TaskConsumer(x)
+          }
+          case _ => throw Exception()
+        }
+
+      }
       case _ => throw Exception()
 
+    if skipIfEmpty then task.setSkipIfEmpty(skipIfEmpty)
     if cache != null then task.setCache(TransformationCache(cache))
     return task
   }

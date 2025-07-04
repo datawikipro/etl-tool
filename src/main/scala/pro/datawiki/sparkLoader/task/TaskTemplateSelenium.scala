@@ -8,6 +8,6 @@ import scala.collection.mutable
 
 class TaskTemplateSelenium(source: LoaderSelenium) extends TaskTemplate {
   override def run(parameters: mutable.Map[String, String], isSync:Boolean): List[DataFrameTrait] = {
-    List.apply(source.run(parameters, isSync))
+    List.apply(source.getDataFrame(parameters, isSync))
   }
 }

@@ -17,8 +17,16 @@ def sparkRun(configLocation: String, partition: String, subPartition: String, is
 
   // Init Config 
   RunConfig.initPartitions(partition, subPartition)
-
-  val etlConfig = EltConfig(configLocation)
+//  while (true) {
+//    val etlConfig = EltConfig(configLocation)
+//    println("next")
+//  }
+  EltConfig(configLocation) match {
+    case done =>
+    case skip =>
+    case error=> throw Exception()
+    case _=> throw Exception()
+  }
 
   Context.closeConnections()
 

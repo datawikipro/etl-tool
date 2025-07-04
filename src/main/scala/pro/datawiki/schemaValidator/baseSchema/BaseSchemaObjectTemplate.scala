@@ -22,6 +22,8 @@ class BaseSchemaObjectTemplate(inElements: mutable.Map[String, BaseSchemaTemplat
 
     val inObject: BaseSchemaObject = in match
       case x: BaseSchemaObject => x
+      case x: BaseSchemaNull =>
+        return BaseSchemaObject(newElements, inElements, inIsIgnorable)
       case _ => throw Exception()
 
     inElements.foreach(i => {

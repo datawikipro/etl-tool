@@ -2,8 +2,12 @@ package pro.datawiki.sparkLoader.connection.minIo.minioBase
 
 import com.typesafe.scalalogging.LazyLogging
 import io.minio.*
-import pro.datawiki.sparkLoader.SparkObject
-import pro.datawiki.sparkLoader.connection.{ConnectionTrait, WriteMode}
+import _root_.org.apache.spark.sql.DataFrame
+import _root_.org.apache.spark.sql.functions.lit
+import pro.datawiki.sparkLoader.connection.fileBased.FileBaseFormat
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DataWarehouseTrait, FileStorageTrait, WriteMode}
+import pro.datawiki.sparkLoader.exception.TableNotExistException
+import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 
 import java.io.File
 import java.net.URLEncoder.*
@@ -11,7 +15,49 @@ import java.net.{InetSocketAddress, Socket}
 import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
-case class LoaderMinIo(configYaml: YamlConfig, timeout: Int = 15 * 1000) extends ConnectionTrait, LazyLogging {
+case class LoaderMinIo(format: FileBaseFormat,
+                       configYaml: YamlConfig,
+                       timeout: Int = 15 * 1000) extends DataWarehouseTrait, FileStorageTrait, ConnectionTrait, LazyLogging {
+
+  def readDf(location: String, segmentName: String): DataFrame = {
+    val df: DataFrame = SparkObject.spark.read.format(format.toString).load(getLocation(location = s"$location/$segmentName/"))
+    LogMode.debugDF(df)
+    return df
+  }
+
+  def readDf(location: String): DataFrame = {
+    val df: DataFrame = SparkObject.spark.read.format(format.toString).load(getLocation(location = location))
+    LogMode.debugDF(df)
+    return df
+  }
+
+  def readDf(location: String, keyPartitions: List[String], valuePartitions: List[String]): DataFrame = {
+    val fullLocation =getLocation(location = location, keyPartitions = keyPartitions, valuePartitions = valuePartitions)
+
+    val list = getListElementsInFolder(configYaml.bucket,getLocationWithPostfix(location, keyPartitions, valuePartitions))
+    if list.isEmpty then throw TableNotExistException()
+    
+    var df: DataFrame = SparkObject.spark.read
+      .format(format.toString)
+      .load(fullLocation)
+
+    keyPartitions.zipWithIndex.foreach { case (value, index) =>
+      df = df.withColumn(keyPartitions(index), lit(valuePartitions(index)))
+    }
+    LogMode.debugDF(df)
+    return df
+  }
+
+
+  def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = {
+    throw Exception()
+  }
+
+
+  def writeDfPartitionDirect(df: DataFrame, location: String, partitionName: List[String], partitionValue: List[String], writeMode: WriteMode): Unit = {
+    throw Exception()
+  }
+
 
   val minioClient: MinioClient = MinioClient.builder()
     .endpoint(getMinIoHost)
@@ -34,8 +80,8 @@ case class LoaderMinIo(configYaml: YamlConfig, timeout: Int = 15 * 1000) extends
       new File(localFileName).delete()
     }
   }
-  
-  def deleteFolder(sourceSchema: String, folderName: String):Boolean = {
+
+  def deleteFolder(sourceSchema: String, folderName: String): Boolean = {
     val list: List[String] = getListElementsInFolder(sourceSchema, folderName)
 
     list.foreach(fileFullLocation =>
@@ -58,8 +104,8 @@ case class LoaderMinIo(configYaml: YamlConfig, timeout: Int = 15 * 1000) extends
     return list
   }
 
-  def getFolder(sourceSchema: String, location: String): List[String] = {
-    val listArgs = ListObjectsArgs.builder().bucket(sourceSchema).prefix(location).recursive(true).delimiter("/").build()
+  def getFolder(location: String): List[String] = {
+    val listArgs = ListObjectsArgs.builder().bucket(configYaml.bucket).prefix(location).recursive(true).delimiter("/").build()
 
     var list: List[String] = List.apply()
     val objects = minioClient.listObjects(listArgs).asScala
@@ -120,7 +166,7 @@ case class LoaderMinIo(configYaml: YamlConfig, timeout: Int = 15 * 1000) extends
     return s"s3a://${configYaml.bucket}/$location"
   }
 
-  def getLocationWithPostfix(location: String, keyPartitions: List[String], valuePartitions: List[String]): String = {
+  private def getLocationWithPostfix(location: String, keyPartitions: List[String], valuePartitions: List[String]): String = {
     var postfix: String = ""
     keyPartitions.zipWithIndex.foreach { case (value, index) => postfix += s"${keyPartitions(index)}=${valuePartitions(index)}/"
     }
@@ -128,13 +174,33 @@ case class LoaderMinIo(configYaml: YamlConfig, timeout: Int = 15 * 1000) extends
     return location1
   }
 
-
   def getLocation(location: String, keyPartitions: List[String], valuePartitions: List[String]): String = {
     val location1 = s"s3a://${configYaml.bucket}/${getLocationWithPostfix(location, keyPartitions, valuePartitions)}"
     return location1
   }
 
   def getMasterFolder: String = configYaml.bucket
-  
+
   override def close(): Unit = {}
+
+  override def readDfSchema(location: String): DataFrame = {
+    throw Exception()
+  }
+
+  override def deleteFolder(location: String): Boolean = {
+    val list = getListElementsInFolder(configYaml.bucket, location)
+    list.foreach(fileFullLocation =>
+      removeFile(configYaml.bucket, fileFullLocation)
+    )
+    return true
+  }
+
+  override def writeDfPartitionAuto(df: DataFrame, location: String, partitionName: List[String], writeMode: WriteMode): Unit = {
+    throw Exception()
+  }
+
+  override def moveTablePartition(oldTableSchema: String, oldTable: String, newTableSchema: String, newTable: String, partitionName: List[String], writeMode: WriteMode): Boolean = {
+    moveTablePartition(oldTableSchema, oldTable, newTable, partitionName, writeMode)
+  }
+
 }

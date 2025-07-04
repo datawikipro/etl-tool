@@ -4,6 +4,7 @@ import pro.datawiki.schemaValidator.sparkRow.{SparkRowAttribute, SparkRowElement
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 
 class YamlConfigSchemaColumn(
@@ -118,4 +119,11 @@ class YamlConfigSchemaColumn(
 
   }
 
+  def getModified(parameters: mutable.Map[String, String]):YamlConfigSchemaColumn={
+    getDefault match
+      case null => return YamlConfigSchemaColumn(column = getColumn, `type` = getType, subType = getSubType, default = getDefault)
+      case _ => return YamlConfigSchemaColumn(column = getColumn, `type` = getType, subType = getSubType, default = YamlConfig.getModifiedString(getDefault,parameters))
+  }
+  
+  
 }

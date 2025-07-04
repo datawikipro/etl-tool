@@ -1,20 +1,21 @@
 package pro.datawiki.sparkLoader.connection.jsonApi
 
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.functions.lit
 import pro.datawiki.datawarehouse.{DataFrameDirty, DataFrameOriginal, DataFrameTrait}
 import pro.datawiki.schemaValidator.SchemaValidator
-import pro.datawiki.sparkLoader.LogMode
+import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.sparkLoader.configuration.RunConfig
 import pro.datawiki.sparkLoader.connection.ConnectionTrait
 import pro.datawiki.yamlConfiguration.YamlClass
 import sttp.client4.*
 
+import java.net.URLEncoder
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import scala.collection.mutable
 import scala.concurrent.duration.{Duration, MINUTES}
-import java.net.URLEncoder
 
 class LoaderJsonApi(in: YamlConfig) extends ConnectionTrait {
   val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -64,15 +65,17 @@ class LoaderJsonApi(in: YamlConfig) extends ConnectionTrait {
     }
     request = request.readTimeout(Duration(2, MINUTES))
     request = request.contentType("application/json")
-//    if !(in.getHost == null) then
-//      request = request.header("Host", in.getHost)
+    //    if !(in.getHost == null) then
+    //      request = request.header("Host", in.getHost)
     val response = in.method match {
       case "Get" => {
         val request2 = request.get(uri = uri"${getValueUrl(in.getUrl, variables)}")
         request2.send(backend)
       }
       case "Post" => {
-        request = request.body({getValue(in.body, variables)})
+        request = request.body({
+          getValue(in.body, variables)
+        })
         val request2 = request.post(uri = uri"${getValueUrl(in.getUrl, variables)}")
         request2.send(backend)
       }
@@ -112,8 +115,30 @@ class LoaderJsonApi(in: YamlConfig) extends ConnectionTrait {
     var variablesList: mutable.Map[String, String] = getVariables(row)
 
     val resTxt = sendRequest(variablesList)
+    var df: DataFrameTrait = in.resultType match {
+      case "json" => {
+        getDataFrameFromJson(resTxt)
+      }
 
-    var df = getDataFrameFromJson(resTxt)
+      case _ => {
+
+
+        val lines: Array[String] = resTxt.split("\n")
+//        val ds: Dataset[String] = SparkObject.spark.createDataset(lines)
+//         Читаем RDD как DataFrame
+//        val df:DataFrame = SparkObject.spark.read
+//          .option("header", "true") // используем первую строку как заголовок
+//          .option("delimiter", ";") // задаём разделитель
+//          .option("inferSchema", "true") // автоматическое определение типов данных
+//          .csv(ds)
+//
+//         Проверяем результат
+//        df.show()
+//        df.printSchema()
+        throw Exception()
+      }
+    }
+
 
     if row != null then {
       row.foreach(j => df.addColumn(j._1, lit(variablesList(s"$${${j._1}}"))))

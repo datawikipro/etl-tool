@@ -16,5 +16,7 @@ class SparkRowElementStructTemplate(in: List[SparkRowAttributeTemplate]) extends
     return StructType(subStruct.toSeq)
   }
   override def getValue: Any = throw Exception()
-
+  def getListAttributeTemplate: List[SparkRowAttributeTemplate] = {
+    return in
+  }
 }

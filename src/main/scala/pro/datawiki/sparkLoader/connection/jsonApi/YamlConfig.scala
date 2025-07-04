@@ -9,6 +9,7 @@ case class YamlConfig(
                        cookies: List[KeyValue] = List.apply(),
                        authType: AuthType,
                        body: String,
+                       resultType:String = "json",
                        host: String,
                        limit: Int,
                        startOffset: Int,

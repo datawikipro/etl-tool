@@ -20,17 +20,19 @@ case class YamlConfigTarget(database: YamlConfigTargetDatabase,
       case _ => throw Exception()
   }
   
-  def writeTarget(): Boolean = {
+  def writeTarget(): ProgressStatus = {
     if ignoreError then {
       try {
         getLogic.writeTarget()
+        return ProgressStatus.done
       } catch
         case e: Exception => {
           println(e.toString)
-          return true
+          return ProgressStatus.skip
         }
     } else {
       getLogic.writeTarget()
+      return ProgressStatus.done
     }
   }
 

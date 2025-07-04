@@ -20,7 +20,6 @@ object SchemaValidator extends YamlClass {
         val a = i.substring(0,1)
         if i.substring(0,1) == """"""" then
           str = str.substring(1,str.length-1).replace("\\\"","\"")
-
         val json: JValue = parse(str)
         json match
           case x: JObject => {
@@ -31,9 +30,9 @@ object SchemaValidator extends YamlClass {
           case JNull => {}
           case _ => throw Exception()
       }
-//      catch
-//        case _ =>
-//          println(i)
+      catch
+        case _ =>
+          println(s"Not parsed json: $i")
     })
 
     val project =  toYaml(schema.getProjectSchema)

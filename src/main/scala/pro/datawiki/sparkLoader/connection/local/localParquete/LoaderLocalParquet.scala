@@ -46,6 +46,8 @@ class LoaderLocalParquet(configYaml: YamlConfig) extends LoaderLocalBase(configY
   override def getMasterFolder: String = super.getMasterFolder
 
   override def deleteFolder(location: String): Boolean = throw Exception()
+
+  override def moveTablePartition(oldTableSchema: String, oldTable: String, newTableSchema: String, newTable: String, partitionName: List[String], writeMode: WriteMode): Boolean = throw Exception()
 }
 
 object LoaderLocalParquet extends YamlClass {

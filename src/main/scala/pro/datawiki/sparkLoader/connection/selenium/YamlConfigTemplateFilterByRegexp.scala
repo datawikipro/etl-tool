@@ -22,5 +22,12 @@ class YamlConfigTemplateFilterByRegexp(
     )
     return false
   }
-  
+
+
+  def getModified(parameters: mutable.Map[String, String]): YamlConfigTemplateFilterByRegexp = {
+    return YamlConfigTemplateFilterByRegexp(
+      varName=YamlConfig.getModifiedString(varName, parameters),
+      regexp=YamlConfig.getModifiedString(regexp, parameters),
+    )
+  }
 }

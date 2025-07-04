@@ -14,6 +14,7 @@ import pro.datawiki.sparkLoader.transformation.TransformationCacheFileStorage
 import pro.datawiki.yamlConfiguration.YamlClass
 
 import java.time.Duration
+import java.util.Base64
 import java.util.concurrent.locks.ReentrantLock
 import scala.collection.mutable
 
@@ -54,18 +55,9 @@ class LoaderSelenium(configYaml: YamlConfig) extends ConnectionTrait {
 
   }
 
-  def run(row: mutable.Map[String, String], isSync: Boolean): DataFrameTrait = {
+  private def getDataFrameFromWebDriver(inWebDriver: WebDriver, newConfigYaml: YamlConfig, isSync: Boolean): DataFrameTrait = {
     var df: DataFrame = null
-    val webDriver: WebDriver = getWebDriver(isSync)
-    val newConfigYaml = YamlConfig.apply(in = configYaml, row = row)
-    webDriver.get(newConfigYaml.getUrl)
-
-    val wait = new WebDriverWait(webDriver, Duration.ofSeconds(60))
-    //val rawField = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("root")));
-    val rawField = wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("html")));
-    wait.until((d) => rawField.getDomProperty("innerHTML").nonEmpty)
-
-    val html: WebElement = webDriver.findElement(By.tagName("html"))
+    val html: WebElement = inWebDriver.findElement(By.tagName("html"))
 
     val result: Map[String, SeleniumType] = newConfigYaml.process(html)
 
@@ -84,8 +76,34 @@ class LoaderSelenium(configYaml: YamlConfig) extends ConnectionTrait {
     }
 
     LogMode.debugDF(df)
-    if !isSync then webDriver.close()
     return DataFrameOriginal(df)
+  }
+
+  def getDataFrameFromData(html: String): DataFrameTrait = {
+    val driver = getWebDriver(false)
+
+    val encoded = Base64.getEncoder.encodeToString(html.getBytes("UTF-8"))
+    driver.get(s"data:text/html;base64,$encoded")
+
+    val result = getDataFrameFromWebDriver(driver, configYaml, false)
+    driver.quit()
+    return result
+  }
+
+  def getDataFrame(row: mutable.Map[String, String], isSync: Boolean): DataFrameTrait = {
+    val webDriver: WebDriver = getWebDriver(isSync)
+    val newConfigYaml: YamlConfig = YamlConfig.apply(in = configYaml, row = row)
+    webDriver.get(newConfigYaml.getUrl)
+
+    val wait = new WebDriverWait(webDriver, Duration.ofSeconds(5))
+    //val rawField = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("root")));
+
+    val rawField = wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("html")));
+    wait.until((d) => rawField.getDomProperty("innerHTML").nonEmpty)
+
+    val result = getDataFrameFromWebDriver(webDriver, newConfigYaml, isSync)
+    if !isSync then webDriver.quit()
+    return result
   }
 
   override def close(): Unit = {
@@ -99,8 +117,8 @@ object LoaderSelenium extends YamlClass {
     try {
       val loader = new LoaderSelenium(mapper.readValue(getLines(inConfig), classOf[YamlConfig]))
       return loader
-    } catch
-      case e: Error => throw Exception(e)
+    } /*catch
+      case e: Error => throw Exception(e)*/
   }
 
   var webDriver: WebDriver = null
@@ -111,12 +129,13 @@ object LoaderSelenium extends YamlClass {
     lock.lock()
     try {
       val options = new ChromeOptions()
-      options.addArguments("--headless")
+//      options.addArguments("--headless")
       options.addArguments("--disable-gpu")
       options.addArguments("--no-sandbox")
       options.addArguments("--window-size=1400,800")
       options.addArguments("--disable-dev-shm-usage")
       options.addArguments("--shm-size=2g")
+//      options.addArguments("--incognito")
       var newWebDriver = ChromeDriver(options)
       return newWebDriver
     } finally {
@@ -144,6 +163,7 @@ object LoaderSelenium extends YamlClass {
 
   def close(): Unit = {
     if webDriver == null then return
-    webDriver.close()
+    webDriver.quit()
+    webDriver = null
   }
 }

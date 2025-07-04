@@ -19,6 +19,15 @@ class SparkRowElementListTemplate(in: Seq[SparkRowElementTypeTemplate]) extends 
 
         return ArrayType(StructType(subStruct))
       }
+      case x: SparkRowElementStructTemplate => {
+        
+        var subStruct: List[StructField] = List.apply()
+        x.getListAttributeTemplate.foreach(i => {
+          subStruct = subStruct :+ i.getStructField
+        })
+
+        return ArrayType(StructType(subStruct))
+      }
       case x: SparkRowElementStringTemplate => {
         return ArrayType(x.getType)
       }

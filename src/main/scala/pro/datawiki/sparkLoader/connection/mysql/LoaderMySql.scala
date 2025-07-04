@@ -9,7 +9,6 @@ import org.apache.spark.sql.functions.{coalesce, col, md5}
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.sparkLoader.configuration.yamlConfigTarget.YamlConfigTargetColumn
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait, WriteMode}
-import pro.datawiki.sparkLoader.transformation.TransformationIdMap
 import pro.datawiki.yamlConfiguration.YamlClass
 
 import java.nio.file.{Files, Paths}

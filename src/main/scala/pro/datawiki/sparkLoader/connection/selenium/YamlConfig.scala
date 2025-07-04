@@ -3,25 +3,47 @@ package pro.datawiki.sparkLoader.connection.selenium
 import org.openqa.selenium.WebElement
 
 import scala.collection.mutable
-import java.net.URLEncoder
 
 class YamlConfig(
                   url: String,
                   schema: List[YamlConfigSchemaColumn] = List.apply(),
                   template: List[YamlConfigTemplate] = List.apply()
                 ) {
+  def getSeleniumConfig: YamlConfig = this
+
   def getUrl: String = url
 
   def getSchema: List[YamlConfigSchemaColumn] = schema
 
   def getTemplate: List[YamlConfigTemplate] = template
-  
+
+  def getModifiedUrl(parameters: mutable.Map[String, String]): String = {
+    return YamlConfig.getModifiedString(url, parameters)
+  }
+
+  def getModifiedSchema(parameters: mutable.Map[String, String]): List[YamlConfigSchemaColumn] = {
+    var newSchema: List[YamlConfigSchemaColumn] = List.apply()
+    schema.foreach(i => {
+      newSchema = newSchema.appended(i.getModified(parameters))
+    })
+    return newSchema
+  }
+
+  def getModifiedTemplate(parameters: mutable.Map[String, String]): List[YamlConfigTemplate] = {
+    var newTemplate: List[YamlConfigTemplate] = List.apply()
+    template.foreach(i => {
+      newTemplate = newTemplate.appended(i.getModified(parameters))
+    })
+    return newTemplate
+  }
+
   def process(html: WebElement): Map[String, SeleniumType] = {
     val result: mutable.Map[String, SeleniumType] = mutable.Map()
-    template.foreach(i => {
-      result ++= i.getSubElements(html)
+    template.zipWithIndex.foreach((i, index) => {
+      val a = i.getSubElements(html)
+      result ++= a
     })
-    return Map.apply(result.toSeq*)
+    return Map.apply(result.toSeq *)
   }
 }
 
@@ -29,25 +51,15 @@ class YamlConfig(
 object YamlConfig {
   def apply(in: YamlConfig, row: mutable.Map[String, String]): YamlConfig = {
     if row == null then return in
-
-    var modifiedSchema: List[YamlConfigSchemaColumn] = in.getSchema
-    var modifiedUrl: String = in.getUrl
-
-    row.foreach(j => {
-      modifiedUrl = modifiedUrl.replace(s"""$${${j._1}}""", j._2)
-
-      var newSchema: List[YamlConfigSchemaColumn] = List.apply()
-      modifiedSchema.foreach(i => {
-        i.getDefault match
-          case null => newSchema = newSchema :+ YamlConfigSchemaColumn(column = i.getColumn, `type` = i.getType, subType = i.getSubType, default = i.getDefault)
-          case _ => newSchema = newSchema :+ YamlConfigSchemaColumn(column = i.getColumn, `type` = i.getType, subType = i.getSubType, default = i.getDefault.replace(s"""$${${j._1}}""", j._2))
-      })
-      modifiedSchema = newSchema
-    })
-    return new YamlConfig(url = modifiedUrl, schema = modifiedSchema, template = in.getTemplate)
+    return new YamlConfig(url = in.getModifiedUrl(row), schema = in.getModifiedSchema(row), template = in.getModifiedTemplate(row))
   }
 
-  def modifyConfig(modifiedUrl: String, modifiedSchema: List[YamlConfigSchemaColumn], key: String, value: String): Unit = {
-
+  def getModifiedString(string: String, parameters: mutable.Map[String, String]): String = {
+    if string == null then return null
+    var modifiedString: String = string
+    parameters.foreach(j => {
+      modifiedString = modifiedString.replace(s"""$${${j._1}}""", j._2)
+    })
+    return modifiedString
   }
 }

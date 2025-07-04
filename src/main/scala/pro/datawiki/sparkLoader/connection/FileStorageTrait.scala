@@ -22,7 +22,7 @@ trait FileStorageTrait extends ConnectionTrait{
                            partitionName: List[String],
                            writeMode: WriteMode): Unit
 
-  def moveTablePartition(oldTableSchema: String, oldTable: String, newTableSchema: String, newTable: String, partitionName: List[String], writeMode: WriteMode): Boolean = throw Exception()
+  def moveTablePartition(oldTableSchema: String, oldTable: String, newTableSchema: String, newTable: String, partitionName: List[String], writeMode: WriteMode): Boolean
 
   def getMasterFolder: String
 

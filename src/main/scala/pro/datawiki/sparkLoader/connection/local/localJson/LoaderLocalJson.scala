@@ -3,6 +3,7 @@ package pro.datawiki.sparkLoader.connection.local.localJson
 import org.apache.spark.sql.DataFrame
 import pro.datawiki.sparkLoader.SparkObject
 import pro.datawiki.sparkLoader.SparkObject.spark
+import pro.datawiki.sparkLoader.configuration.ProgressStatus
 import pro.datawiki.sparkLoader.connection.local.localBase.{LoaderLocalBase, YamlConfig}
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DataWarehouseTrait, FileStorageTrait, WriteMode}
 import pro.datawiki.sparkLoader.transformation.TransformationCache
@@ -46,7 +47,7 @@ class LoaderLocalJson(configYaml: YamlConfig) extends LoaderLocalBase(configYaml
 
   override def getMasterFolder: String = super.getMasterFolder
 
-  override def deleteFolder(location: String): Boolean =throw Exception()
+  override def deleteFolder(location: String): Boolean = throw Exception()
 }
 
 object LoaderLocalJson extends YamlClass {

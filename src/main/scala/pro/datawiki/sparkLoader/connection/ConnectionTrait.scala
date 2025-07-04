@@ -9,6 +9,7 @@ import pro.datawiki.sparkLoader.connection.kafka.kafkaSaslSSL.LoaderKafkaSaslSSL
 import pro.datawiki.sparkLoader.connection.local.localJson.LoaderLocalJson
 import pro.datawiki.sparkLoader.connection.local.localParquete.LoaderLocalParquet
 import pro.datawiki.sparkLoader.connection.local.localText.LoaderLocalText
+import pro.datawiki.sparkLoader.connection.mail.LoaderMail
 import pro.datawiki.sparkLoader.connection.minIo.{LoaderMinIo, LoaderMinIoStream}
 import pro.datawiki.sparkLoader.connection.mysql.LoaderMySql
 import pro.datawiki.sparkLoader.connection.postgres.LoaderPostgres
@@ -40,6 +41,7 @@ object ConnectionTrait {
       case "selenium" => LoaderSelenium(configLocation)
       case "jsonApi" => LoaderJsonApi(configLocation)
       case "googleAds" => LoaderGoogleAds(configLocation)
+      case "mail" => LoaderMail(configLocation)
       case _ =>
         throw Exception()
   }

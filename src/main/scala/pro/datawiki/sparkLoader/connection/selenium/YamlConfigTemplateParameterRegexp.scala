@@ -25,4 +25,18 @@ case class YamlConfigTemplateParameterRegexp(
 
     return lst
   }
+
+  def getModified(in: mutable.Map[String, String]): YamlConfigTemplateParameterRegexp = {
+    var newParameters: List[String] = List.apply()
+    
+    parameters.foreach(i=> {
+      newParameters = newParameters.appended(YamlConfig.getModifiedString(i, in))
+    })
+    
+    return YamlConfigTemplateParameterRegexp(
+      pattern = YamlConfig.getModifiedString(pattern, in),
+      parameters= newParameters
+    )
+  }
+  
 }

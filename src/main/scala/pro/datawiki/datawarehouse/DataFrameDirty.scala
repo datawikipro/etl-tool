@@ -4,7 +4,12 @@ import org.apache.spark.sql.{Column, DataFrame}
 
 class DataFrameDirty(partition: String, df: DataFrame, validData: Boolean) extends DataFrameTrait {
   var localDf: DataFrame = df
-
+  
+  override def isEmpty: Boolean = {
+    if df == null then return true
+    return false
+  }
+  
   override def getDataFrame: DataFrame = localDf
 
   override def isValidData: Boolean = validData

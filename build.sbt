@@ -25,13 +25,14 @@ lazy val root = (project in file("."))
     }
   )
 
-val sparkVersion = "3.5.5"
+val sparkVersion = "3.5.6"
 val hadoopVersion = "3.4.1"
 val jacksonDataformatVersion = "2.18.2"
 val json4sVersion = "3.7.0-M11"
 val awsSdkVersion = "1.12.783"
 val postgresqlVersion = "42.7.5"
 val clickhouseVersion = "0.8.2"
+val mailVersion = "1.6.2"
 val mysqlVersion = "8.0.33"
 val jodaTimeVersion = "2.13.0"
 val ioMinioVersion =  "8.5.17"
@@ -74,6 +75,8 @@ libraryDependencies ++= Seq(
   "org.postgresql" % "postgresql" % postgresqlVersion,
   "com.clickhouse" % "clickhouse-jdbc" % clickhouseVersion,
   "io.minio" % "minio" % ioMinioVersion,
+  "com.sun.mail" % "javax.mail" % mailVersion,
+  "javax.mail" % "javax.mail-api" % mailVersion,
 )
 libraryDependencies ++= Seq(
   "org.seleniumhq.selenium" % "selenium-java" % "4.28.0",

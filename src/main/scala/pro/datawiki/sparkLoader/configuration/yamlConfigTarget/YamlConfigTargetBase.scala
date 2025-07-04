@@ -20,7 +20,10 @@ class YamlConfigTargetBase(connection: String,
       case "append" => WriteMode.append
       case "stream" => WriteMode.append
       case "merge" => WriteMode.merge
-      case _ => throw Exception()
+      case "streamByRunId" => WriteMode.append
+      case _ => {
+        throw Exception()
+      }
   }
 
   def getSourceDf: DataFrameTrait = {

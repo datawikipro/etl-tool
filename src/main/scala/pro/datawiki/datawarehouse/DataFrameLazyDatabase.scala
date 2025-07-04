@@ -7,6 +7,9 @@ import pro.datawiki.sparkLoader.connection.DatabaseTrait
 class DataFrameLazyDatabase(x: DatabaseTrait, sql: String) extends DataFrameTrait {
   var localDf: DataFrame = null
 
+  override def isEmpty: Boolean = throw Exception()
+
+
   override def getDataFrame: DataFrame = {
     if localDf == null then {
       localDf = x.getDataFrameBySQL(sql)

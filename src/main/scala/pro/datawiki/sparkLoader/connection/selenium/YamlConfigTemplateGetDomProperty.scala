@@ -9,11 +9,18 @@ import scala.jdk.CollectionConverters.*
 case class YamlConfigTemplateGetDomProperty(
                                              value: String,
                                              parameter: YamlConfigTemplateParameter
-                                           ) extends LogicClass,YamlConfigTemplateGetterTrait {
-   override def getResult(webElement: WebElement): Map[String, SeleniumType] = {
+                                           ) extends LogicClass, YamlConfigTemplateGetterTrait {
+  override def getResult(webElement: WebElement): Map[String, SeleniumType] = {
     val result: String = webElement.getDomProperty(value)
     return parameter.getResult(result)
   }
 
+  def getModified(parameters: mutable.Map[String, String]): YamlConfigTemplateGetDomProperty = {
+    return new YamlConfigTemplateGetDomProperty(
+      value = YamlConfig.getModifiedString(value, parameters),
+      parameter = parameter.getModified(parameters)
+    )
+
+  }
 
 }

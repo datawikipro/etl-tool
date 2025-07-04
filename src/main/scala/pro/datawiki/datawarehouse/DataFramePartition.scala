@@ -9,6 +9,9 @@ class DataFramePartition(df: mutable.Map[String,DataFrameTrait] = mutable.Map())
   
   def getPartitions:mutable.Map[String,DataFrameTrait] = df
 
+  override def isEmpty: Boolean = throw Exception()
+
+
   override def getDataFrame: DataFrame = {
     var newDf:DataFrame = null
     throw Exception()

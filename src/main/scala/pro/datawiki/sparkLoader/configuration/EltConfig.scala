@@ -1,8 +1,8 @@
 package pro.datawiki.sparkLoader.configuration
 
+import pro.datawiki.sparkLoader.configuration.ProgressStatus.error
 import pro.datawiki.sparkLoader.connection.ConnectionTrait
-import pro.datawiki.sparkLoader.task.{Context, Task, TaskTemplate}
-import pro.datawiki.sparkLoader.transformation.TransformationIdMap
+import pro.datawiki.sparkLoader.task.{Context, Task}
 import pro.datawiki.yamlConfiguration.YamlClass
 
 import scala.collection.mutable
@@ -10,7 +10,6 @@ import scala.collection.mutable
 class EltConfig(
                  connections: List[YamlConfigConnections] = List.apply(),
                  source: List[YamlConfigSource] = List.apply(),
-                 idmap: String,
                  transformations: List[YamlConfigTransformation] = List.apply(),
                  target: List[YamlConfigTarget] = List.apply()
                ) {
@@ -19,59 +18,35 @@ class EltConfig(
     connections.foreach(i => Context.setConnection(i.sourceName, ConnectionTrait.initConnection(i.connection, i.configLocation)))
   }
 
-  def runTask(taskId: String): Boolean = {
-    val task: TaskTemplate = Context.getTaskTemplate(taskId)
-    //    return task.run()
-    throw Exception()
-  }
+  def initSources(): ProgressStatus = {
+    var sourceIsValid: Boolean = true
+    var sourceIsEmpty: Boolean = false
 
-  def initSources(): Unit = {
-    getSegmentation match
-      case SegmentationEnum.full => {
-        source.foreach(i => {
-          val task: Task = i.createTask()
-          task.run(i.getObjectName, mutable.Map(), true)
-        })
+    source.foreach(i => {
+      val task: Task = i.createTask()
+      task.run(i.getObjectName, mutable.Map(), true) match {
+        case ProgressStatus.done =>
+        case ProgressStatus.skip => return ProgressStatus.skip
+        case _ => {
+          throw Exception()
+        }
       }
-      case SegmentationEnum.random =>
-        throw Exception()
-      case _ => throw Exception()
+    })
+    return ProgressStatus.done
   }
 
-  def initTransformation(): Unit = {
-    //     transformations.foreach(i => run(i.getObjectName, i.getTransformation))
+  def initTransformation(): ProgressStatus = {
     transformations.foreach(i => {
       val task: Task = i.createTask()
-      task.run(i.getObjectName, mutable.Map(), true)
-    })
-  }
-
-  var segmentation: SegmentationEnum = SegmentationEnum.full
-
-  def init(): Unit = {
-    source.foreach(i => {
-      i.getSegmentation match
-        case SegmentationEnum.full =>
-        case SegmentationEnum.partition => segmentation = SegmentationEnum.partition
-        case SegmentationEnum.random =>
-          segmentation match
-            case SegmentationEnum.full => segmentation = SegmentationEnum.random
-            case SegmentationEnum.random => throw Exception()
-            case _ => throw Exception()
-        case SegmentationEnum.adHoc =>
+      task.run(i.getObjectName, mutable.Map(), true) match {
+        case done =>
         case _ => throw Exception()
+      }
     })
+    ProgressStatus.done
   }
 
-  def getSegmentation: SegmentationEnum = {
-    return segmentation
-  }
-
-  def getIdmapSource: String = {
-    return idmap
-  }
-
-  def runTarget(): Boolean = {
+  def runTarget(): ProgressStatus = {
     target.length match
       case 1 => target.head.writeTarget()
       case 0 => {
@@ -80,20 +55,35 @@ class EltConfig(
       case _ => target.foreach(i => {
         i.writeTarget()
       })
-      return true
+        return ProgressStatus.done
   }
 }
 
 object EltConfig extends YamlClass {
-  def apply(inConfig: String): Boolean = {
+  def apply(inConfig: String): ProgressStatus = {
     val result = mapper.readValue(getLines(inConfig), classOf[EltConfig])
-    result.init()
     result.initConnections()
-    TransformationIdMap.setIdmap(result.getIdmapSource)
 
-    result.initSources()
-    result.initTransformation()
-    
-    result.runTarget()
+    var status: ProgressStatus = ProgressStatus.process
+
+    result.initSources() match  {
+      case ProgressStatus.error => return ProgressStatus.error
+      case ProgressStatus.skip => return ProgressStatus.skip
+      case ProgressStatus.done =>
+      case _=> throw Exception()
+    }
+    result.initTransformation() match  {
+      case ProgressStatus.error => return ProgressStatus.error
+      case ProgressStatus.skip => return ProgressStatus.skip
+      case ProgressStatus.done =>
+      case _=> throw Exception()
+    }
+
+    result.runTarget() match  {
+      case ProgressStatus.error => return ProgressStatus.error
+      case ProgressStatus.skip => return ProgressStatus.skip
+      case ProgressStatus.done => return ProgressStatus.done
+      case _=> throw Exception()
+    }
   }
 }

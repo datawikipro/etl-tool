@@ -3,6 +3,7 @@ package pro.datawiki.sparkLoader.task
 import org.apache.spark.sql.Row
 import pro.datawiki.datawarehouse.DataFrameTrait
 import pro.datawiki.sparkLoader.LogMode
+import pro.datawiki.sparkLoader.configuration.ProgressStatus
 import pro.datawiki.sparkLoader.connection.WriteMode.append
 import pro.datawiki.sparkLoader.transformation.TransformationCacheTrait
 
@@ -16,6 +17,11 @@ import scala.util.{Failure, Success}
 class TaskAdHoc(adHocTemplate: TaskTemplateAdHoc, inTaskTemplate: TaskTemplate) extends Task {
 
   var cache: TransformationCacheTrait = null
+  var isSkipIfEmpty: Boolean = false
+
+  def setSkipIfEmpty(in: Boolean): Unit = {
+    isSkipIfEmpty = in
+  }
 
   private def getParameters(row: Row): mutable.Map[String, String] = {
     var parameters: mutable.Map[String, String] = mutable.Map()
@@ -35,7 +41,7 @@ class TaskAdHoc(adHocTemplate: TaskTemplateAdHoc, inTaskTemplate: TaskTemplate) 
     return list
   }
 
-  private def threadLogicSub(in: mutable.Map[String, String], isSync: Boolean):Boolean={
+  private def threadLogicSub(in: mutable.Map[String, String], isSync: Boolean): Boolean = {
     val treadCache = cache.createNewCache
     val treadDf = inTaskTemplate.run(in, isSync)
     treadDf.length match
@@ -46,22 +52,18 @@ class TaskAdHoc(adHocTemplate: TaskTemplateAdHoc, inTaskTemplate: TaskTemplate) 
   }
 
   private def threadLogic(in: mutable.Map[String, String], isSync: Boolean): Boolean = {
-    if LogMode.isDebug  then {
-      return threadLogicSub(in,isSync)
-    }
-    else {
-      try {
-        threadLogicSub(in,isSync)
-      } //TODO
-      catch
-        case e: Exception => {
-          println(e)
-          return false
-        }
-    }
+    if LogMode.isDebug then return threadLogicSub(in, isSync)
+
+    try {
+      threadLogicSub(in, isSync)
+    } catch
+      case e: Exception => {
+        println(e)
+        return false
+      }
   }
 
-  override def run(targetName: String, parameters: mutable.Map[String, String], isSync: Boolean): Boolean = {
+  override def run(targetName: String, parameters: mutable.Map[String, String], isSync: Boolean): ProgressStatus = {
     val df: List[DataFrameTrait] = adHocTemplate.run(parameters, isSync)
     var list: List[mutable.Map[String, String]] = List.apply()
     df.foreach(i => {
@@ -71,11 +73,14 @@ class TaskAdHoc(adHocTemplate: TaskTemplateAdHoc, inTaskTemplate: TaskTemplate) 
     if LogMode.isDebug then {
       runSync(list)
     } else {
-      runAsync(list)
+      adHocTemplate.asyncNumber match {
+        case 1 => runSync(list)
+        case _ => runAsync(list)
+      }
     }
 
     Task.saveDf(targetName, cache.readDirty())
-    return true
+    return ProgressStatus.done
   }
 
   def runSync(list: List[mutable.Map[String, String]]): Unit = {

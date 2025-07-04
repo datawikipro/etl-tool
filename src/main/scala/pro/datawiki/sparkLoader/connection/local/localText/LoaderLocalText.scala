@@ -42,6 +42,8 @@ class LoaderLocalText(configYaml: YamlConfig) extends LoaderLocalBase(configYaml
   override def getMasterFolder: String = throw Exception()
 
   override def deleteFolder(location: String): Boolean = throw Exception()
+
+  override def moveTablePartition(oldTableSchema: String, oldTable: String, newTableSchema: String, newTable: String, partitionName: List[String], writeMode: WriteMode): Boolean = throw Exception()
 }
 
 object LoaderLocalText extends YamlClass {

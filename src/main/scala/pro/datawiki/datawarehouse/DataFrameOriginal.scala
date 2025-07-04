@@ -7,6 +7,9 @@ class DataFrameOriginal(df: DataFrame) extends DataFrameTrait {
 
   override def getDataFrame: DataFrame = localDf
 
+  override def isEmpty: Boolean = throw Exception()
+
+
   override def isValidData: Boolean = true
 
   override def getPartitionName: String = null
