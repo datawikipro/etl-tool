@@ -5,7 +5,7 @@ import pro.datawiki.sparkLoader.SparkObject
 import pro.datawiki.sparkLoader.configuration.YamlConfigTransformationTrait
 import pro.datawiki.sparkLoader.task.*
 
-class YamlConfigTransformationAdHoc(
+case class YamlConfigTransformationAdHoc(
                                      sourceObjectName: String,
                                      templateName: String,
                                      columnId: List[String] = List.apply(),

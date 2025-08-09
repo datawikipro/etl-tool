@@ -2,22 +2,34 @@ package pro.datawiki.sparkLoader.connection.postgres
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.DataFrame
-import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DataWarehouseTrait, DatabaseTrait, WriteMode}
+import pro.datawiki.sparkLoader.connection.databaseTrait.{TableMetadata, TableMetadataColumn, TableMetadataType}
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DataWarehouseTrait, DatabaseTrait, SupportIdMap, WriteMode}
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.yamlConfiguration.YamlClass
 
 import java.sql.{Connection, DriverManager, ResultSet}
 import java.util.Properties
 
-class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait, DataWarehouseTrait, LazyLogging {
+class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait,SupportIdMap, DataWarehouseTrait, LazyLogging {
   override def getDataFrameBySQL(sql: String): DataFrame = {
-    val df = SparkObject.spark.sqlContext.read.jdbc(getJdbc, s"""($sql) a """, getProperties)
-    LogMode.debugDF(df)
-    return df
+    try {
+      val df = SparkObject.spark.sqlContext.read
+        .option("fetchsize", "10000")
+        .jdbc(getJdbc, s"""($sql) a """, getProperties)
+      LogMode.debugDF(df)
+      return df
+    } catch {
+      case e: Exception => {
+        throw e
+      }
+    }
   }
 
   override def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = {
-    df.write.mode(writeMode.toString).jdbc(getJdbc, location, getProperties)
+    df.write
+      .option("batchsize", "10000")
+      .mode(writeMode.toSparkString)
+      .jdbc(getJdbc, location, getProperties)
   }
 
   override def generateIdMap(inTable: String, domain: String, systemCode: String): Boolean = {
@@ -58,7 +70,9 @@ class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTr
   override def readDf(location: String): DataFrame = throw Exception()
 
   override def readDfSchema(location: String): DataFrame = {
-    val df = SparkObject.spark.sqlContext.read.jdbc(getJdbc, s"""(select * from $location where 1 = 2) a """, getProperties)
+    val df = SparkObject.spark.sqlContext.read
+      .option("fetchsize", "10000")
+      .jdbc(getJdbc, s"""(select * from $location where 1 = 2) a """, getProperties)
     LogMode.debugDF(df)
     return df
   }
@@ -91,6 +105,7 @@ class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTr
     prop.setProperty("user", configYaml.login)
     prop.setProperty("password", configYaml.password)
     prop.setProperty("driver", "org.postgresql.Driver")
+    prop.setProperty("fetchsize", "10000")
     return prop
   }
 
@@ -113,8 +128,9 @@ class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTr
       if i.validateHost then
         return i
     })
-    if configYaml.server.master.validateHost then
+    if configYaml.server.master.validateHost then {
       return configYaml.server.master
+    }
     throw Exception()
   }
 
@@ -125,6 +141,55 @@ class LoaderPostgres(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTr
 
   override def truncateTable(tableName: String): Boolean = throw Exception()
 
+  private def getTableColumns(tableSchema: String, tableName: String): List[TableMetadataColumn] = {
+    val sql =
+      s"""select column_name,
+         |       data_type
+         |  from information_schema.columns
+         | where table_schema = '$tableSchema'
+         |   and table_name   = '$tableName'
+         | order by ordinal_position
+         |""".stripMargin
+    val df = getDataFrameBySQL(sql)
+    try {
+      val a = df.collect().toList
+      val b = a.map(row => TableMetadataColumn(
+        row.get(0).toString,
+        LoaderPostgres.decodeDataType(row.get(1).toString)
+      ))
+      return b
+    }
+    catch {
+      case e: Exception => {
+        throw e
+      }
+    }
+  }
+
+  private def getPrimaryKey(tableSchema: String, tableName: String): List[String] = {
+    val sql =
+      s"""select column_name
+         |from information_schema.table_constraints tc
+         |         JOIN information_schema.key_column_usage AS kcu using (constraint_name, constraint_schema, table_name)
+         |where constraint_type = 'PRIMARY KEY'
+         |  and constraint_schema = '$tableSchema'
+         |  and table_name = '$tableName'
+         |order by ordinal_position
+         |""".stripMargin
+    val df = getDataFrameBySQL(sql)
+
+    return df.collect().toList.map(row => row.get(0).toString)
+  }
+
+  override def getTableMetadata(tableSchema: String, tableName: String): TableMetadata = {
+    val table: TableMetadata = TableMetadata(
+      columns = getTableColumns(tableSchema, tableName),
+      primaryKey = getPrimaryKey(tableSchema, tableName)
+    )
+
+    return table
+  }
+  
   override def close(): Unit = {
     if connection == null then return
     connection.close()
@@ -135,5 +200,31 @@ object LoaderPostgres extends YamlClass {
   def apply(inConfig: String): LoaderPostgres = {
     val configYaml: YamlConfig = mapper.readValue(getLines(inConfig), classOf[YamlConfig])
     return new LoaderPostgres(configYaml)
+  }
+
+  private def encodeDataType(in: TableMetadataType): String = throw Exception()
+
+  private def decodeDataType(in: String): TableMetadataType = {
+    in match {
+      case "bigint" => return TableMetadataType.Bigint
+      case "boolean" => return TableMetadataType.Boolean
+      case "character varying" => return TableMetadataType.Varchar
+      case "date" => return TableMetadataType.Date
+      case "double precision" => return TableMetadataType.DoublePrecision
+      case "integer" => return TableMetadataType.Integer
+      case "numeric" => return TableMetadataType.Numeric
+      case "real" => return TableMetadataType.Real
+      case "text" => return TableMetadataType.Text
+      case "ARRAY" => return TableMetadataType.Text
+      case "jsonb" => return TableMetadataType.Text
+      case "uuid" => return TableMetadataType.Text
+      case "timestamp with time zone" => return TableMetadataType.TimestampWithTimeZone
+      case "timestamp without time zone" => return TableMetadataType.TimestampWithoutTimeZone
+      case "USER-DEFINED" => return TableMetadataType.Text
+      case "bytea" => return TableMetadataType.Text
+      case _ => {
+        throw Exception()
+      }
+    }
   }
 }

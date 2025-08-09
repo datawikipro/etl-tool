@@ -9,7 +9,7 @@ import scala.collection.mutable
 class BaseSchemaObject(inElements: mutable.Map[String, BaseSchemaStruct],
                        inTemplates: mutable.Map[String, BaseSchemaTemplate],
                        inIsIgnorable: Boolean) extends BaseSchemaStruct {
-  val loc = BaseSchemaObjectTemplate(inTemplates, inIsIgnorable)
+  val loc = new BaseSchemaObjectTemplate(inTemplates, inIsIgnorable)
   def getElements: mutable.Map[String, BaseSchemaStruct] = inElements
 
   def getElementStructByName(in: String): BaseSchemaStruct = {
@@ -73,7 +73,7 @@ class BaseSchemaObject(inElements: mutable.Map[String, BaseSchemaStruct],
   //  }
   //
   //  override def mergeSchema(schemaObject: BaseSchemaElement): BaseSchemaElement = {
-  //    throw Exception()
+  //    throw SchemaValidationException("Метод mergeSchema не реализован в BaseSchemaObject")
   ////    schemaObject match
   ////      case x: BaseSchemaObject => {
   ////        var localElements: mutable.Map[String, BaseSchemaElement] = mutable.Map()
@@ -84,11 +84,11 @@ class BaseSchemaObject(inElements: mutable.Map[String, BaseSchemaStruct],
   ////          parameterElements.get(i._1) match
   ////            case Some(x) => localElements += (i._1, i._2.mergeSchema(x))
   ////            case None =>
-  ////            case _ => throw Exception()
+  ////            case _ => throw SchemaValidationException(s"Неизвестная ошибка при слиянии схем для поля ${i._1}")
   ////        })
   ////        return BaseSchemaObject(parameterElements,inIsIgnorable)
   ////      }
-  ////      case _ => throw Exception()
+  ////      case other => throw SchemaValidationException(s"Несовместимый тип для слияния схемы: ${other.getClass.getName}")
   //  }
 
   override def getSparkRowElement: SparkRowElementType = {

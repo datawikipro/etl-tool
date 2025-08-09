@@ -13,7 +13,7 @@ case class SchemaMap(
   def getBaseMap: BaseSchemaMapTemplate = {
     if `object` == null then
       return BaseSchemaMapTemplate(null, false)
-    return BaseSchemaMapTemplate(`object`.getBaseObject, false)
+    return BaseSchemaMapTemplate(`object`.getBaseSchemaTemplate, false)
   }
   @JsonIgnore
   def validateJson(jsn: JValue): Boolean = {

@@ -2,7 +2,7 @@ package pro.datawiki.sparkLoader.configuration.yamlConfigTransformation.yamlConf
 
 import pro.datawiki.sparkLoader.task.TaskTemplateIdMapConfig
 
-class YamlConfigTransformationIdMapMerge(
+case class YamlConfigTransformationIdMapMerge(
                                                alias: String,
                                                restoreRk:Boolean = false,
                                                in: YamlConfigTransformationIdMapBaseConfig,

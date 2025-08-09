@@ -1,5 +1,6 @@
 package pro.datawiki.sparkLoader.task
 
+import pro.datawiki.exception.UnsupportedOperationException
 import pro.datawiki.sparkLoader.configuration.ProgressStatus
 import pro.datawiki.sparkLoader.transformation.TransformationCacheTrait
 
@@ -12,8 +13,8 @@ class WriteTask(inTaskTemplate: TaskTemplate) extends Task {
     isSkipIfEmpty = in
   }
   override def run(targetName: String, parameters: mutable.Map[String, String], isSync:Boolean): ProgressStatus = {
-    throw Exception()
+    throw new UnsupportedOperationException("WriteTask.run not implemented")
   }
 
-  override def setCache(in: TransformationCacheTrait): Unit = throw Exception()
+  override def setCache(in: TransformationCacheTrait): Unit = throw new UnsupportedOperationException("setCache not implemented in WriteTask")
 }

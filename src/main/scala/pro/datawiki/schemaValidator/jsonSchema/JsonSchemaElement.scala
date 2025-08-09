@@ -3,6 +3,7 @@ package pro.datawiki.schemaValidator.jsonSchema
 import org.json4s.JDouble
 import org.json4s.JsonAST.*
 import pro.datawiki.schemaValidator.baseSchema.BaseSchemaStruct
+import pro.datawiki.exception.SchemaValidationException
 import pro.datawiki.schemaValidator.*
 
 trait JsonSchemaElement() {
@@ -21,9 +22,9 @@ object JsonSchemaElement {
       case x: JDouble => JsonSchemaDouble.apply(x)
       case _ => {
         if json.toString == "JNull" then return JsonSchemaNull.apply()
-        throw Exception()
+        throw SchemaValidationException(s"Unsupported JSON type: ${json.getClass.getSimpleName}")
       }
-      case _ => throw Exception()
+      case _ => throw SchemaValidationException(s"Unexpected JSON type: ${json.getClass.getSimpleName}")
   }
 
 }

@@ -1,15 +1,12 @@
 package pro.datawiki.sparkLoader.task
 
-import org.apache.spark.sql.{Column, DataFrame}
-import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
-import pro.datawiki.sparkLoader.configuration.RunConfig
-import pro.datawiki.sparkLoader.configuration.yamlConfigSource.yamlConfigSourceDBTable.YamlConfigSourceDBTableColumn
+import org.apache.spark.sql.DataFrame
+import pro.datawiki.datawarehouse.DataFrameTrait
+import pro.datawiki.exception.DataProcessingException
+import pro.datawiki.sparkLoader.connection.ConnectionTrait
 import pro.datawiki.sparkLoader.connection.mail.LoaderMail
-import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait, FileStorageTrait}
-import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 
 import java.time.LocalDateTime
-import java.util.{Calendar, Date}
 import scala.collection.mutable
 
 class TaskTemplateReadEmail(email:String,
@@ -30,7 +27,7 @@ class TaskTemplateReadEmail(email:String,
       case x: LoaderMail =>
         val df = x.getDataFrame(email,password,from,subject,time)
         return List.apply(df)
-      case _ => throw Exception()
+      case other => throw new DataProcessingException(s"Неизвестный тип вложения email: '$other'")
   }
 
 }

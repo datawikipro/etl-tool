@@ -11,7 +11,7 @@ class LoaderLocalText(configYaml: YamlConfig) extends LoaderLocalBase(configYaml
   override def saveRaw(in: String, inLocation: String): Unit = super.saveRaw(in, inLocation)
 
   override def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = {
-    df.write.mode(writeMode.toString).text(s"${configYaml.folder}/${location}")
+    df.write.mode(writeMode.toSparkString).text(s"${configYaml.folder}/${location}")
   }
 
   override def writeDfPartitionDirect(df: DataFrame, location: String, partitionName: List[String], partitionValue: List[String], writeMode: WriteMode): Unit = {

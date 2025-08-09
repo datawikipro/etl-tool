@@ -3,7 +3,7 @@ package pro.datawiki.sparkLoader.task
 import org.apache.spark.sql.DataFrame
 import pro.datawiki.datawarehouse.{DataFrameLazyDatabase, DataFrameOriginal, DataFramePartition, DataFrameTrait}
 import pro.datawiki.sparkLoader.configuration.yamlConfigSource.yamlConfigSourceDBTable.{YamlConfigSourceDBTableColumn, YamlConfigSourceDBTablePartition}
-import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait}
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait, NoSQLDatabaseTrait}
 
 import scala.collection.mutable
 
@@ -25,7 +25,7 @@ class TaskTemplateTableFromDatabase(tableSchema: String,
   private def getSQLColumnList: String = {
     getColumnNames.isEmpty match
       case true => "*"
-      case false => getColumnNames.mkString(",")
+      case false => getColumnNames.map(col => s"$col").mkString(",")
   }
 
   private def getSQLWhere: String = {
@@ -42,18 +42,21 @@ class TaskTemplateTableFromDatabase(tableSchema: String,
 
   private def getTable(src: ConnectionTrait, parameters: mutable.Map[String, String]): DataFrame = {
     var df: DataFrame = null
-    var sql =
-      s"""select ${getSQLColumnList}
-         |  from ${tableSchema}.${tableName}
-         |  $getSQLWhere
-         |  $getSQLLimit
-         |  """.stripMargin
-    parameters.foreach(i => {
-      sql = sql.replace(s"$${${i._1}}", i._2)
-    })
     src match
-      case x: DatabaseTrait =>
+      case x: DatabaseTrait => {
+        var sql =
+          s"""select ${getSQLColumnList}
+             |  from ${tableSchema}.${tableName}
+             |  $getSQLWhere
+             |  $getSQLLimit
+             |  """.stripMargin
+        parameters.foreach(i => {
+          sql = sql.replace(s"$${${i._1}}", i._2)
+        })
         return x.getDataFrameBySQL(sql)
+      }
+      case x: NoSQLDatabaseTrait =>
+        return x.readDf(s"${tableName}")
       case _ => throw Exception()
   }
 
@@ -78,12 +81,12 @@ class TaskTemplateTableFromDatabase(tableSchema: String,
     if partitionBy.isEmpty then {
       return List.apply(DataFrameOriginal(getTable(src = connection, parameters = parameters)))
     } else {
-      var list: mutable.Map[String,DataFrameTrait] = mutable.Map() 
+      var list: mutable.Map[String, DataFrameTrait] = mutable.Map()
       getPartitions(src = connection).foreach(i => {
-      connection match
-        case x: DatabaseTrait =>
-          list += (i-> getTablePartition(connection = x, partitionName = i))
-        case _ => throw Exception()
+        connection match
+          case x: DatabaseTrait =>
+            list += (i -> getTablePartition(connection = x, partitionName = i))
+          case _ => throw Exception()
       })
       return List.apply(DataFramePartition(list))
     }

@@ -3,6 +3,7 @@ package pro.datawiki.sparkLoader.connection.kafka.kafkaBase
 import org.apache.kafka.clients.admin.{AdminClient, ListTopicsOptions, NewTopic}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.streaming.DataStreamReader
+import pro.datawiki.exception.ConfigurationException
 import pro.datawiki.schemaValidator.*
 import pro.datawiki.schemaValidator.sparkRow.*
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
@@ -72,7 +73,7 @@ class LoaderKafka(configYaml: YamlConfig) extends ConnectionTrait, QueryTrait {
     val newTopic:NewTopic = new NewTopic(name, numPartitions, replicationFactor)
     val newTopics: List[NewTopic] = List.apply(newTopic)
     val result = adminClient.createTopics(newTopics.asJava)
-    throw Exception()
+    throw new ConfigurationException("Метод в LoaderKafka еще не реализован")
   }
 
   override def close(): Unit = {

@@ -1,5 +1,6 @@
 package pro.datawiki.sparkLoader.connection
 
+import pro.datawiki.exception.ConfigurationException
 import pro.datawiki.sparkLoader.connection.clickhouse.LoaderClickHouse
 import pro.datawiki.sparkLoader.connection.googleAds.LoaderGoogleAds
 import pro.datawiki.sparkLoader.connection.jsonApi.LoaderJsonApi
@@ -11,6 +12,7 @@ import pro.datawiki.sparkLoader.connection.local.localParquete.LoaderLocalParque
 import pro.datawiki.sparkLoader.connection.local.localText.LoaderLocalText
 import pro.datawiki.sparkLoader.connection.mail.LoaderMail
 import pro.datawiki.sparkLoader.connection.minIo.{LoaderMinIo, LoaderMinIoStream}
+import pro.datawiki.sparkLoader.connection.mongodb.LoaderMongoDb
 import pro.datawiki.sparkLoader.connection.mysql.LoaderMySql
 import pro.datawiki.sparkLoader.connection.postgres.LoaderPostgres
 import pro.datawiki.sparkLoader.connection.s3.LoaderS3
@@ -22,10 +24,11 @@ trait ConnectionTrait {
 
 object ConnectionTrait {
 
-  def initConnection(connection: String, configLocation: String): ConnectionTrait = {
+  def apply(connection: String, configLocation: String): ConnectionTrait = {
     connection match
       case "mysql" => LoaderMySql(configLocation)
       case "postgres" => LoaderPostgres(configLocation)
+      case "mongodb" => LoaderMongoDb(configLocation)
       case "kafka" => LoaderKafka(configLocation)
       case "kafkaSaslSSL" => LoaderKafkaSaslSSL(configLocation)
       case "kafkaAmazon" => LoaderKafkaMSK(configLocation)
@@ -43,6 +46,6 @@ object ConnectionTrait {
       case "googleAds" => LoaderGoogleAds(configLocation)
       case "mail" => LoaderMail(configLocation)
       case _ =>
-        throw Exception()
+        throw new ConfigurationException(s"Неизвестный тип соединения: '$connection'. Пожалуйста, проверьте конфигурацию.")
   }
 }

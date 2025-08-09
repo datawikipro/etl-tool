@@ -1,5 +1,6 @@
 package pro.datawiki.sparkLoader.configuration.yamlConfigSource
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import org.apache.spark.sql.{DataFrame, Row}
 import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
 import pro.datawiki.sparkLoader.configuration.RunConfig
@@ -11,6 +12,7 @@ import pro.datawiki.sparkLoader.transformation.TransformationCacheTrait
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
+@JsonInclude(JsonInclude.Include.NON_ABSENT)
 case class YamlConfigSourceFileSystem(
                                        tableName: String,
                                        tableColumns: List[YamlConfigSourceDBTableColumn],

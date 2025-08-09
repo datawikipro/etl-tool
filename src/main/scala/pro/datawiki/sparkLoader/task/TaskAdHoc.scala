@@ -26,7 +26,14 @@ class TaskAdHoc(adHocTemplate: TaskTemplateAdHoc, inTaskTemplate: TaskTemplate) 
   private def getParameters(row: Row): mutable.Map[String, String] = {
     var parameters: mutable.Map[String, String] = mutable.Map()
     row.schema.foreach(i => {
-      parameters += (i.name, row.get(row.fieldIndex(i.name)).toString)
+      try {
+      val res =  row.get(row.fieldIndex(i.name))
+      parameters += (i.name,s"$res")
+      } catch {
+        case e: Exception => {
+          throw e
+        }
+      }
     })
     return parameters
   }
@@ -56,11 +63,12 @@ class TaskAdHoc(adHocTemplate: TaskTemplateAdHoc, inTaskTemplate: TaskTemplate) 
 
     try {
       threadLogicSub(in, isSync)
-    } catch
+    } catch {
       case e: Exception => {
         println(e)
         return false
       }
+    }
   }
 
   override def run(targetName: String, parameters: mutable.Map[String, String], isSync: Boolean): ProgressStatus = {

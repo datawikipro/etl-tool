@@ -6,7 +6,7 @@ import pro.datawiki.sparkLoader.connection.ConnectionTrait
 import pro.datawiki.sparkLoader.task.TaskTemplateIdMapConfig
 import pro.datawiki.sparkLoader.transformation.{TransformationCache, TransformationCacheTrait}
 
-class YamlConfigTransformationIdMapBaseConfig(
+case class YamlConfigTransformationIdMapBaseConfig(
                                                systemCode: String,
                                                columnNames: List[String],
                                                domainName: String,

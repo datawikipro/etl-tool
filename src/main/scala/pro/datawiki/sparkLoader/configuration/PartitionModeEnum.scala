@@ -1,5 +1,5 @@
 package pro.datawiki.sparkLoader.configuration
 
-enum partitionModeEnum {
+enum PartitionModeEnum {
   case auto, direct
 }

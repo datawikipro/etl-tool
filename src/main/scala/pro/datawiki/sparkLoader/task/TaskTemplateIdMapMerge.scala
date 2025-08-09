@@ -2,20 +2,21 @@ package pro.datawiki.sparkLoader.task
 
 import org.apache.spark.sql.{Column, DataFrame}
 import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
-import pro.datawiki.sparkLoader.connection.DatabaseTrait
 import pro.datawiki.sparkLoader.connection.WriteMode.overwrite
+import pro.datawiki.sparkLoader.connection.{DatabaseTrait, SupportIdMap}
 import pro.datawiki.sparkLoader.transformation.TransformationCacheDatabase
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 
 import scala.collection.mutable
 
-case class TaskTemplateIdMapMerge(sourceName:String,
-                             connection: DatabaseTrait,
-                             in:TaskTemplateIdMapConfig,
-                             out:TaskTemplateIdMapConfig
-                            ) extends TaskTemplate {
+case class TaskTemplateIdMapMerge(sourceName: String,
+                                  connection: DatabaseTrait,
+                                  in: TaskTemplateIdMapConfig,
+                                  out: TaskTemplateIdMapConfig
+                                 ) extends TaskTemplate {
   val cache: TransformationCacheDatabase = TransformationCacheDatabase(connection)
-  override def run(parameters: mutable.Map[String, String], isSync:Boolean): List[DataFrameTrait] = {
+
+  override def run(parameters: mutable.Map[String, String], isSync: Boolean): List[DataFrameTrait] = {
     val sql: String =
       s"""
          |select cast(${in.columnNames.mkString("!@#")}  as String) as in_ccd,
@@ -29,12 +30,16 @@ case class TaskTemplateIdMapMerge(sourceName:String,
     var df = SparkObject.spark.sql(sqlText = sql)
     LogMode.debugDF(df)
     cache.saveTable(DataFrameOriginal(df), overwrite)
-    connection.mergeIdMap(
-      inTable =  cache.getLocation,
-      domain = in.domainName,
-      inSystemCode=in.systemCode,
-      outSystemCode=out.systemCode
-    )
+    connection match {
+      case x: SupportIdMap =>
+        x.mergeIdMap(
+          inTable = cache.getLocation,
+          domain = in.domainName,
+          inSystemCode = in.systemCode,
+          outSystemCode = out.systemCode
+        )
+      case _ => throw Exception()
+    }
     return List.empty
   }
 

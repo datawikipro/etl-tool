@@ -1,5 +1,6 @@
 package pro.datawiki.schemaValidator.baseSchema
 
+import pro.datawiki.exception.SchemaValidationException
 import pro.datawiki.schemaValidator.projectSchema.SchemaTrait
 import pro.datawiki.schemaValidator.sparkRow.SparkRowElementTypeTemplate
 
@@ -58,10 +59,10 @@ case class BaseSchemaMapTemplate(baseElement: BaseSchemaTemplate,
   //  override def isIgnorable: Boolean = inIsIgnorable
 
   override def getSparkRowElementTemplate: SparkRowElementTypeTemplate = {
-    throw Exception()
+    throw SchemaValidationException("Метод getProjectSchema не имплементирован для BaseSchemaMapTemplate")
   }
 
   override def getProjectSchema: SchemaTrait = {
-    throw Exception()
+    throw SchemaValidationException("Метод extractDataFromObject не имплементирован для BaseSchemaMapTemplate")
   }
 }

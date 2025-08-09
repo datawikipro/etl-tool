@@ -1,10 +1,12 @@
 package pro.datawiki.sparkLoader.transformation
 
 import org.apache.spark.sql.DataFrame
+import pro.datawiki.exception.ConfigurationException
 import pro.datawiki.sparkLoader
 import pro.datawiki.sparkLoader.connection.*
 import pro.datawiki.sparkLoader.connection.WriteMode.overwrite
 import pro.datawiki.sparkLoader.task.Context
+import pro.datawiki.sparkLoader.connection.DatabaseTrait
 
 import scala.jdk.CollectionConverters.*
 import scala.util.Random
@@ -15,12 +17,12 @@ object TransformationCache {
 
   private def getConnect(in: String): DataWarehouseTrait = {
     if in == null then {
-      throw Exception()
+      throw new ConfigurationException("Connection parameter is null")
     }
 
     Context.getConnection(in) match
       case x: DataWarehouseTrait => return x
-      case _ => throw Exception()
+      case _ => throw new ConfigurationException("Unsupported connection type")
   }
 
   def apply(in: String): TransformationCacheTrait = {

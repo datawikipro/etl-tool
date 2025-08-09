@@ -1,6 +1,7 @@
 package pro.datawiki.yamlConfiguration
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import pro.datawiki.exception.ValidationException
 
 class LogicClass {
   @JsonIgnore
@@ -10,8 +11,8 @@ class LogicClass {
     list.length match
       case 1 => return list.head
       case 0 =>
-        throw Exception()
+        throw new ValidationException("LogicClass.getLogic requires exactly one non-null argument")
       case _ =>
-        throw Exception()
+        throw new ValidationException(s"LogicClass.getLogic requires exactly one argument, got: ${list.length}")
   }
 }

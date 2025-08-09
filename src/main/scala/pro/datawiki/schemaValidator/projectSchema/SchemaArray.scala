@@ -19,12 +19,11 @@ case class SchemaArray(
   private def getBaseType: BaseSchemaTemplate = {
     getLogic match
       case null => return null
-      case x: SchemaObject => return x.getBaseObject
-      case x: String => x match
-        case "String" => return BaseSchemaStringTemplate(false)
-        case "Int" => return BaseSchemaIntTemplate(false)
-        case "Boolean" => return BaseSchemaBooleanTemplate(false)
-        case _ => throw Exception()
+      case x: SchemaObject => return x.getBaseSchemaTemplate
+      case x: String => BaseSchemaTemplate(x)
+      case _ => {
+        throw Exception()
+      }
   }
   @JsonIgnore
   def getBaseArray: BaseSchemaArrayTemplate = {

@@ -6,6 +6,6 @@ import pro.datawiki.sparkLoader.configuration.yamlConfigSource.YamlConfigSourceT
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, FileStorageTrait, QueryTrait}
 import pro.datawiki.sparkLoader.task.*
 
-class YamlConfigSourceKafkaTopic(topicList: List[String]) {
+case class YamlConfigSourceKafkaTopic(topicList: List[String]) {
   def getTaskTemplate(connection: ConnectionTrait): TaskTemplate = TaskTemplateKafkaLoadTopicByList(topicList, connection)
 }

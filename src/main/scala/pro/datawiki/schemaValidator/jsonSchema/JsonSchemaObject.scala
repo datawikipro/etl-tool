@@ -19,34 +19,8 @@ class JsonSchemaObject(inElements: mutable.Map[String, JsonSchemaElement]) exten
     return BaseSchemaObject(result, resultTempl, false)
   }
 
-  //
-  //  override def getBaseSchemaElementTemplate: BaseSchemaTemplate = {
-  //    var result: mutable.Map[String, BaseSchemaTemplate] = mutable.Map()
-  //    elements.foreach(i => {
-  //      result += (i._1, i._2.getBaseSchemaElementTemplate)
-  //    })
-  //
-  //    throw Exception()//return BaseSchemaObject.applyTemplate(result, false)
-  //  }
-  //
   def mergeSchema(schemaObject: BaseSchemaObject): BaseSchemaObject = {
     throw Exception()
-    //    //Проверяем что в JSON нет новых столбцов
-    //    elements.foreach(i=> {
-    //      val result = schemaObject.checkElementExists(i._1,i._2.getBaseSchemaElementTemplate)
-    //      if !result then
-    //        throw Exception()
-    //    })
-    //
-    //    var baseSchemaElements: mutable.Map[String, BaseSchemaElement] = mutable.Map()
-    //
-    //    schemaObject.getElements.foreach(i=> {
-    //      elements.get(i._1) match
-    //        case Some(x)=> baseSchemaElements += (i._1, i._2.mergeSchema(x.getBaseSchemaElementData))
-    //        case _ => //TODO
-    //    })
-    //    return BaseSchemaObject(baseSchemaElements,schemaObject.isIgnorable)
-
   }
 
 }

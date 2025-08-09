@@ -17,7 +17,7 @@ class LoaderLocalJson(configYaml: YamlConfig) extends LoaderLocalBase(configYaml
   override def getFolder(location: String): List[String] = super.getFolder(location)
 
   override def readDf(location: String): DataFrame = {
-    val loc = super.getLocation(super.getLocation(location = location))
+    val loc = super.getLocation(location = location)
     val df: DataFrame = SparkObject.spark.read.json(loc)
     return df
   }
@@ -28,11 +28,11 @@ class LoaderLocalJson(configYaml: YamlConfig) extends LoaderLocalBase(configYaml
   }
 
   override def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = {
-    df.write.mode(writeMode.toString).json(s"${configYaml.folder}/${location}")
+    df.write.mode(writeMode.toSparkString).json(s"${configYaml.folder}/${location}")
   }
 
   override def writeDfPartitionDirect(df: DataFrame, location: String, partitionName: List[String], partitionValue: List[String], writeMode: WriteMode): Unit = {
-    df.write.mode(writeMode.toString).json(super.getLocation(location = location, keyPartitions = partitionName, valuePartitions = partitionValue))
+    df.write.mode(writeMode.toSparkString).json(super.getLocation(location = location, keyPartitions = partitionName, valuePartitions = partitionValue))
   }
 
   override def writeDfPartitionAuto(df: DataFrame, location: String, partitionName: List[String], writeMode: WriteMode): Unit = throw Exception()

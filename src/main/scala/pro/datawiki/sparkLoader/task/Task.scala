@@ -1,6 +1,7 @@
 package pro.datawiki.sparkLoader.task
 
 import pro.datawiki.datawarehouse.{DataFrameConsumer, DataFramePartition, DataFrameTrait}
+import pro.datawiki.exception.{ConfigurationException, DataProcessingException}
 import pro.datawiki.sparkLoader.configuration.ProgressStatus
 import pro.datawiki.sparkLoader.configuration.ProgressStatus.done
 import pro.datawiki.sparkLoader.transformation.TransformationCacheTrait
@@ -26,11 +27,15 @@ object Task {
   }
 
   private def initTable(targetName: String, df: DataFrameTrait): ProgressStatus = {
-    df match
-      case x: DataFramePartition => views += (targetName -> df)
-      case x: DataFrameConsumer => waiters += (targetName -> df)
-      case _ => df.getDataFrame.createOrReplaceTempView(targetName)
-    return ProgressStatus.done
+    try {
+      df match
+        case x: DataFramePartition => views += (targetName -> df)
+        case x: DataFrameConsumer => waiters += (targetName -> df)
+        case _ => df.getDataFrame.createOrReplaceTempView(targetName)
+      return ProgressStatus.done
+    } catch {
+      case e: Exception => throw new DataProcessingException(s"Failed to initialize table: $targetName", e)
+    }
   }
 
   def saveDf(targetName: String, df: DataFrameTrait): ProgressStatus = {
@@ -49,26 +54,30 @@ object Task {
   }
 
   def saveDf(targetName: String, df: List[DataFrameTrait]): ProgressStatus = {
-    if waiters.contains(targetName) then {
-      waiters -= targetName
-    }
-    df.length match
-      case 1 => df.head.getPartitionName match
-        case "" => {
-          return initTable(targetName, df.head)
-        }
-        case null => {
-          return initTable(targetName, df.head)
-        }
-        case _ => {
-          return initTable(s"${targetName}__${df.head.getPartitionName}", df.head)
-        }
-      case _ => {
-        df.foreach(i => {
-          initTable(s"${targetName}__${i.getPartitionName}", i)
-        })
-
-        return done
+    try {
+      if waiters.contains(targetName) then {
+        waiters -= targetName
       }
+      df.length match
+        case 1 => df.head.getPartitionName match
+          case "" => {
+            return initTable(targetName, df.head)
+          }
+          case null => {
+            return initTable(targetName, df.head)
+          }
+          case _ => {
+            return initTable(s"${targetName}__${df.head.getPartitionName}", df.head)
+          }
+        case _ => {
+          df.foreach(i => {
+            initTable(s"${targetName}__${i.getPartitionName}", i)
+          })
+
+          return done
+        }
+    } catch {
+      case e: Exception => throw new DataProcessingException(s"Failed to save DataFrame: $targetName", e)
+    }
   }
 }

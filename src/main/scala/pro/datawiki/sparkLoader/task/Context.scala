@@ -1,5 +1,6 @@
 package pro.datawiki.sparkLoader.task
 
+import pro.datawiki.exception.{ConfigurationException, ConnectionException}
 import pro.datawiki.sparkLoader.connection.ConnectionTrait
 import pro.datawiki.sparkLoader.connection.clickhouse.LoaderClickHouse
 import pro.datawiki.sparkLoader.connection.googleAds.LoaderGoogleAds
@@ -15,6 +16,7 @@ import pro.datawiki.sparkLoader.connection.mysql.LoaderMySql
 import pro.datawiki.sparkLoader.connection.postgres.LoaderPostgres
 import pro.datawiki.sparkLoader.connection.s3.LoaderS3
 import pro.datawiki.sparkLoader.connection.selenium.LoaderSelenium
+import pro.datawiki.sparkLoader.transformation.TransformationCacheTrait
 
 import scala.collection.mutable
 
@@ -36,7 +38,7 @@ object Context {
       return connections(in)
     } catch
       case _ =>
-        throw Exception(s"Connection $in not initialize")
+        throw new ConnectionException(s"Connection $in not initialize")
   }
 
   def setTaskTemplate(name: String, task: TaskTemplate): Unit = {
@@ -48,7 +50,7 @@ object Context {
       return taskTemplate(in)
     } catch
       case _ =>
-        throw Exception(s"Task $in not initialize")
+        throw new ConfigurationException(s"Task template '$in' not initialized. Make sure it's properly configured.")
   }
 
 

@@ -1,31 +1,25 @@
 package pro.datawiki.sparkLoader.configuration.yamlConfigTarget
 
+import com.fasterxml.jackson.annotation.{JsonIgnore, JsonInclude}
 import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
 import pro.datawiki.sparkLoader.SparkObject
+import pro.datawiki.sparkLoader.connection.WriteMode.overwrite
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, WriteMode}
 import pro.datawiki.sparkLoader.task.{Context, Task}
 
+@JsonInclude(JsonInclude.Include.NON_ABSENT)
 class YamlConfigTargetBase(connection: String,
                            mode: String = "append",
                            partitionMode: String,
                            source: String
                           ) {
+  @JsonIgnore
   def loader: ConnectionTrait = {
     Context.getConnection(connection)
   }
-
-  def loadMode: WriteMode = {
-    mode match
-      case "overwrite" => WriteMode.overwrite
-      case "append" => WriteMode.append
-      case "stream" => WriteMode.append
-      case "merge" => WriteMode.merge
-      case "streamByRunId" => WriteMode.append
-      case _ => {
-        throw Exception()
-      }
-  }
-
+  @JsonIgnore
+  def loadMode: WriteMode = WriteMode(mode)
+  @JsonIgnore
   def getSourceDf: DataFrameTrait = {
     val view  = Task.getView(source)
     if view == null then 

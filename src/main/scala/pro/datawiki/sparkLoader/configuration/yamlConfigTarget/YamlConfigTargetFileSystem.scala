@@ -1,12 +1,14 @@
 package pro.datawiki.sparkLoader.configuration.yamlConfigTarget
 
+import com.fasterxml.jackson.annotation.{JsonIgnore, JsonInclude}
 import org.apache.spark.sql.DataFrame
 import pro.datawiki.sparkLoader.configuration.{RunConfig, YamlConfigTargetTrait}
 import pro.datawiki.sparkLoader.connection.FileStorageTrait
 import pro.datawiki.sparkLoader.task.Context
-import pro.datawiki.datawarehouse.{DataFrameTrait}
+import pro.datawiki.datawarehouse.DataFrameTrait
 import org.apache.spark.sql.functions.lit
 
+@JsonInclude(JsonInclude.Include.NON_ABSENT)
 case class YamlConfigTargetFileSystem(
                                        connection: String,
                                        source: String,
@@ -15,13 +17,13 @@ case class YamlConfigTargetFileSystem(
                                        targetFile: String,
                                        partitionBy: List[String] = List.apply(),
                                      ) extends YamlConfigTargetBase(connection = connection, mode = mode, partitionMode = partitionMode, source = source), YamlConfigTargetTrait {
-
+  @JsonIgnore
   override def loader: FileStorageTrait = {
     super.loader match
       case x: FileStorageTrait => x
       case _ => throw Exception()
   }
-
+  @JsonIgnore
   override def writeTarget(): Boolean = {
     val df: DataFrameTrait = getSourceDf
     YamlConfigPartitionMode(partitionMode) match
@@ -59,6 +61,8 @@ case class YamlConfigTargetFileSystem(
         loader.writeDf(df.getDataFrame, targetFile, loadMode)
         return true
       }
-      case _ => throw Exception()
+      case _ => {
+        throw Exception()
+      }
   }
 }

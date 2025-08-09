@@ -27,10 +27,12 @@ case class SchemaElement(
           case "Long" => return BaseSchemaIntTemplate(isIgnorable)
           case "Boolean" => return BaseSchemaBooleanTemplate(isIgnorable)
           case "Double" => return BaseSchemaDoubleTemplate(isIgnorable)
-          case _ => throw Exception()
+          case _ => {
+            throw Exception()
+          }
       }
       case x: SchemaArray => return `array`.getBaseArray
-      case x: SchemaObject => return `object`.getBaseObject
+      case x: SchemaObject => return `object`.getBaseSchemaTemplate
       case x: SchemaMap => return `map`.getBaseMap
       case _ =>
         throw Exception()
@@ -81,6 +83,7 @@ case class SchemaElement(
       case x: JInt =>
         getElementType match
           case SchemaType.Int => return true
+          case SchemaType.Long => return true
           case SchemaType.String => return true
           case _ => {
             return LogMode.getDebugFalse

@@ -34,6 +34,7 @@ val postgresqlVersion = "42.7.5"
 val clickhouseVersion = "0.8.2"
 val mailVersion = "1.6.2"
 val mysqlVersion = "8.0.33"
+val mongodbVersion = "10.5.0"
 val jodaTimeVersion = "2.13.0"
 val ioMinioVersion =  "8.5.17"
 val googleApiVersion = "33.0.0"
@@ -48,6 +49,7 @@ libraryDependencies ++= Seq(
   "org.json4s" %% "json4s-native" % json4sVersion,
   "org.json4s" %% "json4s-jackson" % json4sVersion,
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonDataformatVersion,
+  "org.mongodb.spark" %% "mongo-spark-connector" % mongodbVersion,
 ).map(_.cross(CrossVersion.for3Use2_13))
 
 libraryDependencies ++= Seq(

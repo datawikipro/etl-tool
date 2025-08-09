@@ -1,13 +1,14 @@
 package pro.datawiki.datawarehouse
 
 import org.apache.spark.sql.{Column, DataFrame}
+import pro.datawiki.exception.UnsupportedOperationException
 import pro.datawiki.sparkLoader.LogMode
 import pro.datawiki.sparkLoader.connection.DatabaseTrait
 
 class DataFrameLazyDatabase(x: DatabaseTrait, sql: String) extends DataFrameTrait {
   var localDf: DataFrame = null
 
-  override def isEmpty: Boolean = throw Exception()
+  override def isEmpty: Boolean = false
 
 
   override def getDataFrame: DataFrame = {

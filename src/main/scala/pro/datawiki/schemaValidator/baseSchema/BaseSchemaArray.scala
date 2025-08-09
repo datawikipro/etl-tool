@@ -1,5 +1,6 @@
 package pro.datawiki.schemaValidator.baseSchema
 
+import pro.datawiki.exception.SchemaValidationException
 import pro.datawiki.schemaValidator.sparkRow.*
 
 class BaseSchemaArray(list: List[BaseSchemaStruct],
@@ -22,8 +23,8 @@ class BaseSchemaArray(list: List[BaseSchemaStruct],
                 List.apply(SparkRowAttribute(name = "data", value = x
                 ))))
             }
-            case _ =>
-              throw Exception()
+            case other =>
+              throw SchemaValidationException(s"Ожидался SparkRowElementString в BaseSchemaArray со строковым шаблоном, но получен: ${other.getClass.getName}")
         })
         return SparkRowElementList(l)
       }
@@ -35,14 +36,14 @@ class BaseSchemaArray(list: List[BaseSchemaStruct],
             case x: SparkRowElementStruct => {
               l = l.appended(x.getRow)
             }
-            case _ =>
-              throw Exception()
+            case other =>
+              throw SchemaValidationException(s"Ожидался SparkRowElementStruct в BaseSchemaArray с объектным шаблоном, но получен: ${other.getClass.getName}")
         })
 
         return SparkRowElementList(l.toSeq)
       }
-      case _ => {
-        throw Exception()
+      case unknown => {
+        throw SchemaValidationException(s"Неподдерживаемый тип шаблона в BaseSchemaArray: ${unknown.getClass.getName}")
       }
     }
 

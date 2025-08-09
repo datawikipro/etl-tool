@@ -1,5 +1,6 @@
 package pro.datawiki.schemaValidator.baseSchema
 
+import pro.datawiki.exception.SchemaValidationException
 import pro.datawiki.schemaValidator.projectSchema.SchemaTrait
 import pro.datawiki.schemaValidator.sparkRow.{SparkRowElementString, SparkRowElementStringTemplate, SparkRowElementTypeTemplate}
 
@@ -17,7 +18,9 @@ class BaseSchemaNullTemplate(inIsIgnorable: Boolean) extends BaseSchemaTemplate 
       case x: BaseSchemaArrayTemplate => BaseSchemaArrayTemplate(x.getBaseElement,inIsIgnorable)
       case x: BaseSchemaDoubleTemplate => BaseSchemaDoubleTemplate(inIsIgnorable)
       case x: BaseSchemaObjectTemplate => x
-      case _ => throw Exception()
+      case _ => {
+        throw Exception()
+      }
   }
   
   override def getSparkRowElementTemplate: SparkRowElementTypeTemplate = {
@@ -25,6 +28,6 @@ class BaseSchemaNullTemplate(inIsIgnorable: Boolean) extends BaseSchemaTemplate 
   }
 
   override def getProjectSchema: SchemaTrait = {
-    throw Exception()
+    throw SchemaValidationException("Метод getProjectSchema не реализован для BaseSchemaNullTemplate")
   }
 }

@@ -1,8 +1,10 @@
 package pro.datawiki.sparkLoader.configuration.yamlConfigSource
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import pro.datawiki.sparkLoader.connection.ConnectionTrait
 import pro.datawiki.sparkLoader.task.{TaskTemplate, TaskTemplateSQLFromDatabase}
 
+@JsonInclude(JsonInclude.Include.NON_ABSENT)
 case class YamlConfigSourceDBSQL(
                                   sql: String,
                                 ) extends YamlConfigSourceTrait {

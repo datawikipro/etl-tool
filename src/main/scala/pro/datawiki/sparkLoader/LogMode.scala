@@ -2,6 +2,7 @@ package pro.datawiki.sparkLoader
 
 import org.apache.spark.sql.DataFrame
 import org.openqa.selenium.WebElement
+import pro.datawiki.exception.UnsupportedOperationException
 
 object LogMode {
   var isDebug: Boolean = false
@@ -13,11 +14,12 @@ object LogMode {
     if isDebug then
      println(in)
     return true
+    // TODO: заменить на полноценное логирование
   }
 
   def getDebugFalse: Boolean = {
     if isDebug then
-      throw Exception()
+      throw new UnsupportedOperationException("getDebugFalse not implemented")
     return false
   }
 
@@ -39,5 +41,7 @@ object LogMode {
 //      )
     }
   }
-
+  def error(in: String): Unit = {
+    println(in)
+  }
 }

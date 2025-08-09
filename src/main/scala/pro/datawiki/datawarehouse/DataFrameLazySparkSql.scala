@@ -1,6 +1,7 @@
 package pro.datawiki.datawarehouse
 
 import org.apache.spark.sql.{Column, DataFrame}
+import pro.datawiki.exception.UnsupportedOperationException
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.sparkLoader.connection.DatabaseTrait
 import pro.datawiki.sparkLoader.task.Task
@@ -26,7 +27,7 @@ class DataFrameLazySparkSql(sql: String,inInitTables: mutable.Map[String, DataFr
     return localDf
   }
 
-  override def isEmpty: Boolean = throw Exception()
+  override def isEmpty: Boolean = throw new UnsupportedOperationException("isEmpty not implemented for DataFrameLazySparkSql")
 
 
   override def isValidData: Boolean = true

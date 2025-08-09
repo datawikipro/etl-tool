@@ -2,9 +2,9 @@ package pro.datawiki.sparkLoader.connection.mail
 
 import org.apache.spark.sql.DataFrame
 import pro.datawiki.datawarehouse.DataFrameTrait
+import pro.datawiki.exception.{ConfigurationException, TableNotExistException}
 import pro.datawiki.sparkLoader.connection.selenium.LoaderSelenium
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, FileStorageTrait}
-import pro.datawiki.sparkLoader.exception.TableNotExistException
 import pro.datawiki.sparkLoader.task.Context
 import pro.datawiki.sparkLoader.transformation.TransformationCacheFileStorage
 import pro.datawiki.yamlConfiguration.YamlClass
@@ -30,11 +30,11 @@ class LoaderMail(configYaml: YamlConfigMail) extends ConnectionTrait {
     val con = Context.getConnection(inCache)
     cache = con match
       case x: FileStorageTrait => TransformationCacheFileStorage(x)
-      case _ => throw Exception()
+      case other => throw new ConfigurationException(s"Неизвестный тип чтения почты: '$other'")
   }
 
   private def localCache: TransformationCacheFileStorage = {
-    if cache == null then throw Exception()
+    if cache == null then throw new ConfigurationException("Кэш не был инициализирован в LoaderMail. Вызовите метод set() перед использованием кэша.")
     return cache
   }
 
@@ -46,7 +46,7 @@ class LoaderMail(configYaml: YamlConfigMail) extends ConnectionTrait {
     val useSSL: Boolean = configYaml.protocol match {
       case "imaps" => true
       case "imap" => false
-      case _ => throw Exception()
+      case other => throw new ConfigurationException(s"Неподдерживаемый протокол почты: '$other'. Поддерживаются только 'imap' и 'imaps'.")
     }
 
     val props = new Properties()
@@ -123,7 +123,7 @@ object LoaderMail extends YamlClass {
       val loader = new LoaderMail(mapper.readValue(getLines(inConfig), classOf[YamlConfigMail]))
       return loader
     } catch
-      case e: Error => throw Exception(e)
+      case e: Error => throw new ConfigurationException(s"Ошибка при инициализации LoaderMail: ${e.getMessage}", e)
   }
 
 }

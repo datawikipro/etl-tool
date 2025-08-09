@@ -1,6 +1,7 @@
 package pro.datawiki.datawarehouse
 
 import org.apache.spark.sql.{Column, DataFrame}
+import pro.datawiki.exception.DataProcessingException
 
 class DataFrameDirty(partition: String, df: DataFrame, validData: Boolean) extends DataFrameTrait {
   var localDf: DataFrame = df
@@ -23,7 +24,7 @@ class DataFrameDirty(partition: String, df: DataFrame, validData: Boolean) exten
 
 object DataFrameDirty {
   def apply(partition: String, df: DataFrame, validData: Boolean = true): DataFrameDirty = {
-    if df == null then throw Exception()
+    if df == null then throw new DataProcessingException("DataFrame cannot be null")
     return new DataFrameDirty(partition, df, validData)
   }
 }

@@ -1,6 +1,9 @@
 package pro.datawiki.schemaValidator.baseSchema
 
-import org.apache.spark.sql.types.DataType
+import org.apache.spark.sql.types.{DataType, StructField}
+import pro.datawiki.exception.SchemaValidationException
+import pro.datawiki.schemaValidator.SchemaValidator.toYaml
+import pro.datawiki.schemaValidator.dataFrame.DataFrameSchemaValidator
 import pro.datawiki.schemaValidator.projectSchema.{SchemaElement, SchemaObject, SchemaTrait, SchemaType}
 import pro.datawiki.schemaValidator.sparkRow.{SparkRowAttributeTemplate, SparkRowElementStructTemplate, SparkRowElementTypeTemplate}
 
@@ -37,14 +40,16 @@ class BaseSchemaObjectTemplate(inElements: mutable.Map[String, BaseSchemaTemplat
 
     val inObject = in match
       case x: BaseSchemaObjectTemplate => x
-      case x: BaseSchemaNullTemplate => BaseSchemaObjectTemplate(inElements, inIsIgnorable)
-      case null => return BaseSchemaObjectTemplate(inElements, inIsIgnorable)
-      case _ => throw Exception()
+      case x: BaseSchemaNullTemplate => new BaseSchemaObjectTemplate(inElements, inIsIgnorable)
+      case null => return new BaseSchemaObjectTemplate(inElements, inIsIgnorable)
+      case other => {
+        throw SchemaValidationException(s"Несовместимый тип шаблона для слияния с шаблоном объекта: ${other.getClass.getName}")
+      }
 
     inElements.foreach(i => {
       newElements += (i._1, i._2.fullMerge(inObject.getElementByName(i._1)))
     })
-    return BaseSchemaObjectTemplate(newElements, inIsIgnorable)
+    return new BaseSchemaObjectTemplate(newElements, inIsIgnorable)
   }
 
 
@@ -62,8 +67,8 @@ class BaseSchemaObjectTemplate(inElements: mutable.Map[String, BaseSchemaTemplat
 
     val inObject = in match
       case x: BaseSchemaObjectTemplate => x
-      case x: BaseSchemaNullTemplate => return BaseSchemaObjectTemplate(inElements, inIsIgnorable)
-      case _ => throw Exception()
+      case x: BaseSchemaNullTemplate => return new BaseSchemaObjectTemplate(inElements, inIsIgnorable)
+      case other => throw SchemaValidationException(s"Невозможно извлечь данные объекта из: ${other.getClass.getName}")
 
     inElements.foreach(i => {
       newElements += (i._1, i._2.fullMerge(inObject.getElementByName(i._1)))
@@ -73,7 +78,7 @@ class BaseSchemaObjectTemplate(inElements: mutable.Map[String, BaseSchemaTemplat
       newElements += (i._1, i._2.fullMerge(this.getElementByName(i._1)))
     })
     
-    return BaseSchemaObjectTemplate(newElements, inIsIgnorable)
+    return new BaseSchemaObjectTemplate(newElements, inIsIgnorable)
   }
 
   override def getProjectSchema: SchemaObject = {
@@ -88,8 +93,28 @@ class BaseSchemaObjectTemplate(inElements: mutable.Map[String, BaseSchemaTemplat
         case x: BaseSchemaBooleanTemplate => list = list.appended(SchemaElement(name = i._1, `type` = SchemaType.Boolean.toString, `array` = null, `object` = null, `map` = null, isIgnorable = false))
         case x: BaseSchemaArrayTemplate => list = list.appended(SchemaElement(name = i._1, `type` = null, `array` = x.getProjectSchema, `object` = null, `map` = null, isIgnorable = false))
         
-        case _ => throw Exception()
+        case _ => {
+          throw Exception()
+        }
     })
     return SchemaObject(list)
+  }
+}
+
+
+object BaseSchemaObjectTemplate {
+  def apply(in: List[StructField]): BaseSchemaObjectTemplate = {
+    val templates = mutable.Map[String, BaseSchemaTemplate]()
+    val isIgnorable = false
+
+    // Преобразуем каждое StructField в соответствующий BaseSchemaTemplate
+    in.foreach(field => {
+      val template = DataFrameSchemaValidator.convertStructFieldToTemplate(field)
+      templates += (field.name -> template)
+    })
+
+    val schema =new BaseSchemaObjectTemplate(templates, isIgnorable)
+    val project = toYaml(schema.getProjectSchema)
+    return schema
   }
 }

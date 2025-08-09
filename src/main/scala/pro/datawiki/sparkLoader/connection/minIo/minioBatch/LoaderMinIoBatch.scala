@@ -15,18 +15,18 @@ class LoaderMinIoBatch(format:FileBaseFormat,configYaml: YamlConfig) extends Loa
 
   @Override
   override def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = {
-    df.write.format(format.toString).mode(writeMode.toString).save(getLocation(location))
+    df.write.format(format.toString).mode(writeMode.toSparkString).save(getLocation(location))
   }
 
   @Override
   override def writeDfPartitionDirect(df: DataFrame, location: String, partitionName: List[String], partitionValue: List[String], writeMode: WriteMode): Unit = {
-    df.write.format(format.toString).mode(writeMode.toString).save(this.getLocation(location, partitionName, partitionValue))
+    df.write.format(format.toString).mode(writeMode.toSparkString).save(this.getLocation(location, partitionName, partitionValue))
   }
 
   @Override
   override def writeDfPartitionAuto(df: DataFrame, location: String, partitionName: List[String], writeMode: WriteMode): Unit = {
     if writeMode == overwrite then {
-      df.orderBy(partitionName.head, partitionName *).write.format(format.toString).option("nullValue", "\\N").partitionBy(partitionName *).mode(writeMode.toString).save(s"s3a://${configYaml.bucket}/${location}/")
+      df.orderBy(partitionName.head, partitionName *).write.format(format.toString).option("nullValue", "\\N").partitionBy(partitionName *).mode(writeMode.toSparkString).save(s"s3a://${configYaml.bucket}/${location}/")
       return
     }
     cache.saveTablePartitionAuto(df = df, partitionName = partitionName)

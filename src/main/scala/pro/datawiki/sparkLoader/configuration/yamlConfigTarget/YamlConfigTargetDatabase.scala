@@ -1,5 +1,6 @@
 package pro.datawiki.sparkLoader.configuration.yamlConfigTarget
 
+import com.fasterxml.jackson.annotation.{JsonIgnore, JsonInclude}
 import org.apache.spark.sql.functions.*
 import org.apache.spark.sql.{Column, DataFrame}
 import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFramePartition, DataFrameTrait}
@@ -8,6 +9,7 @@ import pro.datawiki.sparkLoader.connection.{DatabaseTrait, WriteMode}
 import pro.datawiki.sparkLoader.transformation.TransformationCacheDatabase
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 
+@JsonInclude(JsonInclude.Include.NON_ABSENT)
 case class YamlConfigTargetDatabase(
                                      connection: String,
                                      source: String,
@@ -26,12 +28,13 @@ case class YamlConfigTargetDatabase(
   private var locAllFields: List[String] = List.empty
   private var locFieldsWithChanges: List[String] = List.empty
   private var locFieldsWithoutChanges: List[String] = List.empty
-
+  @JsonIgnore
   def cache: TransformationCacheDatabase = {
     if locCache == null then locCache = new TransformationCacheDatabase(loader)
     return locCache
   }
 
+  @JsonIgnore
   override def loader: DatabaseTrait = {
     super.loader match
       case x: DatabaseTrait => x
@@ -39,6 +42,7 @@ case class YamlConfigTargetDatabase(
         throw Exception()
   }
 
+  @JsonIgnore
   private def targetColumns: List[String] = {
     if locAllFields.nonEmpty then return locAllFields
 
@@ -48,6 +52,7 @@ case class YamlConfigTargetDatabase(
     return locAllFields
   }
 
+  @JsonIgnore
   private def columnsWithChanges: List[String] = {
     if locFieldsWithChanges.nonEmpty then return locFieldsWithChanges
     var a: List[String] = List.apply()
@@ -59,12 +64,14 @@ case class YamlConfigTargetDatabase(
     return locFieldsWithChanges
   }
 
+  @JsonIgnore
   private def columnWithOutChanges: List[String] = {
     if locFieldsWithoutChanges.nonEmpty then return locFieldsWithoutChanges
     locFieldsWithoutChanges = targetColumns diff (uniqueKey ::: columnsWithChanges ::: List.apply("valid_from_dttm", "valid_to_dttm"))
     return locFieldsWithoutChanges
   }
 
+  @JsonIgnore
   private def getJoinString: String = {
     var joinList: List[String] = List.apply()
     uniqueKey.foreach(i => {
@@ -73,8 +80,10 @@ case class YamlConfigTargetDatabase(
     return joinList.mkString(" and ")
   }
 
+  @JsonIgnore
   var extraFilter: String = ""
 
+  @JsonIgnore
   private def getExtraFilter: String = {
     if extraFilter != "" then return extraFilter
 
@@ -87,6 +96,7 @@ case class YamlConfigTargetDatabase(
     return extraFilter
   }
 
+  @JsonIgnore
   private def calDeltaTable(): Boolean = {
     val sql12: String =
       s"""select ${(uniqueKey ::: columnsWithChanges).mkString(",")} from ${cache.getLocation}
@@ -102,6 +112,7 @@ case class YamlConfigTargetDatabase(
     return true
   }
 
+  @JsonIgnore
   private def calcPlanTable(): Boolean = {
 
     var orList: List[String] = List.apply()
@@ -139,6 +150,7 @@ case class YamlConfigTargetDatabase(
     loader.runSQL(sql)
   }
 
+  @JsonIgnore
   private def updateValidInterval(): Boolean = {
     val sql: String =
       s"""
@@ -151,6 +163,7 @@ case class YamlConfigTargetDatabase(
     loader.runSQL(sql)
   }
 
+  @JsonIgnore
   private def insertNewInterval(): Boolean = {
     val sql: String =
       s"""
@@ -161,12 +174,14 @@ case class YamlConfigTargetDatabase(
     loader.runSQL(sql)
   }
 
+  @JsonIgnore
   private def deleteTemp(): Boolean = {
     loader.runSQL(s"""drop table ${cache.getLocation}_3""")
     loader.runSQL(s"""drop table ${cache.getLocation}_2""")
     loader.runSQL(s"""drop table ${cache.getLocation}""")
   }
 
+  @JsonIgnore
   private def writeTargetMerge(df: DataFrame, list: List[Column]): Boolean = {
     val newDf: DataFrame = df.select(list *)
     LogMode.debugDF(newDf)
@@ -180,6 +195,7 @@ case class YamlConfigTargetDatabase(
     return true
   }
 
+  @JsonIgnore
   private def writeTargetMerge(): Boolean = {
     if uniqueKey.isEmpty then throw Exception()
 
@@ -191,6 +207,7 @@ case class YamlConfigTargetDatabase(
     return true
   }
 
+  @JsonIgnore
   private def writeTargetBasic(): Boolean = {
     val df: DataFrameTrait = getSourceDf
     if uniqueKey.nonEmpty then throw Exception()
@@ -206,6 +223,7 @@ case class YamlConfigTargetDatabase(
     return true
   }
 
+  @JsonIgnore
   override def writeTarget(): Boolean = {
     loadMode match
       case WriteMode.merge => writeTargetMerge()
@@ -214,6 +232,7 @@ case class YamlConfigTargetDatabase(
       case _ => throw Exception()
   }
 
+  @JsonIgnore
   override def getSourceDf: DataFrameTrait = {
     if deduplicationKey.isEmpty then return super.getSourceDf
     val sql =

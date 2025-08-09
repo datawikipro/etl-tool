@@ -1,6 +1,7 @@
 package pro.datawiki.schemaValidator.baseSchema
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import pro.datawiki.exception.SchemaValidationException
 import pro.datawiki.schemaValidator.projectSchema.SchemaTrait
 import pro.datawiki.schemaValidator.sparkRow.{SparkRowElementStringTemplate, SparkRowElementTypeTemplate}
 
@@ -12,7 +13,9 @@ class BaseSchemaStringTemplate(inIsIgnorable: Boolean) extends BaseSchemaTemplat
       case x: BaseSchemaBoolean => return BaseSchemaString(x.getValue.toString(), x.isIgnorable)
       case x: BaseSchemaDouble => return BaseSchemaString(x.getValue.toString(), x.isIgnorable)
       case x: BaseSchemaNull => return BaseSchemaString("", x.isIgnorable)
-      case _ => throw Exception()
+      case other => {
+        throw SchemaValidationException(s"Невозможно извлечь строковые данные из: ${other.getClass.getName}")
+      }
   }
 
   override def leftMerge(in: BaseSchemaTemplate): BaseSchemaTemplate = {
@@ -22,8 +25,11 @@ class BaseSchemaStringTemplate(inIsIgnorable: Boolean) extends BaseSchemaTemplat
       case x: BaseSchemaBooleanTemplate => BaseSchemaStringTemplate(inIsIgnorable)
       case x: BaseSchemaNullTemplate => BaseSchemaStringTemplate(inIsIgnorable)
       case x: BaseSchemaDoubleTemplate => BaseSchemaStringTemplate(inIsIgnorable)
+      case x: BaseSchemaArrayTemplate => BaseSchemaStringTemplate(inIsIgnorable)//TODO potential problem
       case null => BaseSchemaStringTemplate(inIsIgnorable)
-      case _ => throw Exception()
+      case other => {
+        throw SchemaValidationException(s"Несовместимый тип шаблона для слияния со строковым шаблоном: ${other.getClass.getName}")
+      }
   }
 
 
@@ -33,6 +39,6 @@ class BaseSchemaStringTemplate(inIsIgnorable: Boolean) extends BaseSchemaTemplat
 
   @JsonIgnore
   override def getProjectSchema: SchemaTrait = {
-    throw Exception()
+    throw SchemaValidationException("Метод getProjectSchema не реализован для BaseSchemaStringTemplate")
   }
 }

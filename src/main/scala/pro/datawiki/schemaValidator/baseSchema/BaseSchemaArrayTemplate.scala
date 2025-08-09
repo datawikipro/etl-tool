@@ -1,9 +1,8 @@
 package pro.datawiki.schemaValidator.baseSchema
 
-import pro.datawiki.schemaValidator.projectSchema.{SchemaArray, SchemaElement, SchemaObject, SchemaTrait, SchemaType}
+import pro.datawiki.exception.SchemaValidationException
+import pro.datawiki.schemaValidator.projectSchema.SchemaArray
 import pro.datawiki.schemaValidator.sparkRow.*
-
-import scala.collection.mutable
 
 class BaseSchemaArrayTemplate(baseElement: BaseSchemaTemplate,
                               inIsIgnorable: Boolean) extends BaseSchemaTemplate {
@@ -19,7 +18,7 @@ class BaseSchemaArrayTemplate(baseElement: BaseSchemaTemplate,
           list = list.appended(baseElement.extractDataFromObject(i))
         })
       case x: BaseSchemaNull => {}
-      case _ => throw Exception()
+      case other => throw SchemaValidationException(s"Невозможно извлечь данные массива из: ${other.getClass.getName}")
 
 
     return BaseSchemaArray(list, baseElement, inIsIgnorable)
@@ -34,8 +33,16 @@ class BaseSchemaArrayTemplate(baseElement: BaseSchemaTemplate,
         val left = baseElement.leftMerge(x.getBaseElement)
         return BaseSchemaArrayTemplate(left, inIsIgnorable)
       }
-      case x: BaseSchemaNullTemplate => return BaseSchemaArrayTemplate(baseElement, inIsIgnorable)
-      case _ => throw Exception()
+      case x: BaseSchemaNullTemplate => {
+        return BaseSchemaArrayTemplate(baseElement, inIsIgnorable)
+      }
+      case x: BaseSchemaStringTemplate => {
+        return BaseSchemaStringTemplate(inIsIgnorable)//TODO potential problem
+      }
+
+      case _ => {
+        throw SchemaValidationException("Метод getProjectSchema не реализован для BaseSchemaArrayTemplate")
+      }
   }
 
   override def getSparkRowElementTemplate: SparkRowElementTypeTemplate = {
@@ -50,8 +57,9 @@ class BaseSchemaArrayTemplate(baseElement: BaseSchemaTemplate,
       case x: SparkRowElementStructTemplate => {
         return SparkRowElementListTemplate(List.apply(x))
       }
-      case _ =>
+      case _ => {
         throw Exception()
+      }
     throw Exception()
 
     //
@@ -61,7 +69,12 @@ class BaseSchemaArrayTemplate(baseElement: BaseSchemaTemplate,
     baseElement match
       case x: BaseSchemaObjectTemplate => return SchemaArray(`object` = x.getProjectSchema, `type` = null)
       case x: BaseSchemaStringTemplate => return SchemaArray(`object` = null, `type` = "String")
+      case x: BaseSchemaNullTemplate   => return SchemaArray(`object` = null, `type` = null)
+      case x: BaseSchemaIntTemplate    => return SchemaArray(`object` = null, `type` = "Int")
       case null                        => return SchemaArray( `object` =  null , `type` = null)
-      case _ => throw Exception()
+
+      case other => {
+        throw SchemaValidationException(s"Несовместимый тип шаблона для слияния с шаблоном массива: ${other.getClass.getName}")
+      }
   }
 }

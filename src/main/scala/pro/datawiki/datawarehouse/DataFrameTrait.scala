@@ -1,6 +1,5 @@
 package pro.datawiki.datawarehouse
 
-import org.apache.spark.sql.streaming.DataStreamReader
 import org.apache.spark.sql.{Column, DataFrame}
 
 trait DataFrameTrait {

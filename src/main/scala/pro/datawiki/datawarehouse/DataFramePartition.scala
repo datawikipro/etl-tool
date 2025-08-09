@@ -1,6 +1,7 @@
 package pro.datawiki.datawarehouse
 
 import org.apache.spark.sql.{Column, DataFrame}
+import pro.datawiki.exception.UnsupportedOperationException
 
 import scala.collection.mutable
 
@@ -9,12 +10,12 @@ class DataFramePartition(df: mutable.Map[String,DataFrameTrait] = mutable.Map())
   
   def getPartitions:mutable.Map[String,DataFrameTrait] = df
 
-  override def isEmpty: Boolean = throw Exception()
+  override def isEmpty: Boolean = throw new UnsupportedOperationException("isEmpty not implemented for DataFramePartition")
 
 
   override def getDataFrame: DataFrame = {
     var newDf:DataFrame = null
-    throw Exception()
+    throw new UnsupportedOperationException("getDataFrame not implemented for DataFramePartition")
     df.foreach(i=> {
       if newDf == null then {
         newDf = i._2.getDataFrame
@@ -31,7 +32,7 @@ class DataFramePartition(df: mutable.Map[String,DataFrameTrait] = mutable.Map())
   override def getPartitionName: String = null
 
   override def addColumn(name: String, column: Column): Unit = {
-    throw Exception()
+    throw new UnsupportedOperationException("addColumn not implemented for DataFramePartition")
 //    localDf = localDf.withColumn(name, column)
   }
 }

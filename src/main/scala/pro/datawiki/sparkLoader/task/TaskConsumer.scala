@@ -1,10 +1,10 @@
 package pro.datawiki.sparkLoader.task
 
 import pro.datawiki.datawarehouse.{DataFrameConsumer, DataFrameOriginal, DataFrameTrait}
+import pro.datawiki.exception.{ConfigurationException, DataProcessingException, TableNotExistException}
 import pro.datawiki.sparkLoader.configuration.ProgressStatus
 import pro.datawiki.sparkLoader.configuration.ProgressStatus.skip
 import pro.datawiki.sparkLoader.connection.WriteMode
-import pro.datawiki.sparkLoader.exception.TableNotExistException
 import pro.datawiki.sparkLoader.transformation.TransformationCacheTrait
 
 import scala.collection.mutable
@@ -37,12 +37,10 @@ class TaskConsumer(inTaskTemplate: TaskTemplate) extends Task {
             cache.saveTable(x, WriteMode.overwrite)
             return Task.saveDf(targetName, cache.readDirty())
           }
-          case _ => throw Exception()
+          case _ => throw new DataProcessingException(s"Expected exactly one DataFrame, got: ${df.length}")
       }
-      case _ => throw Exception()
+      case _ => throw new DataProcessingException(s"Expected exactly one DataFrame, got: ${df.length}")
     }
-
-
   }
 
   override def run(targetName: String, parameters: mutable.Map[String, String], isSync: Boolean): ProgressStatus = {

@@ -1,6 +1,7 @@
 package pro.datawiki.sparkLoader.connection.clickhouse
 
 import org.apache.spark.sql.DataFrame
+import pro.datawiki.sparkLoader.connection.databaseTrait.{TableMetadata, TableMetadataType}
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DataWarehouseTrait, DatabaseTrait, WriteMode}
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.yamlConfiguration.YamlClass
@@ -57,16 +58,14 @@ class LoaderClickHouse(configYaml: YamlConfig) extends ConnectionTrait, Database
     writeMode match
       case WriteMode.overwrite => {
         truncateTable(tableName)
-        df.write.mode(WriteMode.append.toString).jdbc(getJdbc, tableName, getProperties)
+        df.write.mode(WriteMode.append.toSparkString).jdbc(getJdbc, tableName, getProperties)
       }
       case WriteMode.append => {
-        df.write.mode(WriteMode.append.toString).jdbc(getJdbc, tableName, getProperties)
+        df.write.mode(WriteMode.append.toSparkString).jdbc(getJdbc, tableName, getProperties)
       }
       case _ => throw Exception()
   }
-
-  override def generateIdMap(inTable: String, domain: String, systemCode: String): Boolean = throw Exception()
-
+  
   override def readDf(location: String): DataFrame = throw Exception()
 
   var connection: Connection = null
@@ -87,7 +86,7 @@ class LoaderClickHouse(configYaml: YamlConfig) extends ConnectionTrait, Database
 
   override def runSQL(in: String): Boolean = throw Exception()
 
-  override def mergeIdMap(inTable: String, domain: String, inSystemCode: String, outSystemCode: String): Boolean = throw Exception()
+  override def getTableMetadata(tableSchema: String, tableName: String): TableMetadata = ???
 }
 
 object LoaderClickHouse extends YamlClass {
@@ -95,4 +94,24 @@ object LoaderClickHouse extends YamlClass {
     val configYaml: YamlConfig = mapper.readValue(getLines(inConfig), classOf[YamlConfig])
     return new LoaderClickHouse(configYaml)
   }
+
+  def encodeDataType(in: TableMetadataType): String = {
+    return in match {
+      case TableMetadataType.Integer => return "Int32"
+      case TableMetadataType.Bigint => return "Int64"
+      case TableMetadataType.String => return "String"
+      case TableMetadataType.Boolean => return "UInt8"
+      case TableMetadataType.Varchar => return "String"
+      case TableMetadataType.Date => return "Date"
+      case TableMetadataType.DoublePrecision => return "Float64"
+      case TableMetadataType.Numeric => return "Float64"
+      case TableMetadataType.Real => return "Float32"
+      case TableMetadataType.Text => return "String"
+      case TableMetadataType.TimestampWithTimeZone => return "DateTime"
+      case TableMetadataType.TimestampWithoutTimeZone => return "DateTime"
+      case _ => throw Exception()
+    }
+  }
+
+  def decodeDataType(in: String): TableMetadataType = throw Exception()
 }

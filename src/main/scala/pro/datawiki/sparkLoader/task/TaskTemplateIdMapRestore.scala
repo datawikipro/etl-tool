@@ -38,7 +38,7 @@ class TaskTemplateIdMapRestore(sourceName: String,
       s"""select ${idMapSelect.mkString(",\n       ")},
          |       temporary.*
          |  from ${cache.getLocation} temporary
-         |  ${idMapJoin.mkString(",\n  ")}""".stripMargin
+         |  ${idMapJoin.mkString("\n  ")}""".stripMargin
     val df2 = connection.getDataFrameBySQL(sql2)
     return List.apply(DataFrameOriginal(df2))
   }

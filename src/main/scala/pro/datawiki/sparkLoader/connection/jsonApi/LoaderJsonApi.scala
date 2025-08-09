@@ -4,7 +4,8 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.functions.lit
 import pro.datawiki.datawarehouse.{DataFrameDirty, DataFrameOriginal, DataFrameTrait}
-import pro.datawiki.schemaValidator.SchemaValidator
+import pro.datawiki.exception.{ConfigurationException, DataProcessingException, SchemaValidationException}
+import pro.datawiki.schemaValidator.{DataFrameConstructor, SchemaValidator}
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.sparkLoader.configuration.RunConfig
 import pro.datawiki.sparkLoader.connection.ConnectionTrait
@@ -80,34 +81,43 @@ class LoaderJsonApi(in: YamlConfig) extends ConnectionTrait {
         request2.send(backend)
       }
       case _ =>
-        throw Exception()
+        throw new ConfigurationException("Метод в LoaderJsonApi еще не реализован")
     }
 
     val resTxt = response.body match {
-      case Left(e) => throw Exception(s"Got response exception:\n$e")
+      case Left(e) => throw new DataProcessingException(s"Ошибка при получении ответа от API: $e")
       case Right(r) => r
     }
     return resTxt
   }
 
   def getDataFrameOverCache(jsonString: String): DataFrame = {
-    return SchemaValidator.getDataFrameFromJsonWithOutTemplate(jsonString)
+    return DataFrameConstructor.getDataFrameFromJsonWithOutTemplate(jsonString)
 
 
   }
 
   def getDataFrameFromJson(json: String): DataFrameTrait = {
-    if in.isValidationScript then {
-      val df = in.getSchemaByJson(json)
-      if df == null then
-        return DataFrameDirty("error", getDataFrameOverCache(json), false)
+    try {
+      if (json == null || json.isEmpty) {
+        throw new DataProcessingException("Пустая или null JSON строка передана в getDataFrameFromJson")
+      }
+
+      if in.isValidationScript then {
+        val df = in.getSchemaByJson(json)
+        if df == null then
+          return DataFrameDirty("error", getDataFrameOverCache(json), false)
 
       LogMode.debugDF(df.getDataFrame)
       return df
     } else {
       return DataFrameOriginal(getDataFrameOverCache(json))
     }
-
+    } catch {
+      case e: SchemaValidationException => throw e // пробрасываем исключения валидации схемы
+      case e: DataProcessingException => throw e // пробрасываем исключения обработки данных
+      case e: Exception => throw new DataProcessingException(s"Ошибка при получении DataFrame из JSON: ${e.getMessage}", e)
+    }
   }
 
   def run(row: mutable.Map[String, String]): DataFrameTrait = {

@@ -1,0 +1,3 @@
+package pro.datawiki.diMigration.core.task.coreTaskEtlToolTemplate.coreTaskEtlToolTemplateSource.coreTaskEtlToolTemplateSourceKafka
+
+case class CoreTaskTemplateSourceKafkaTopicsByRegexp(template: String)

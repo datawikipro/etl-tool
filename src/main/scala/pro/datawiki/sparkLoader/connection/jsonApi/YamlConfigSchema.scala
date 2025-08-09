@@ -9,7 +9,7 @@ import org.apache.spark.sql
 import org.json4s.*
 import org.json4s.jackson.JsonMethods.*
 import pro.datawiki.datawarehouse.{DataFrameDirty, DataFrameTrait}
-import pro.datawiki.schemaValidator.SchemaValidator
+import pro.datawiki.schemaValidator.{DataFrameConstructor, SchemaValidator}
 import pro.datawiki.sparkLoader.LogMode
 
 import java.io.File
@@ -28,12 +28,12 @@ case class YamlConfigSchema(
     }
     if isError then {
       try {
-        val df = SchemaValidator.getDataFrameFromJsonWithTemplate(jsonString, fileLocation)
+        val df = DataFrameConstructor.getDataFrameFromJsonWithTemplate(jsonString, fileLocation)
         return DataFrameDirty(schemaName, df, false)
       } catch
         case _ => return null
     }
-    val df = SchemaValidator.getDataFrameFromJsonWithTemplate(jsonString, fileLocation)
+    val df = DataFrameConstructor.getDataFrameFromJsonWithTemplate(jsonString, fileLocation)
     return DataFrameDirty(schemaName, df, true)
 
   }

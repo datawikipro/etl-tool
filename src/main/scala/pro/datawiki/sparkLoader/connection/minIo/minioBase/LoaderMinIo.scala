@@ -1,12 +1,12 @@
 package pro.datawiki.sparkLoader.connection.minIo.minioBase
 
-import com.typesafe.scalalogging.LazyLogging
-import io.minio.*
 import _root_.org.apache.spark.sql.DataFrame
 import _root_.org.apache.spark.sql.functions.lit
+import com.typesafe.scalalogging.LazyLogging
+import io.minio.*
+import pro.datawiki.exception.TableNotExistException
 import pro.datawiki.sparkLoader.connection.fileBased.FileBaseFormat
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DataWarehouseTrait, FileStorageTrait, WriteMode}
-import pro.datawiki.sparkLoader.exception.TableNotExistException
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 
 import java.io.File
@@ -32,11 +32,11 @@ case class LoaderMinIo(format: FileBaseFormat,
   }
 
   def readDf(location: String, keyPartitions: List[String], valuePartitions: List[String]): DataFrame = {
-    val fullLocation =getLocation(location = location, keyPartitions = keyPartitions, valuePartitions = valuePartitions)
+    val fullLocation = getLocation(location = location, keyPartitions = keyPartitions, valuePartitions = valuePartitions)
 
-    val list = getListElementsInFolder(configYaml.bucket,getLocationWithPostfix(location, keyPartitions, valuePartitions))
+    val list = getListElementsInFolder(configYaml.bucket, getLocationWithPostfix(location, keyPartitions, valuePartitions))
     if list.isEmpty then throw TableNotExistException()
-    
+
     var df: DataFrame = SparkObject.spark.read
       .format(format.toString)
       .load(fullLocation)
@@ -99,8 +99,7 @@ case class LoaderMinIo(format: FileBaseFormat,
       .build()
 
     val objects = minioClient.listObjects(listArgs)
-    objects.forEach(i => list = list.appended(i.get().objectName())
-    )
+    objects.forEach(i => list = list.appended(i.get().objectName()))
     return list
   }
 

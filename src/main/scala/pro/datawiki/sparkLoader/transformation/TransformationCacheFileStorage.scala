@@ -2,11 +2,13 @@ package pro.datawiki.sparkLoader.transformation
 
 import org.apache.spark.sql.DataFrame
 import pro.datawiki.datawarehouse.{DataFrameDirty, DataFrameOriginal, DataFrameTrait}
+import pro.datawiki.exception.{ConfigurationException, DataProcessingException}
 import pro.datawiki.sparkLoader.connection.WriteMode.overwrite
 import pro.datawiki.sparkLoader.connection.local.localBase.LoaderLocalBase
 import pro.datawiki.sparkLoader.connection.minIo.minioBase.LoaderMinIo
 import pro.datawiki.sparkLoader.connection.{FileStorageTrait, WriteMode}
 
+import scala.collection.mutable
 import scala.util.Random
 
 class TransformationCacheFileStorage(connect: FileStorageTrait) extends TransformationCacheTrait {
@@ -48,7 +50,11 @@ class TransformationCacheFileStorage(connect: FileStorageTrait) extends Transfor
 
   @Override
   def readBaseTable(): DataFrame = {
-    connect.readDf(locRaw)
+    try {
+      return connect.readDf(locRaw)
+    } catch {
+      case e: Exception => throw new DataProcessingException(s"Failed to read base table: $locRaw", e)
+    }
   }
 
   override def readDirty(): List[DataFrameTrait] = {

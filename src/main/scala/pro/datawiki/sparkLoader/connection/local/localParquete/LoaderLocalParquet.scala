@@ -18,7 +18,7 @@ class LoaderLocalParquet(configYaml: YamlConfig) extends LoaderLocalBase(configY
   }
 
   override def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = {
-    df.write.mode(writeMode.toString).parquet(s"${configYaml.folder}/${location}")
+    df.write.mode(writeMode.toSparkString).parquet(s"${configYaml.folder}/${location}")
   }
 
   override def writeDfPartitionDirect(df: DataFrame, location: String, partitionName: List[String], partitionValue: List[String], writeMode: WriteMode): Unit = {

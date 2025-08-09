@@ -38,7 +38,7 @@ case class YamlConfigTemplateFindElements(
     val elems = webElement.findElements(by.getBy).asScala.toList
     if elems.isEmpty then
       if isMayBeEmpty then return List.apply()
-    //throw Exception()//TODO
+    // TODO: добавить реализацию
     return elems
   }
 
