@@ -6,59 +6,95 @@ import org.json4s.*
 import org.json4s.jackson.JsonMethods
 import pro.datawiki.exception.SchemaValidationException
 import pro.datawiki.schemaValidator.SchemaValidator.validateJsonBySchema
-import pro.datawiki.schemaValidator.jsonSchema.JsonSchemaConstructor
+import pro.datawiki.schemaValidator.json.JsonSchemaConstructor
 import pro.datawiki.schemaValidator.projectSchema.SchemaObject
 
 object DataFrameConstructor {
 
-  def getDataFrameFromJsonWithOutTemplate(inJsonString: String): DataFrame = {
+  /**
+   * Создает DataFrame из JSON строки без использования предопределенного шаблона.
+   * Схема будет определена автоматически на основе структуры JSON.
+   *
+   * @param jsonString JSON строка для преобразования в DataFrame
+   * @return DataFrame, созданный из JSON строки
+   * @throws SchemaValidationException при ошибках валидации или обработки JSON
+   */
+  def getDataFrameFromJsonWithOutTemplate(jsonString: String): DataFrame = {
     try {
-      val json: JValue = JsonMethods.parse(inJsonString)
-      json match
-        case x: JObject => return JsonSchemaConstructor.getDataFrameFromWithOutSchemaObject(json)
-        case x: JArray => {
-          if x.arr.length == 1 then {
-            return JsonSchemaConstructor.getDataFrameFromWithOutSchemaObject(x.arr.head)
-          } else throw SchemaValidationException("Массив JSON должен содержать ровно один элемент")
-        }
-        case _ => throw SchemaValidationException(s"Неподдерживаемый тип JSON: ${json.getClass.getSimpleName}")
+      // Разбор JSON строки
+      val json = JsonMethods.parse(jsonString)
+
+      // Преобразование в DataFrame в зависимости от типа JSON
+      json match {
+        case jsonObject: JObject => 
+          new JsonSchemaConstructor().getDataFrameFromWithOutSchemaObject(json)
+
+        case jsonArray: JArray if jsonArray.arr.length == 1 =>
+          new JsonSchemaConstructor().getDataFrameFromWithOutSchemaObject(jsonArray.arr.head)
+
+        case jsonArray: JArray => 
+          throw SchemaValidationException("Массив JSON должен содержать ровно один элемент")
+
+        case _ => 
+          throw SchemaValidationException(s"Неподдерживаемый тип JSON: ${json.getClass.getSimpleName}")
+      }
     } catch {
       case e: SchemaValidationException => throw e // пробрасываем исходное исключение валидации
-      case e: Exception => {
-        // Анализ сообщения об ошибке для более точной классификации проблемы
-        val errorMessage = e.getMessage.toLowerCase
-        if (errorMessage.contains("parse") || errorMessage.contains("syntax")) {
-          throw SchemaValidationException(s"Ошибка при парсинге JSON для создания DataFrame без шаблона: ${e.getMessage}", e)
-        } else if (errorMessage.contains("mapping") || errorMessage.contains("convert")) {
-          throw SchemaValidationException(s"Ошибка маппинга JSON для создания DataFrame без шаблона: ${e.getMessage}", e)
-        } else {
-          throw SchemaValidationException(s"Ошибка при создании DataFrame из JSON без шаблона: ${e.getMessage}", e)
-        }
-      }
+      case e: Exception => handleJsonParsingError(e, "без шаблона", jsonString)
     }
   }
 
-  def getDataFrameFromJsonWithTemplate(inJsonString: String, validatorConfigLocation: String): DataFrame = {
+  /**
+   * Создает DataFrame из JSON строки с использованием предопределенного шаблона схемы.
+   *
+   * @param jsonString JSON строка для преобразования в DataFrame
+   * @param validatorConfigLocation Путь к конфигурации валидатора схемы
+   * @return DataFrame, созданный из JSON строки
+   * @throws SchemaValidationException при ошибках валидации или обработки JSON
+   */
+  def getDataFrameFromJsonWithTemplate(jsonString: String, validatorConfigLocation: String): DataFrame = {
     try {
-      val json: JValue = JsonMethods.parse(inJsonString)
-      val loader: SchemaObject = SchemaObject(validatorConfigLocation)
+      // Разбор JSON строки
+      val json = JsonMethods.parse(jsonString)
 
-      if !SchemaValidator.validateJsonBySchema(loader,json) then throw SchemaValidationException(s"Ошибка валидации JSON по схеме при создании DataFrame: $inJsonString")
+      // Загрузка схемы из конфигурации
+      val loader = SchemaObject(validatorConfigLocation)
 
-      return JsonSchemaConstructor.getDataFrameFromWithSchemaObject(json, loader)
+      // Валидация JSON по схеме
+      if (!SchemaValidator.validateJsonBySchema(loader, json)) {
+        throw SchemaValidationException(s"Ошибка валидации JSON по схеме при создании DataFrame: $jsonString")
+      }
+
+      // Преобразование в DataFrame с использованием схемы
+      new JsonSchemaConstructor().getDataFrameFromWithSchemaObject(json, loader)
     } catch {
       case e: SchemaValidationException => throw e // пробрасываем исходное исключение валидации
-      case e: Exception => {
-        // Анализ сообщения об ошибке для более точной классификации проблемы
-        val errorMessage = e.getMessage.toLowerCase
-        if (errorMessage.contains("parse") || errorMessage.contains("syntax")) {
-          throw SchemaValidationException(s"Ошибка при парсинге JSON для создания DataFrame: ${e.getMessage}", e)
-        } else if (errorMessage.contains("mapping") || errorMessage.contains("convert")) {
-          throw SchemaValidationException(s"Ошибка маппинга JSON для создания DataFrame: ${e.getMessage}", e)
-        } else {
-          throw SchemaValidationException(s"Ошибка при создании DataFrame из JSON с шаблоном: ${e.getMessage}", e)
-        }
-      }
+      case e: Exception => handleJsonParsingError(e, "с шаблоном", jsonString)
     }
+  }
+
+  /**
+   * Вспомогательный метод для обработки ошибок при парсинге JSON.
+   * Анализирует сообщение об ошибке и генерирует соответствующее исключение с информативным сообщением.
+   *
+   * @param exception Исходное исключение
+   * @param contextDescription Описание контекста обработки (например, "с шаблоном" или "без шаблона")
+   * @param jsonString Исходная JSON строка, вызвавшая ошибку
+   * @return Никогда не возвращает значение, всегда выбрасывает исключение
+   * @throws SchemaValidationException с детальным описанием проблемы
+   */
+  private def handleJsonParsingError(exception: Exception, contextDescription: String, jsonString: String): Nothing = {
+    val errorMessage = exception.getMessage.toLowerCase
+
+    // Определяем тип ошибки по содержимому сообщения
+    val specificMessage = if (errorMessage.contains("parse") || errorMessage.contains("syntax")) {
+      s"Ошибка при парсинге JSON для создания DataFrame $contextDescription: ${exception.getMessage}"
+    } else if (errorMessage.contains("mapping") || errorMessage.contains("convert")) {
+      s"Ошибка маппинга JSON для создания DataFrame $contextDescription: ${exception.getMessage}"
+    } else {
+      s"Ошибка при создании DataFrame из JSON $contextDescription: ${exception.getMessage}"
+    }
+
+    throw SchemaValidationException(specificMessage, exception)
   }
 }

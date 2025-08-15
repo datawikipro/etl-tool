@@ -65,4 +65,5 @@ case class BaseSchemaMapTemplate(baseElement: BaseSchemaTemplate,
   override def getProjectSchema: SchemaTrait = {
     throw SchemaValidationException("Метод extractDataFromObject не имплементирован для BaseSchemaMapTemplate")
   }
+  override def isIgnorable: Boolean = inIsIgnorable
 }

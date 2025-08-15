@@ -30,4 +30,5 @@ class BaseSchemaNullTemplate(inIsIgnorable: Boolean) extends BaseSchemaTemplate 
   override def getProjectSchema: SchemaTrait = {
     throw SchemaValidationException("Метод getProjectSchema не реализован для BaseSchemaNullTemplate")
   }
+  override def isIgnorable: Boolean = inIsIgnorable
 }

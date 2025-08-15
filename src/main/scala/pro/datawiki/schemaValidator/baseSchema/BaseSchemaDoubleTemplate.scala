@@ -27,4 +27,5 @@ class BaseSchemaDoubleTemplate(inIsIgnorable: Boolean) extends BaseSchemaTemplat
   override def getProjectSchema: SchemaTrait = {
     throw SchemaValidationException("Метод getProjectSchema не реализован для BaseSchemaDoubleTemplate")
   }
+  override def isIgnorable: Boolean = inIsIgnorable
 }

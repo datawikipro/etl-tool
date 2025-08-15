@@ -7,16 +7,17 @@ ThisBuild / version := "0.2.0-SNAPSHOT"
 ThisBuild / scalaVersion := "3.4.2"
 
 lazy val root = (project in file("."))
+  .enablePlugins(AssemblyPlugin)
   .settings(
     name := "etl-tool",
     assembly / assemblyJarName := "etl-tool.jar",
     assembly / mainClass := Some("pro.datawiki.sparkLoader.sparkRun"),
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", xs @ _*) =>
-        xs map {_.toLowerCase} match {
+        xs.map(_.toLowerCase) match {
           case ("manifest.mf" :: Nil) | ("index.list" :: Nil) | ("dependencies" :: Nil) =>
             MergeStrategy.discard
-          case ps @ (x :: xs) if ps.last.endsWith(".sf") || ps.last.endsWith(".dsa") =>
+          case ps if ps.last.endsWith(".sf") || ps.last.endsWith(".dsa") =>
             MergeStrategy.discard
           case "services" :: _ =>  MergeStrategy.filterDistinctLines
           case _ => MergeStrategy.first
@@ -40,16 +41,30 @@ val ioMinioVersion =  "8.5.17"
 val googleApiVersion = "33.0.0"
 
 libraryDependencies ++= Seq(
-  "org.apache.spark" %% "spark-core" % sparkVersion,
-  "org.apache.spark" %% "spark-sql" % sparkVersion,
-  "org.apache.spark" %% "spark-streaming" % sparkVersion,
-  "org.apache.spark" %% "spark-streaming-kafka-0-10" % sparkVersion,
-  "org.apache.spark" %% "spark-sql-kafka-0-10" % sparkVersion,
-  "org.apache.spark" %% "spark-avro" % sparkVersion,
+  "org.apache.spark" %% "spark-core" % sparkVersion excludeAll(
+    ExclusionRule(organization = "org.scala-lang.modules", name = "scala-xml_2.13")
+  ),
+  "org.apache.spark" %% "spark-sql" % sparkVersion excludeAll(
+    ExclusionRule(organization = "org.scala-lang.modules", name = "scala-xml_2.13")
+  ),
+  "org.apache.spark" %% "spark-streaming" % sparkVersion excludeAll(
+    ExclusionRule(organization = "org.scala-lang.modules", name = "scala-xml_2.13")
+  ),
+  "org.apache.spark" %% "spark-streaming-kafka-0-10" % sparkVersion excludeAll(
+    ExclusionRule(organization = "org.scala-lang.modules", name = "scala-xml_2.13")
+  ),
+  "org.apache.spark" %% "spark-sql-kafka-0-10" % sparkVersion excludeAll(
+    ExclusionRule(organization = "org.scala-lang.modules", name = "scala-xml_2.13")
+  ),
+  "org.apache.spark" %% "spark-avro" % sparkVersion excludeAll(
+    ExclusionRule(organization = "org.scala-lang.modules", name = "scala-xml_2.13")
+  ),
   "org.json4s" %% "json4s-native" % json4sVersion,
   "org.json4s" %% "json4s-jackson" % json4sVersion,
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonDataformatVersion,
-  "org.mongodb.spark" %% "mongo-spark-connector" % mongodbVersion,
+  "org.mongodb.spark" %% "mongo-spark-connector" % mongodbVersion excludeAll(
+    ExclusionRule(organization = "org.scala-lang.modules", name = "scala-xml_2.13")
+  ),
 ).map(_.cross(CrossVersion.for3Use2_13))
 
 libraryDependencies ++= Seq(
@@ -84,9 +99,13 @@ libraryDependencies ++= Seq(
   "org.seleniumhq.selenium" % "selenium-java" % "4.28.0",
   "com.softwaremill.sttp.client4" %% "core" % "4.0.0-M25"
 )
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.3.0-SNAP4" % Test
 libraryDependencies ++= Seq(
   "com.google.api-ads" % "google-ads" % googleApiVersion,
 )
 
 
-dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % jacksonDataformatVersion
+dependencyOverrides ++= Seq(
+  "com.fasterxml.jackson.core" % "jackson-databind" % jacksonDataformatVersion,
+  "org.scala-lang.modules" %% "scala-xml" % "2.2.0"
+)

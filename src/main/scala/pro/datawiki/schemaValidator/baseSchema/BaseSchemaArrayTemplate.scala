@@ -7,7 +7,7 @@ import pro.datawiki.schemaValidator.sparkRow.*
 class BaseSchemaArrayTemplate(baseElement: BaseSchemaTemplate,
                               inIsIgnorable: Boolean) extends BaseSchemaTemplate {
 
-  def getBaseElement = baseElement
+  def getBaseElement: BaseSchemaTemplate = baseElement
 
   override def extractDataFromObject(in: BaseSchemaStruct): BaseSchemaStruct = {
     var list: List[BaseSchemaStruct] = List.apply()
@@ -29,7 +29,7 @@ class BaseSchemaArrayTemplate(baseElement: BaseSchemaTemplate,
     //throw Exception()
     in match
       case x: BaseSchemaArrayTemplate => {
-        if baseElement == null then return BaseSchemaArrayTemplate(null, inIsIgnorable) 
+        if baseElement == null then return BaseSchemaArrayTemplate(null, inIsIgnorable)
         val left = baseElement.leftMerge(x.getBaseElement)
         return BaseSchemaArrayTemplate(left, inIsIgnorable)
       }
@@ -37,7 +37,7 @@ class BaseSchemaArrayTemplate(baseElement: BaseSchemaTemplate,
         return BaseSchemaArrayTemplate(baseElement, inIsIgnorable)
       }
       case x: BaseSchemaStringTemplate => {
-        return BaseSchemaStringTemplate(inIsIgnorable)//TODO potential problem
+        return BaseSchemaStringTemplate(inIsIgnorable) //TODO potential problem
       }
 
       case _ => {
@@ -69,12 +69,14 @@ class BaseSchemaArrayTemplate(baseElement: BaseSchemaTemplate,
     baseElement match
       case x: BaseSchemaObjectTemplate => return SchemaArray(`object` = x.getProjectSchema, `type` = null)
       case x: BaseSchemaStringTemplate => return SchemaArray(`object` = null, `type` = "String")
-      case x: BaseSchemaNullTemplate   => return SchemaArray(`object` = null, `type` = null)
-      case x: BaseSchemaIntTemplate    => return SchemaArray(`object` = null, `type` = "Int")
-      case null                        => return SchemaArray( `object` =  null , `type` = null)
+      case x: BaseSchemaNullTemplate => return SchemaArray(`object` = null, `type` = null)
+      case x: BaseSchemaIntTemplate => return SchemaArray(`object` = null, `type` = "Int")
+      case null => return SchemaArray(`object` = null, `type` = null)
 
       case other => {
         throw SchemaValidationException(s"Несовместимый тип шаблона для слияния с шаблоном массива: ${other.getClass.getName}")
       }
   }
+
+  override def isIgnorable: Boolean = inIsIgnorable
 }

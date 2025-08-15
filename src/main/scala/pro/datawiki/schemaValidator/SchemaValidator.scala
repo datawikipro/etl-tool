@@ -1,13 +1,11 @@
 package pro.datawiki.schemaValidator
 
-import org.apache.hadoop.shaded.com.fasterxml.jackson.core.io.JsonEOFException
 import org.apache.spark.sql.types.DataType
 import org.json4s.*
 import org.json4s.jackson.JsonMethods
 import pro.datawiki.exception.SchemaValidationException
-import pro.datawiki.schemaValidator.baseSchema.{BaseSchemaStruct, BaseSchemaTemplate}
-import pro.datawiki.schemaValidator.jsonSchema.{JsonSchema, JsonSchemaConstructor}
-import pro.datawiki.schemaValidator.jsonSchema.JsonSchemaConstructor.getDataInBaseSchemaFormat
+import pro.datawiki.schemaValidator.baseSchema.BaseSchemaTemplate
+import pro.datawiki.schemaValidator.json.JsonSchemaConstructor
 import pro.datawiki.schemaValidator.projectSchema.SchemaObject
 import pro.datawiki.yamlConfiguration.YamlClass
 
@@ -19,8 +17,7 @@ object SchemaValidator extends YamlClass {
   }
   
   def getSchemaFromJson(inJsonString: List[String]): DataType = {
-    val jsonSchema =  JsonSchema(inJsonString)
-    var schema: BaseSchemaTemplate = jsonSchema.getBaseSchemaTemplate  
+    var schema: BaseSchemaTemplate = new JsonSchemaConstructor().getBaseSchemaTemplate(inJsonString)
 
     if (schema == null) {
       throw SchemaValidationException("Не удалось создать схему - возможно, входные JSON данные отсутствуют или все содержат ошибки")
@@ -32,16 +29,23 @@ object SchemaValidator extends YamlClass {
     return resultType
   }
   
-  def validateJsonBySchema(loader: SchemaObject, json: JValue ) : Boolean = {
-    json match
-      case x: JObject => return loader.validateJson(x)
-      case x: JArray => {
-        if x.arr.length == 1 then return loader.validateJson(x.arr.head)
-                             else return false
-      }
-      case _ => {
-        return false
-      }
+  /**
+   * Проверяет соответствие JSON-значения заданной схеме.
+   *
+   * @param loader Объект схемы для валидации
+   * @param json JSON-значение для проверки
+   * @return true, если JSON соответствует схеме, иначе false
+   */
+  def validateJsonBySchema(loader: SchemaObject, json: JValue): Boolean = {
+    json match {
+      case jsonObject: JObject => 
+        loader.validateJson(jsonObject)
+
+      case jsonArray: JArray if jsonArray.arr.length == 1 => 
+        loader.validateJson(jsonArray.arr.head)
+
+      case _ => false
+    }
   }
 
   def validateListJsonByTemplateAndGetDataType(inJsonString: List[String], validatorConfigLocation: String, updateSchema: Boolean):DataType = {

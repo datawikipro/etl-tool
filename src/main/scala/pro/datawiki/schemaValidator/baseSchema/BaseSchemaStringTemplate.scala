@@ -41,4 +41,6 @@ class BaseSchemaStringTemplate(inIsIgnorable: Boolean) extends BaseSchemaTemplat
   override def getProjectSchema: SchemaTrait = {
     throw SchemaValidationException("Метод getProjectSchema не реализован для BaseSchemaStringTemplate")
   }
+  
+  override def isIgnorable: Boolean = inIsIgnorable
 }

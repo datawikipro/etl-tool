@@ -10,7 +10,7 @@ trait BaseSchemaTemplate {
 
   def leftMerge(in: BaseSchemaTemplate): BaseSchemaTemplate
 
-  def rightMerge(in: BaseSchemaTemplate): BaseSchemaTemplate = in.leftMerge(this)
+  private def rightMerge(in: BaseSchemaTemplate): BaseSchemaTemplate = in.leftMerge(this)
 
   def fullMerge(in: BaseSchemaTemplate): BaseSchemaTemplate = this.rightMerge(this.leftMerge(in))//TODO переделать
 
@@ -19,6 +19,7 @@ trait BaseSchemaTemplate {
   def getSparkRowElementTemplate: SparkRowElementTypeTemplate
   
   def getProjectSchema: SchemaTrait
+  def isIgnorable: Boolean
 }
 
 object BaseSchemaTemplate {

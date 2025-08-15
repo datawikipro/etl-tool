@@ -29,4 +29,5 @@ class BaseSchemaIntTemplate(inIsIgnorable: Boolean) extends BaseSchemaTemplate {
   override def getProjectSchema: SchemaTrait = {
     throw SchemaValidationException("getProjectSchema not implemented in BaseSchemaIntTemplate")
   }
+  override def isIgnorable: Boolean = inIsIgnorable
 }

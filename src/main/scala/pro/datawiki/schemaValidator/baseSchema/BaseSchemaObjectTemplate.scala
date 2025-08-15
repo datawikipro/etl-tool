@@ -99,6 +99,7 @@ class BaseSchemaObjectTemplate(inElements: mutable.Map[String, BaseSchemaTemplat
     })
     return SchemaObject(list)
   }
+  override def isIgnorable: Boolean = inIsIgnorable
 }
 
 
