@@ -1,0 +1,15 @@
+/configMigrationManual/
+/.idea/
+/configMigrationOutput/
+/configMigrationSchemas/
+/configConnection/
+/config/
+/configMigration/
+/configMigrationOther/
+/docker/
+/target/
+/tmp/
+/project/project/
+/project/target/
+/kafka/
+/.bsp/

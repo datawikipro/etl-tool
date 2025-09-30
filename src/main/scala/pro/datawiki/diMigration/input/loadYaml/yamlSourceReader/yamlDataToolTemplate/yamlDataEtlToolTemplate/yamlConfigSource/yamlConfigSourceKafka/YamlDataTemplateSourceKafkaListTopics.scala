@@ -1,0 +1,3 @@
+package pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigSource.yamlConfigSourceKafka
+
+case class YamlDataTemplateSourceKafkaListTopics(template: String) 

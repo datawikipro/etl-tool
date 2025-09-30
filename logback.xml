@@ -1,0 +1,22 @@
+<configuration>
+    <!-- Конфигурация appender для вывода в консоль -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- Глобальный уровень логирования -->
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+    <logger name="com.amazonaws" level="ERROR"/>
+    <logger name="org.apache" level="ERROR" />
+    <logger name="httpclient" level="ERROR" />
+
+    <!-- Логгер для модуля diMigration -->
+    <logger name="pro.datawiki.diMigration" level="INFO"/>
+    <logger name="pro.datawiki.sparkLoader" level="INFO"/>
+    <logger name="pro.datawiki.schemaValidator" level="INfO"/>
+</configuration>
