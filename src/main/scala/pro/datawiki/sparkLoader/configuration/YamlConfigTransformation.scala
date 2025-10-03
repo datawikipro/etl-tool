@@ -16,11 +16,12 @@ case class YamlConfigTransformation(objectName: String,
                                     extractSchema: YamlConfigTransformationExtractSchema,
                                     extractAndValidateDataFrame: YamlConfigTransformationExtractAndValidateDataFrame,
                                     adHoc: YamlConfigTransformationAdHoc,
+                                    deduplicate: YamlConfigTransformationDeduplicate,
 
                                    ) extends LogicClass {
   @JsonIgnore
   def getLogic: Any = {
-    super.getLogic(idMap, sparkSql,sparkSqlLazy, extractSchema, extractAndValidateDataFrame, adHoc)
+    super.getLogic(idMap, sparkSql,sparkSqlLazy, extractSchema, extractAndValidateDataFrame, adHoc, deduplicate)
   }
 
   @JsonIgnore

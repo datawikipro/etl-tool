@@ -6,11 +6,6 @@ import java.io.File
 
 object Files {
 
-  /**
-   * Получает список файлов в папке
-   *
-   * @deprecated Используйте FileSystemService для лучшего error handling
-   */
   def getListFilesInFolder(dir: String): List[String] = {
     val file = new File(dir)
     if (file.exists() && file.isDirectory) {
@@ -20,11 +15,6 @@ object Files {
     }
   }
 
-  /**
-   * Получает список файлов в папке с удалением постфикса
-   *
-   * @deprecated Используйте FileSystemService для лучшего error handling
-   */
   def getListFilesInFolder(dir: String, cleanPostfix: String): List[String] = {
     try {
       val file = new File(dir)
@@ -41,9 +31,6 @@ object Files {
     }
   }
 
-  /**
-   * Безопасная версия getListFilesInFolder с proper error handling
-   */
   def getListFilesInFolderSafe(dir: String): List[String] = {
     try {
       val file = new File(dir)

@@ -15,12 +15,6 @@ import scala.collection.mutable
  * @param elements Карта элементов JSON объекта (поле-значение)
  */
 class JsonSchemaObjectTemplate(schema: BaseSchemaObjectTemplate) extends JsonSchemaTemplate {
-  /**
-   * Генерирует схему для объектного типа.
-   *
-   * @param schema Объект BaseSchemaObject
-   * @return JValue, представляющий схему объекта
-   */
   override def generateJValue(): JValue = {
     val properties = JObject(schema.inElements.map { case (name, elemSchema) =>
       name -> JsonSchemaWriter.generateJsonSchema(elemSchema, null, null, false)

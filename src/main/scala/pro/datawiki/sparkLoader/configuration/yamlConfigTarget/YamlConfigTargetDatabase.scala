@@ -26,11 +26,12 @@ case class YamlConfigTargetDatabase(
                                      targetTable: String = throw IllegalArgumentException("targetTable is required"),
                                      columns: List[YamlConfigTargetColumn],
                                      uniqueKey: List[String] = List.apply(),
-                                     deduplicationKey: List[String] = List.apply(),
                                      afterDQ: List[String] = List.apply(),
                                      partitionBy: List[String] = List.apply(),
+                                     scd:String = throw Exception()
                                    ) extends YamlConfigTargetBase(connection = connection, mode = mode, source = source) with YamlConfigTargetTrait with LoggingTrait {
   private var locCache: TransformationCacheDatabase = null
+  private val scdType:SCDType = SCDType(scd)
   @JsonIgnore
   def cache: TransformationCacheDatabase = {
     if locCache == null then locCache = new TransformationCacheDatabase()
@@ -71,158 +72,6 @@ case class YamlConfigTargetDatabase(
     return locFieldsWithoutChanges
   }
 
-  @JsonIgnore
-  private def getJoinString: String = {
-    return uniqueKey.map(i => {
-      s"src.${i} = tgt.${i}"
-    }).mkString(" and ")
-  }
-
-  private var extraFilter: String = ""
-
-  private def getExtraFilter: String = {
-    if extraFilter != "" then return extraFilter
-
-    if partitionBy.nonEmpty then {
-      val sql1 = s"""select min(${partitionBy.head}) as min_partition from ${cache.getLocation}"""
-      val minPartition = loader.getDataFrameBySQL(sql1).collect().head.get(0).toString
-      extraFilter = s"""and ${partitionBy.head} >= '${minPartition}'"""
-    }
-
-    return extraFilter
-  }
-
-  @JsonIgnore
-  private def calDeltaTable(): Boolean = {
-    val sql12: String =
-      s"""select ${(uniqueKey ::: columnsWithChanges.map(col1 => col1.columnName)).mkString(",")} from ${cache.getLocation}
-         |except
-         |select ${(uniqueKey ::: columnsWithChanges.map(col1 => col1.columnName)).mkString(",")} from $targetSchema.${targetTable} where valid_to_dttm = to_date('2100','yyyy') ${getExtraFilter}
-         |""".stripMargin
-
-    val sql =
-      s"""create table ${cache.getLocation}_2 as
-         | ${sql12}
-         |""".stripMargin
-    try {
-      loader.runSQL(sql)
-      return true
-    } catch {
-      case _ => {
-        println(sql)
-        throw DataProcessingException("Failed to execute SQL query")
-      }
-    }
-
-  }
-
-  @JsonIgnore
-  private def calcPlanTable(): Boolean = {
-
-    val orList: List[String] = columns.map(col => {
-      col.isNullable match {
-        case true => (
-          s"""   or (tgt.${col.columnName} is not null and src.${col.columnName} is null)
-             |   or src.${col.columnName} <> tgt.${col.columnName}
-             |""".stripMargin)
-        case false => s"   or src.${col.columnName} <> tgt.${col.columnName}"
-      }
-    })
-
-    val tgtColumns: List[String] = List.empty
-      ::: columnsWithChanges.map(col1 => s"       coalesce(tgt.${col1.columnName}, src.${col1.columnName}) as ${col1.columnName},")
-      ::: columnWithOutChanges.map(i => (s"       src.${i} as $i,"))
-      ::: uniqueKey.map(i => (s"       tgt.${i} as $i,"))
-
-    val sql: String =
-      s"""create table ${cache.getLocation}_3 as
-         |with src as (select * from $targetSchema.${targetTable} where valid_to_dttm = to_date('2100','yyyy') ${getExtraFilter}),
-         |     tgt as (select * from ${cache.getLocation}_2)
-         |select case when src.${uniqueKey.head} is not null then 'Update' else 'Insert' end as update_command,
-         |       ${tgtColumns.mkString("\n")}
-         |       now() as new_date
-         |  from tgt
-         |  left join src on ${getJoinString}
-         |where src.${uniqueKey.head} is null
-         |${orList.mkString("\n")}
-         |""".stripMargin
-    try {
-      loader.runSQL(sql)
-    } catch {
-      case e: Exception => {
-        println(sql)
-        throw DataProcessingException("Failed to execute SQL query", e)
-      }
-    }
-  }
-
-  @JsonIgnore
-  private def updateValidInterval(): Boolean = {
-    val sql: String =
-      s"""
-         |update $targetSchema.${targetTable} tgt
-         |   set valid_to_dttm = new_date - interval '1 microsecond'
-         |  from ${cache.getLocation}_3 src
-         | where tgt.valid_to_dttm = to_date('2100','yyyy')
-         |   and src.update_command = 'Update'
-         |   and ${getJoinString}""".stripMargin
-    try {
-      return loader.runSQL(sql)
-    } catch {
-      case _: Throwable => {
-        println(sql)
-        throw DataProcessingException("Failed to execute SQL query")
-      }
-    }
-  }
-
-  @JsonIgnore
-  private def insertNewInterval(): Boolean = {
-    val sql: String =
-      s"""
-         |insert into $targetSchema.$targetTable(${(uniqueKey ::: columnsWithChanges.map(col1 => col1.columnName) ::: columnWithOutChanges).mkString(", ")},valid_from_dttm,valid_to_dttm)
-         |select ${(uniqueKey ::: columnsWithChanges.map(col1 => col1.columnName) ::: columnWithOutChanges).mkString(", ")}, new_date as valid_from_dttm,to_date('2100','yyyy') as valid_to_dttm
-         |  from ${cache.getLocation}_3
-         |""".stripMargin
-    try {
-      loader.runSQL(sql)
-    } catch {
-      case _ => {
-        println(sql)
-        throw DataProcessingException("Failed to execute SQL query")
-      }
-    }
-  }
-
-  @JsonIgnore
-  private def deleteTemp(): Boolean = {
-    loader.runSQL(s"""drop table if exists ${cache.getLocation}_3""")
-    loader.runSQL(s"""drop table if exists ${cache.getLocation}_2""")
-    loader.runSQL(s"""drop table if exists ${cache.getLocation}""")
-  }
-
-  @JsonIgnore
-  private def writeTargetMerge(newDf: DataFrame): Boolean = {
-
-    try {
-      LogMode.debugDF(newDf)
-      cache.saveTable(DataFrameOriginal(newDf), WriteMode.overwriteTable, loader)
-      calDeltaTable()
-      calcPlanTable()
-
-      updateValidInterval()
-      insertNewInterval()
-
-    } catch {
-      case e: Exception => {
-        logError("merge operation", e, s"table: $targetTable")
-        throw DataProcessingException("Failed to process data", e)
-      }
-    } finally {
-      deleteTemp()
-    }
-    return true
-  }
 
   private def dataFrameDecodeDoubleToString(df: DataFrame, columnName: String) = {
     df.withColumn(colName = columnName, col = col(columnName).cast(StringType))
@@ -297,7 +146,7 @@ case class YamlConfigTargetDatabase(
       }
       case TableMetadataType.String => {
         targetType match {
-          case TableMetadataType.TimestampWithoutTimeZone =>            return dataFrameDecodeLongToTimestamp(df, columnName)
+          case TableMetadataType.TimestampWithoutTimeZone => return dataFrameDecodeLongToTimestamp(df, columnName)
           case TableMetadataType.Integer => return dataFrameDecodeStringToLong(df, columnName) //TO
           case TableMetadataType.Bigint => return dataFrameDecodeStringToLong(df, columnName)
           case TableMetadataType.Varchar => return df
@@ -333,17 +182,21 @@ case class YamlConfigTargetDatabase(
       locDf = dataFrameColumnTypeDecode(locDf, col.columnName, col.columnType, col.columnTypeDecode)
       LogMode.debugDF(locDf)
     })
-    return locDf.select(list *)
+    if list.nonEmpty then  locDf = locDf.select(list *)
+    return locDf
+
   }
 
   @JsonIgnore
   override def writeTarget(): Boolean = {
+
     loadMode match
       case WriteMode.merge => {
         getSourceDf match {
           case x: DataFrameOriginal => {
             if uniqueKey.isEmpty then throw IllegalArgumentException("Unique key is required for merge operation")
-            writeTargetMerge(prepareDataFrame(x.getDataFrame))
+            loader.writeDfMerge(prepareDataFrame(x.getDataFrame), targetSchema, targetTable, scdType, columns.map(col => col.columnName), uniqueKey)
+            return true
           }
           case _ => throw IllegalArgumentException("Unsupported write mode")
         }
@@ -376,7 +229,7 @@ case class YamlConfigTargetDatabase(
             return true
           }
           case x: DataFrameOriginal => {
-            loader.writeDfAppend(prepareDataFrame(x.getDataFrame), targetSchema, targetTable, SCDType.SCD_2,  columns.map(col=> col.columnName), uniqueKey)
+            loader.writeDfAppend(prepareDataFrame(x.getDataFrame), targetSchema, targetTable, scdType,  columns.map(col=> col.columnName), uniqueKey)
             return true
           }
           case _ => throw IllegalArgumentException("Unsupported write mode")
@@ -384,16 +237,28 @@ case class YamlConfigTargetDatabase(
       case _ => throw IllegalArgumentException("Unsupported write mode")
   }
 
-  @JsonIgnore
   override def getSourceDf: DataFrameTrait = {
-    if deduplicationKey.isEmpty then return super.getSourceDf
-    val sql =
-      s"""with a as (
-         |  select *, row_number() over (partition by ${uniqueKey.mkString(",")} order by ${deduplicationKey.mkString(",")}) as rn
-         |    from $source)
-         |select *
-         |  from a
-         | where rn = 1""".stripMargin
-    return DataFrameOriginal(SparkObject.spark.sql(sql))
+    val df = super.getSourceDf
+    val dfConverted  = convertComplexTypesToJson(df.getDataFrame)
+    return DataFrameOriginal(dfConverted)
   }
+
+  private def convertComplexTypesToJson(df: DataFrame): DataFrame = {
+    import org.apache.spark.sql.functions._
+    import org.apache.spark.sql.types._
+
+    val columns = df.schema.fields.map { field =>
+      field.dataType match {
+        case MapType(_, _, _) | StructType(_) | ArrayType(_, _) =>
+          // Convert complex types to JSON string
+          to_json(col(field.name)).as(field.name)
+        case _ =>
+          // Keep simple types as is
+          col(field.name)
+      }
+    }
+
+    df.select(columns*)
+  }
+
 }

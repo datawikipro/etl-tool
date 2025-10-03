@@ -5,21 +5,12 @@ package pro.datawiki.diMigration.input.base
  */
 class LoadObject(processFilesList: List[String] = List.empty) {
 
-  /**
-   * Возвращает список пар (jobName, filePath)
-   */
   def getList: List[String] = {
     return processFilesList
   }
 
-  /**
-   * Проверяет, есть ли файлы для обработки
-   */
   def isEmpty: Boolean = processFilesList.isEmpty
 
-  /**
-   * Возвращает количество файлов для обработки
-   */
   def size: Int = processFilesList.length
 }
 

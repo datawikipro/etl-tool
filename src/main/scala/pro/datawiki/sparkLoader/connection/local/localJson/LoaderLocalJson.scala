@@ -6,13 +6,16 @@ import pro.datawiki.sparkLoader.SparkObject
 import pro.datawiki.sparkLoader.SparkObject.spark
 import pro.datawiki.sparkLoader.connection.local.localBase.{LoaderLocalBase, YamlConfig}
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, FileStorageTrait}
-import pro.datawiki.sparkLoader.dictionaryEnum.{ProgressStatus, WriteMode}
+import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, ProgressStatus, WriteMode}
 import pro.datawiki.sparkLoader.transformation.TransformationCache
 import pro.datawiki.yamlConfiguration.YamlClass
 
 import java.io.File
 
-class LoaderLocalJson(configYaml: YamlConfig) extends LoaderLocalBase(configYaml), FileStorageTrait {
+class LoaderLocalJson(configYaml: YamlConfig, configLocation: String) extends LoaderLocalBase(configYaml), ConnectionTrait, FileStorageTrait {
+  private val _configLocation: String = configLocation
+  
+  logInfo("Creating Local JSON connection")
   override def saveRaw(in: String, inLocation: String): Unit = super.saveRaw(in, inLocation)
 
   override def getFolder(location: String): List[String] = super.getFolder(location)
@@ -42,7 +45,17 @@ class LoaderLocalJson(configYaml: YamlConfig) extends LoaderLocalBase(configYaml
     super.moveTablePartition(sourceSchema = oldTableSchema, oldTable = oldTable, newTable = newTable, partitionName = partitionName)
   }
 
-  override def close(): Unit = {}
+  override def close(): Unit = {
+    ConnectionTrait.removeFromCache(getCacheKey())
+  }
+
+  override def getConnectionEnum(): ConnectionEnum = {
+    ConnectionEnum.localJson
+  }
+
+  override def getConfigLocation(): String = {
+    _configLocation
+  }
 
   override def readDfSchema(location: String): DataFrame = throw NotImplementedException("readDfSchema not implemented for LocalJson")
 
@@ -54,7 +67,7 @@ class LoaderLocalJson(configYaml: YamlConfig) extends LoaderLocalBase(configYaml
 object LoaderLocalJson extends YamlClass {
   def apply(inConfig: String): LoaderLocalJson = {
     val configYaml: YamlConfig = mapper.readValue(getLines(inConfig), classOf[YamlConfig])
-    val loader = new LoaderLocalJson(configYaml)
+    val loader = new LoaderLocalJson(configYaml, inConfig)
     return loader
   }
 }

@@ -4,7 +4,7 @@ import org.apache.spark.sql.DataFrame
 import pro.datawiki.exception.NotImplementedException
 import pro.datawiki.sparkLoader.connection.databaseTrait.{TableMetadata, TableMetadataType}
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait}
-import pro.datawiki.sparkLoader.dictionaryEnum.{SCDType, WriteMode}
+import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, SCDType, WriteMode}
 import pro.datawiki.sparkLoader.traits.LoggingTrait
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.yamlConfiguration.YamlClass
@@ -12,7 +12,10 @@ import pro.datawiki.yamlConfiguration.YamlClass
 import java.sql.{Connection, DriverManager, ResultSet}
 import java.util.Properties
 
-class LoaderClickHouse(sourceName: String, configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait, LoggingTrait {
+class LoaderClickHouse(sourceName: String, configYaml: YamlConfig, configLocation: String) extends ConnectionTrait, DatabaseTrait, LoggingTrait {
+  private val _configLocation: String = configLocation
+  
+  logInfo("Creating ClickHouse connection")
 
   override def getDataFrameBySQL(sql: String): DataFrame = {
     val startTime = logOperationStart("ClickHouse SQL query", s"source: $sourceName, sql: ${sql.take(100)}...")
@@ -86,6 +89,15 @@ class LoaderClickHouse(sourceName: String, configYaml: YamlConfig) extends Conne
     if getConnection == null then return
     getConnection.close()
     connection = null
+    ConnectionTrait.removeFromCache(getCacheKey())
+  }
+
+  override def getConnectionEnum(): ConnectionEnum = {
+    ConnectionEnum.clickhouse
+  }
+
+  override def getConfigLocation(): String = {
+    _configLocation
   }
 
   override def runSQL(in: String): Boolean = {
@@ -117,7 +129,7 @@ class LoaderClickHouse(sourceName: String, configYaml: YamlConfig) extends Conne
 object LoaderClickHouse extends YamlClass {
   def apply(sourceName: String, inConfig: String): LoaderClickHouse = {
     val configYaml: YamlConfig = mapper.readValue(getLines(inConfig), classOf[YamlConfig])
-    return new LoaderClickHouse(sourceName, configYaml)
+    return new LoaderClickHouse(sourceName, configYaml, inConfig)
   }
 
   def encodeDataType(in: TableMetadataType): String = {

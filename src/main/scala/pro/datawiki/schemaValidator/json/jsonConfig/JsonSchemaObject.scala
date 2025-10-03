@@ -13,11 +13,6 @@ import scala.collection.mutable
  * @param elements Карта элементов JSON объекта (поле-значение)
  */
 class JsonSchemaObject(elements: mutable.Map[String, JsonStruct]) extends JsonStruct {
-  /**
-   * Преобразует JSON объект в структуру базовой схемы.
-   *
-   * @return Структура базовой схемы, представляющая объект
-   */
   override def getBaseSchemaElementData: BaseSchemaStruct = {
     // Преобразуем каждый элемент объекта в базовую структуру
     val structMap = elements.map { case (fieldName, jsonElement) =>
@@ -30,13 +25,6 @@ class JsonSchemaObject(elements: mutable.Map[String, JsonStruct]) extends JsonSt
     elements.forall(col=>col._2.isEmpty)
   }
 
-  /**
-   * Объединяет текущий объект с другим объектом схемы.
-   *
-   * @param schemaObject Объект схемы для объединения
-   * @return Объединенный объект схемы
-   * @throws Exception текущая реализация не поддерживает объединение схем
-   */
   def mergeSchema(schemaObject: BaseSchemaObject): BaseSchemaObject = {
     // TODO: Реализовать объединение схем
     throw new Exception("Метод mergeSchema не реализован")
@@ -44,12 +32,7 @@ class JsonSchemaObject(elements: mutable.Map[String, JsonStruct]) extends JsonSt
 }
 
 object JsonSchemaObject {
-  /**
-   * Создает JsonSchemaObject из JSON объекта.
-   *
-   * @param json JSON объект для преобразования
-   * @return Представление JSON объекта в виде JsonSchemaObject
-   */
+
   def apply(json: JObject): JsonSchemaObject = {
     val elementMap = json.obj.filterNot { case (_, fieldValue) =>
       fieldValue.toString == "JNull"

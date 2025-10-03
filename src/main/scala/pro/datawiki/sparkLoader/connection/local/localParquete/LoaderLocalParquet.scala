@@ -5,14 +5,17 @@ import pro.datawiki.exception.NotImplementedException
 import pro.datawiki.sparkLoader.SparkObject.spark
 import pro.datawiki.sparkLoader.connection.local.localBase.{LoaderLocalBase, YamlConfig}
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, FileStorageTrait}
-import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode
+import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, WriteMode}
 import pro.datawiki.sparkLoader.traits.LoggingTrait
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.yamlConfiguration.YamlClass
 
 import java.io.File
 
-class LoaderLocalParquet(configYaml: YamlConfig) extends LoaderLocalBase(configYaml), ConnectionTrait, FileStorageTrait, LoggingTrait {
+class LoaderLocalParquet(configYaml: YamlConfig, configLocation: String) extends LoaderLocalBase(configYaml), ConnectionTrait, FileStorageTrait, LoggingTrait {
+  private val _configLocation: String = configLocation
+  
+  logInfo("Creating Local Parquet connection")
   override def saveRaw(in: String, inLocation: String): Unit = super.saveRaw(in, inLocation)
 
   override def readDf(location: String, keyPartitions: List[String], valuePartitions: List[String]): DataFrame = {
@@ -41,7 +44,17 @@ class LoaderLocalParquet(configYaml: YamlConfig) extends LoaderLocalBase(configY
     return df
   }
 
-  override def close(): Unit = {}
+  override def close(): Unit = {
+    ConnectionTrait.removeFromCache(getCacheKey())
+  }
+
+  override def getConnectionEnum(): ConnectionEnum = {
+    ConnectionEnum.localParquet
+  }
+
+  override def getConfigLocation(): String = {
+    _configLocation
+  }
 
   override def readDfSchema(location: String): DataFrame = throw NotImplementedException("Method not implemented for LocalParquet")
 
@@ -55,7 +68,7 @@ class LoaderLocalParquet(configYaml: YamlConfig) extends LoaderLocalBase(configY
 object LoaderLocalParquet extends YamlClass {
   def apply(inConfig: String): LoaderLocalParquet = {
     val configYaml: YamlConfig = mapper.readValue(getLines(inConfig), classOf[YamlConfig])
-    val loader = new LoaderLocalParquet(configYaml)
+    val loader = new LoaderLocalParquet(configYaml, inConfig)
     return loader
   }
 }

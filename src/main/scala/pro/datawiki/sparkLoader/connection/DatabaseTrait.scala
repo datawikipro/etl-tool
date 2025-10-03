@@ -25,7 +25,7 @@ trait DatabaseTrait extends ConnectionTrait {
 
   def writeDfOverwritePartition(df: DataFrame, tableSchema: String, tableName: String, scdType: SCDType, columns: List[String], uniqueKey:List[String]): Unit = writeDf(df = df, tableSchema = tableSchema, tableName = tableName, writeMode = WriteMode.overwritePartition, scdType = scdType)
 
-  def writeDfMerge(df: DataFrame, tableSchema: String, tableName: String, scdType: SCDType): Unit = writeDf(df = df, tableSchema = tableSchema, tableName = tableName, writeMode = WriteMode.merge, scdType = scdType)
+  def writeDfMerge(df: DataFrame, tableSchema: String, tableName: String, scdType: SCDType, columns: List[String], uniqueKey: List[String]): Unit = writeDf(df = df, tableSchema = tableSchema, tableName = tableName, writeMode = WriteMode.merge, scdType = scdType)
 
   def encodeDataType(in: TableMetadataType): String
 

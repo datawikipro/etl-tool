@@ -21,4 +21,5 @@ case class YamlDataTemplateTargetDatabase(
                                            uniqueKey: List[String],
                                            deduplicationKey: List[String],
                                            partitionBy: List[String],
+                                           scd:String
                                          ) 

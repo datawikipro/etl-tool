@@ -12,9 +12,9 @@ object LoaderMinIo extends YamlClass {
     val configYaml: YamlConfig = mapper.readValue(getLines(inConfig), classOf[YamlConfig])
 
     val loader = mode match
-      case FileStorageType.parquet => new LoaderMinIoBatch(FileBaseFormat.parquet, configYaml)
-      case FileStorageType.json => new LoaderMinIoBatch(FileBaseFormat.json, configYaml)
-      case FileStorageType.text => new LoaderMinIoBatch(FileBaseFormat.text, configYaml)
+      case FileStorageType.parquet => new LoaderMinIoBatch(FileBaseFormat.parquet, configYaml, inConfig)
+      case FileStorageType.json => new LoaderMinIoBatch(FileBaseFormat.json, configYaml, inConfig)
+      case FileStorageType.text => new LoaderMinIoBatch(FileBaseFormat.text, configYaml, inConfig)
       case _ => throw UnsupportedOperationException("Unsupported file storage type for MinIO")
 
     loader.modifySpark()

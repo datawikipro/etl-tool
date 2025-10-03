@@ -45,17 +45,11 @@ case class SchemaArray(
     }
   }
 
-  /**
-   * Валидация массива объектов
-   */
   @JsonIgnore
   private def validateObjectArray(values: List[JValue], schema: SchemaObject): Boolean = {
     values.forall(value => schema.validateJson(value))
   }
 
-  /**
-   * Валидация массива примитивных типов
-   */
   @JsonIgnore
   private def validatePrimitiveArray(values: List[JValue], typeStr: String): Boolean = {
     SchemaType(typeStr) match {

@@ -29,9 +29,6 @@ case class SchemaElement(
     }
   }
 
-  /**
-   * Создает шаблон для примитивного типа
-   */
   @JsonIgnore
   private def createPrimitiveTemplate(typeStr: String, ignorable: Boolean): BaseSchemaTemplate = {
     SchemaType(typeStr) match {
@@ -76,9 +73,6 @@ case class SchemaElement(
     }
   }
 
-  /**
-   * Валидация объекта
-   */
   @JsonIgnore
   private def validateObject(jsn: JObject, elementType: SchemaType): Boolean = {
     elementType match {
@@ -92,9 +86,6 @@ case class SchemaElement(
     }
   }
 
-  /**
-   * Валидация числовых значений
-   */
   @JsonIgnore
   private def validateNumeric(jsn: JValue, elementType: SchemaType): Boolean = {
     elementType match {
@@ -104,9 +95,6 @@ case class SchemaElement(
     }
   }
 
-  /**
-   * Валидация строковых значений
-   */
   @JsonIgnore
   private def validateString(jsn: JString, elementType: SchemaType): Boolean = {
     elementType match {
@@ -117,9 +105,6 @@ case class SchemaElement(
     }
   }
 
-  /**
-   * Валидация булевых значений
-   */
   @JsonIgnore
   private def validateBoolean(jsn: JBool, elementType: SchemaType): Boolean = {
     elementType match {
@@ -129,9 +114,6 @@ case class SchemaElement(
     }
   }
 
-  /**
-   * Валидация массивов
-   */
   @JsonIgnore
   private def validateArray(jsn: JArray, elementType: SchemaType): Boolean = {
     elementType match {
@@ -140,9 +122,6 @@ case class SchemaElement(
     }
   }
 
-  /**
-   * Валидация null значений
-   */
   @JsonIgnore
   private def validateNull(jsn: JValue, elementType: SchemaType): Boolean = {
     if (jsn.toString == "JNull") {

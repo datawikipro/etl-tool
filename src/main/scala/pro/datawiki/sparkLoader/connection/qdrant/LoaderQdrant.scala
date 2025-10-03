@@ -3,7 +3,7 @@ package pro.datawiki.sparkLoader.connection.qdrant
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Row}
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, NoSQLDatabaseTrait}
-import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode
+import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, WriteMode}
 import pro.datawiki.sparkLoader.traits.LoggingTrait
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.yamlConfiguration.YamlClass
@@ -11,7 +11,10 @@ import sttp.client4.*
 
 import scala.collection.mutable.ListBuffer
 
-class LoaderQdrant(configYaml: YamlConfig) extends ConnectionTrait, NoSQLDatabaseTrait, LoggingTrait {
+class LoaderQdrant(configYaml: YamlConfig, configLocation: String) extends ConnectionTrait, NoSQLDatabaseTrait, LoggingTrait {
+  private val _configLocation: String = configLocation
+  
+  logInfo("Creating Qdrant connection")
 
   private var server: YamlServerHost = null
   private implicit val backend: SyncBackend = DefaultSyncBackend()
@@ -295,12 +298,21 @@ class LoaderQdrant(configYaml: YamlConfig) extends ConnectionTrait, NoSQLDatabas
   override def close(): Unit = {
     // HTTP клиент не требует явного закрытия
     logger.info("Qdrant HTTP client closed")
+    ConnectionTrait.removeFromCache(getCacheKey())
+  }
+
+  override def getConnectionEnum(): ConnectionEnum = {
+    ConnectionEnum.qdrant
+  }
+
+  override def getConfigLocation(): String = {
+    _configLocation
   }
 }
 
 object LoaderQdrant extends YamlClass {
   def apply(inConfig: String): LoaderQdrant = {
     val configYaml: YamlConfig = mapper.readValue(getLines(inConfig), classOf[YamlConfig])
-    new LoaderQdrant(configYaml)
+    new LoaderQdrant(configYaml, inConfig)
   }
 }

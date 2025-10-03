@@ -9,6 +9,7 @@ import pro.datawiki.schemaValidator.spark.*
 import pro.datawiki.schemaValidator.spark.sparkType.{SparkRowElementList, SparkRowElementRow, SparkRowElementString}
 import pro.datawiki.sparkLoader.SparkObject
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, QueryTrait}
+import pro.datawiki.sparkLoader.dictionaryEnum.ConnectionEnum
 import pro.datawiki.yamlConfiguration.YamlClass
 
 import java.util
@@ -17,7 +18,10 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 
 
-class LoaderKafka(configYaml: YamlConfig) extends ConnectionTrait, QueryTrait {
+class LoaderKafka(configYaml: YamlConfig, configLocation: String) extends ConnectionTrait, QueryTrait {
+  private val _configLocation: String = configLocation
+  
+  logInfo("Creating Kafka connection")
   var configs: mutable.Map[String, String] = mutable.Map()
   configs += ("bootstrap.servers", configYaml.`bootstrap.servers`.mkString(","))
   configs += ("request.timeout.ms", s"${5 * 60 * 1000}")
@@ -82,12 +86,21 @@ class LoaderKafka(configYaml: YamlConfig) extends ConnectionTrait, QueryTrait {
 
   override def close(): Unit = {
     if locAdminClient != null then locAdminClient.close()
+    ConnectionTrait.removeFromCache(getCacheKey())
+  }
+
+  override def getConnectionEnum(): ConnectionEnum = {
+    ConnectionEnum.kafka
+  }
+
+  override def getConfigLocation(): String = {
+    _configLocation
   }
 }
 
 object LoaderKafka extends YamlClass {
   def apply(inConfig: String): LoaderKafka = {
     val configYaml: YamlConfig = mapper.readValue(getLines(inConfig), classOf[YamlConfig])
-    return new LoaderKafka(configYaml)
+    return new LoaderKafka(configYaml, inConfig)
   }
 }

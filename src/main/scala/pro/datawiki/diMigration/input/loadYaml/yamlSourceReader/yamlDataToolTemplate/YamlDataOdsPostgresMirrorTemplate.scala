@@ -73,7 +73,8 @@ case class YamlDataOdsPostgresMirrorTemplate(
             dataFrameIn = "src",
             configLocation = s"/opt/etl-tool/configMigrationSchemas/postgresdb__${sourceSchema}__$sourceTable.yaml"
           ),
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
       ),
       target = List.apply(
@@ -148,7 +149,8 @@ case class YamlDataOdsPostgresMirrorTemplate(
               )),
             uniqueKey = metadata.primaryKey,
             deduplicationKey = List.apply(),
-            partitionBy = null
+            partitionBy = null,
+            scd="SCD_3"
           ),
           fileSystem = null,
           messageBroker = null,

@@ -17,9 +17,6 @@ class ETLProgressLogger(
 
   private var currentProcess: Option[ETLProgressData] = None
 
-  /**
-   * Инициализация таблицы для логирования прогресса, если она не существует
-   */
   def initializeTable(): Unit = {
     val startTime = logOperationStart("initialize ETL progress table", s"table: $tableName")
 
@@ -57,9 +54,6 @@ class ETLProgressLogger(
     }
   }
 
-  /**
-   * Начать логирование нового ETL процесса
-   */
   def startProcess(
                     processName: String,
                     partitionName: String,
@@ -90,9 +84,6 @@ class ETLProgressLogger(
     processId
   }
 
-  /**
-   * Обновить прогресс ETL процесса с результатами операций
-   */
   def updateProgress(
                       processId: String,
                       operations: List[ETLOperationResult],
@@ -125,9 +116,6 @@ class ETLProgressLogger(
     }
   }
 
-  /**
-   * Завершить ETL процесс
-   */
   def completeProcess(
                        processId: String,
                        status: ETLProgressStatus = ETLProgressStatus.Completed,
@@ -155,9 +143,6 @@ class ETLProgressLogger(
     }
   }
 
-  /**
-   * Сохранить данные прогресса в базу данных
-   */
   private def saveProgressData(data: ETLProgressData): Unit = {
     try {
       val upsertSQL =
@@ -200,14 +185,8 @@ class ETLProgressLogger(
     }
   }
 
-  /**
-   * Получить текущий активный процесс
-   */
   def getCurrentProcess: Option[ETLProgressData] = currentProcess
 
-  /**
-   * Закрыть соединение
-   */
   def close(): Unit = {
     if (currentProcess.isDefined) {
       logWarning("ETL progress logger closed with active process")
@@ -220,9 +199,6 @@ class ETLProgressLogger(
 
 object ETLProgressLogger extends LoggingTrait {
 
-  /**
-   * Создать ETLProgressLogger из ConnectionTrait
-   */
   def apply(connection: ConnectionTrait, tableName: String = "etl_progress_log"): ETLProgressLogger = {
     connection match {
       case db: DatabaseTrait =>

@@ -2,6 +2,7 @@ package pro.datawiki.sparkLoader.connection.jsonApi
 
 import pro.datawiki.exception.{ConfigurationException, DataProcessingException}
 import pro.datawiki.sparkLoader.connection.ConnectionTrait
+import pro.datawiki.sparkLoader.dictionaryEnum.ConnectionEnum
 import pro.datawiki.yamlConfiguration.YamlClass
 import sttp.client4.*
 
@@ -12,7 +13,10 @@ import java.util.concurrent.Semaphore
 import scala.collection.mutable
 import scala.concurrent.duration.{Duration, SECONDS}
 
-case class LoaderJsonApi(in: YamlConfig) extends ConnectionTrait {
+case class LoaderJsonApi(in: YamlConfig, configLocation: String) extends ConnectionTrait {
+  private val _configLocation: String = configLocation
+  
+  logInfo("Creating JSON API connection")
   val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
   def getValueUrl(in: String, row: Map[String, String]): String = {
@@ -124,13 +128,23 @@ case class LoaderJsonApi(in: YamlConfig) extends ConnectionTrait {
 
   }
 
-  override def close(): Unit = {}
+  override def close(): Unit = {
+    ConnectionTrait.removeFromCache(getCacheKey())
+  }
+
+  override def getConnectionEnum(): ConnectionEnum = {
+    ConnectionEnum.jsonApi
+  }
+
+  override def getConfigLocation(): String = {
+    _configLocation
+  }
 }
 
 
 object LoaderJsonApi extends YamlClass {
   def apply(inConfig: String): LoaderJsonApi = {
-    val loader = new LoaderJsonApi(mapper.readValue(getLines(inConfig), classOf[YamlConfig]))
+    val loader = new LoaderJsonApi(mapper.readValue(getLines(inConfig), classOf[YamlConfig]), inConfig)
 
     return loader
   }

@@ -28,8 +28,6 @@ case class YamlDataOdsKafkaTemplate(
                                      dwhConfigLocation: String =throw Exception()
                                    ) extends YamlDataTaskToolTemplate {
   override def getCoreTask: List[CoreTask] = {
-    //        val connectionTrait = NoSQLDatabaseTrait.apply(connection, configLocation)
-
     val metadata = Metadata(metadataConnection, metadataConfigLocation, s"ods__$tableSchema", tableName)
     if (dwhConfigLocation == null) {
       throw new IllegalArgumentException("dwhConfigLocation cannot be null")
@@ -132,7 +130,8 @@ case class YamlDataOdsKafkaTemplate(
             baseSchema = s"/opt/etl-tool/configMigrationSchemas/stg__${kafkaTopic}.yaml", //TODO
           ),
           extractAndValidateDataFrame = null,
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
         YamlDataTemplateTransformation(
           objectName = "level2",
@@ -151,7 +150,8 @@ case class YamlDataOdsKafkaTemplate(
           sparkSqlLazy = null,
           extractSchema = null,
           extractAndValidateDataFrame = null,
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
         YamlDataTemplateTransformation(
           objectName = "level4",
@@ -165,7 +165,8 @@ case class YamlDataOdsKafkaTemplate(
           sparkSqlLazy = null,
           extractSchema = null,
           extractAndValidateDataFrame = null,
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
       ),
       target = List.apply(
@@ -232,7 +233,8 @@ case class YamlDataOdsKafkaTemplate(
             baseSchema = s"/opt/etl-tool/configMigrationSchemas/stg__${kafkaTopic}.yaml", //TODO
           ),
           extractAndValidateDataFrame = null,
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
         YamlDataTemplateTransformation(
           objectName = "level2",
@@ -251,7 +253,8 @@ case class YamlDataOdsKafkaTemplate(
           sparkSqlLazy = null,
           extractSchema = null,
           extractAndValidateDataFrame = null,
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
         YamlDataTemplateTransformation(
           objectName = "level4",
@@ -265,7 +268,8 @@ case class YamlDataOdsKafkaTemplate(
           sparkSqlLazy = null,
           extractSchema = null,
           extractAndValidateDataFrame = null,
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
       ),
       target = List.apply(
@@ -333,7 +337,8 @@ case class YamlDataOdsKafkaTemplate(
           sparkSqlLazy = null,
           extractSchema = null,
           extractAndValidateDataFrame = null,
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
         YamlDataTemplateTransformation(
           objectName = "level2",
@@ -347,7 +352,8 @@ case class YamlDataOdsKafkaTemplate(
           sparkSqlLazy = null,
           extractSchema = null,
           extractAndValidateDataFrame = null,
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
       ),
       target = List.apply(
@@ -359,7 +365,7 @@ case class YamlDataOdsKafkaTemplate(
           database = YamlDataTemplateTargetDatabase(
             connection = "postgres",
             source = "level2",
-            mode = WriteMode.merge,
+            mode = WriteMode.append,
             partitionMode = null, //TODO
             targetSchema = s"ods__${tableSchema}",
             targetTable = s"${tableName}",
@@ -375,7 +381,8 @@ case class YamlDataOdsKafkaTemplate(
               )),
             uniqueKey = metadata.primaryKey,
             deduplicationKey = List.apply("ts_ms desc"),
-            partitionBy = null
+            partitionBy = null,
+            scd="SCD_3"
           ),
           ignoreError = false
         )
@@ -401,23 +408,20 @@ case class YamlDataOdsKafkaTemplate(
             sql = List.apply(
               s"""CREATE TABLE IF NOT EXISTS ods__${tableSchema}._${tableName}
                  |(
-                 |    ${metadata.columns.map(col => s"${col.column_name} ${LoaderClickHouse.encodeIsNullable(col.isNullable, LoaderClickHouse.encodeDataType(col.data_type))}").mkString(",\n    ")}, valid_from_dttm Datetime, valid_to_dttm Datetime
+                 |    ${metadata.columns.map(col => s"${col.column_name} ${LoaderClickHouse.encodeIsNullable(col.isNullable, LoaderClickHouse.encodeDataType(col.data_type))}").mkString(",\n    ")}, valid_from_dttm Datetime, valid_to_dttm Datetime, run_id String
                  |)
                  |    ENGINE = PostgreSQL('${dwhInfo.hostPort}', '${dwhInfo.database}', '${tableName}', '${dwhInfo.username}', '${dwhInfo.password}', 'ods__${tableSchema}', 'connect_timeout=15, read_write_timeout=300');""".stripMargin,
-              s"""drop table if exists ods__${tableSchema}.${tableName}_new;""",
-              s"""CREATE TABLE IF NOT EXISTS ods__${tableSchema}.${tableName}_new
+              s"""CREATE TABLE IF NOT EXISTS ods__${tableSchema}.${tableName}
                  |(
                  |    ${metadata.columns.map(col => s"${col.column_name} ${LoaderClickHouse.encodeIsNullable(col.isNullable, LoaderClickHouse.encodeDataType(col.data_type))}").mkString(",\n    ")}, valid_from_dttm Datetime, valid_to_dttm Datetime
                  |)
-                 |    ENGINE = MergeTree ORDER BY (${metadata.primaryKey.mkString(",")})  SETTINGS index_granularity = 8192;""".stripMargin,
-              s"""insert into ods__${tableSchema}.${tableName}_new (${metadata.columns.map(col => s"${col.column_name}").mkString(",")}, valid_from_dttm , valid_to_dttm )
+                 |    ENGINE = ReplacingMergeTree(valid_from_dttm) ORDER BY (${metadata.primaryKey.mkString(",")})  SETTINGS index_granularity = 8192;""".stripMargin,
+              s"""insert into ods__${tableSchema}.${tableName} (${metadata.columns.map(col => s"${col.column_name}").mkString(",")}, valid_from_dttm , valid_to_dttm )
                  |select ${metadata.columns.map(col => s"${col.column_name}").mkString(",")}, valid_from_dttm , valid_to_dttm
                  |  from ods__${tableSchema}._${tableName}
-                 | where valid_to_dttm = cast('2100-01-01' as Date)
+                 | where valid_to_dttm = cast('2100-01-01' as Date) and run_id = '$${run_id}'
                  | SETTINGS external_storage_connect_timeout_sec=3000000,external_storage_rw_timeout_sec=3000000,connect_timeout=3000000;""".stripMargin,
-              s"""drop table if exists ods__${tableSchema}.${tableName}; """,
-              s"""rename table ods__${tableSchema}.${tableName}_new to ods__${tableSchema}.${tableName};"""
-
+              s"""OPTIMIZE TABLE ods__${tableSchema}.${tableName} FINAL;""".stripMargin,
             ),
           ),
           ignoreError = false

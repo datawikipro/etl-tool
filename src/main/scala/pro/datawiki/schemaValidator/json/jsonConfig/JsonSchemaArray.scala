@@ -9,11 +9,6 @@ import pro.datawiki.schemaValidator.json.JsonStruct
  */
 case class JsonSchemaArray(inList: List[JsonStruct]) extends JsonStruct {
 
-  /**
-   * Преобразует JSON массив в структуру базовой схемы.
-   *
-   * @return Структура базовой схемы, представляющая массив.
-   */
   override def getBaseSchemaElementData: BaseSchemaStruct = {
     //TODO ВАЖНО ИИ КОД
     // Преобразуем каждый элемент списка в базовую структуру схемы
@@ -38,12 +33,6 @@ case class JsonSchemaArray(inList: List[JsonStruct]) extends JsonStruct {
   def isEmpty: Boolean = inList.isEmpty
 }
 object JsonSchemaArray {
-  /**
-   * Создает JsonSchemaArray из JSON массива.
-   *
-   * @param in Исходный JSON массив.
-   * @return Представление JSON массива в виде JsonSchemaArray.
-   */
   def apply(in: JArray): JsonSchemaArray = {
     // Преобразуем каждый элемент JSON массива в JsonSchemaElement
     val elements = in.arr.map(JsonStruct.apply).toList

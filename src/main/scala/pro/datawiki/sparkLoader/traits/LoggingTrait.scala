@@ -15,9 +15,6 @@ trait LoggingTrait {
   @JsonIgnore
   protected lazy val logger = LoggerFactory.getLogger(this.getClass)
 
-  /**
-   * Логирует начало операции с временной меткой
-   */
   @JsonIgnore
   protected def logOperationStart(operation: String, details: String = ""): Long = {
     val timestamp = System.currentTimeMillis()
@@ -26,9 +23,6 @@ trait LoggingTrait {
     return timestamp
   }
 
-  /**
-   * Логирует завершение операции с измерением времени
-   */
   @JsonIgnore
   protected def logOperationEnd(operation: String, startTime: Long, details: String = ""): Unit = {
     val duration = System.currentTimeMillis() - startTime
@@ -36,9 +30,6 @@ trait LoggingTrait {
     logger.info(s"Completed $message in ${duration}ms")
   }
 
-  /**
-   * Логирует ошибку с контекстом
-   */
   @JsonIgnore
   protected def logError(operation: String, error: Throwable, details: String = ""): Unit = {
     val message = if (details.nonEmpty) s"$operation: $details" else operation
@@ -50,50 +41,32 @@ trait LoggingTrait {
     throw error
   }
   
-  /**
-   * Логирует предупреждение
-   */
   @JsonIgnore
   protected def logWarning(message: String): Unit = {
     logger.warn(message)
   }
 
-  /**
-   * Логирует информационное сообщение
-   */
   @JsonIgnore
   protected def logInfo(message: String): Unit = {
     logger.info(message)
   }
 
-  /**
-   * Логирует отладочное сообщение
-   */
   @JsonIgnore
   protected def logDebug(message: String): Unit = {
     logger.debug(message)
   }
 
-  /**
-   * Устанавливает уровень логирования программно
-   */
   @JsonIgnore
   protected def setLogLevel(level: Level): Unit = {
     logger.asInstanceOf[Logger].setLevel(level)
   }
 
-  /**
-   * Логирует информацию о Spark-операции
-   */
   @JsonIgnore
   protected def logSparkOperation(operation: String, details: String = ""): Unit = {
     val message = if (details.nonEmpty) s"Spark $operation: $details" else s"Spark $operation"
     logger.info(message)
   }
 
-  /**
-   * Логирует информацию о конфигурации
-   */
   @JsonIgnore
   protected def logConfigInfo(configName: String, details: String = ""): Unit = {
     val message = if (details.nonEmpty) s"Config $configName: $details" else s"Config $configName"
@@ -104,18 +77,12 @@ trait LoggingTrait {
   @JsonIgnore
   private var etlProgressLogger: Option[ETLProgressLoggerTrait] = None
 
-  /**
-   * Устанавливает ETL progress logger для текущего объекта
-   */
   @JsonIgnore
   protected def setETLProgressLogger(logger: ETLProgressLoggerTrait): Unit = {
     etlProgressLogger = Some(logger)
     logDebug("ETL progress logger has been set")
   }
 
-  /**
-   * Логирует прогресс ETL операций во внешнюю базу данных
-   */
   @JsonIgnore
   protected def logETLProgress(processId: String,
                                operations: List[ETLOperationResult],
@@ -133,9 +100,6 @@ trait LoggingTrait {
   }
 
 
-  /**
-   * Начинает новый ETL процесс и возвращает его ID
-   */
   @JsonIgnore
   protected def startETLProcess(
                                  processName: String,
@@ -156,9 +120,6 @@ trait LoggingTrait {
     }
   }
 
-  /**
-   * Завершает ETL процесс
-   */
   @JsonIgnore
   protected def completeETLProcess(
                                     processId: String,
@@ -174,9 +135,6 @@ trait LoggingTrait {
     }
   }
 
-  /**
-   * Получает текущий ETL progress logger
-   */
   @JsonIgnore
   protected def getETLProgressLogger: Option[ETLProgressLoggerTrait] = etlProgressLogger
 }

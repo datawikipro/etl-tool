@@ -36,19 +36,19 @@ class TaskTemplateExtractDataFromJsonBySchemaBatch(tableName: String,
       val savedSchema: BaseSchemaTemplate = migrationProjectSchema.readTemplate(baseSchema)
       var masterSchema: BaseSchemaTemplate = savedSchema
 
-      //      if mergeSchema then {
-      //        val list = df.filter(s"$jsonColumn <> '' and $jsonColumn is not null").select(s"$jsonColumn").distinct().collect().toList
-      //        logInfo(s"Found ${list.length} distinct JSON values in column: $jsonColumn")
-      //        val jsons: List[String] = list.map(i => i.get(0).toString)
-      //
-      //        // Извлекаем схему из JSON данных один раз
-      //        logInfo("Extracting schema from JSON data")
-      //        masterSchema = migrationJson.evolutionSchemaByList(jsons, masterSchema)
-      //        migrationProjectSchema.writeTemplate(baseSchema, masterSchema) match {
-      //          case true =>
-      //          case false => throw DataProcessingException("Failed to write schema template")
-      //        }
-      //      }
+      if mergeSchema then {
+        val list = df.filter(s"$jsonColumn <> '' and $jsonColumn is not null").select(s"$jsonColumn").distinct().collect().toList
+        logInfo(s"Found ${list.length} distinct JSON values in column: $jsonColumn")
+        val jsons: List[String] = list.map(i => i.get(0).toString)
+
+        // Извлекаем схему из JSON данных один раз
+        logInfo("Extracting schema from JSON data")
+        masterSchema = migrationJson.evolutionSchemaByList(jsons, masterSchema)
+        migrationProjectSchema.writeTemplate(baseSchema, masterSchema) match {
+          case true =>
+          case false => throw DataProcessingException("Failed to write schema template")
+        }
+      }
       
       df = loadMode match {
         case ProgressMode.batch => df.withColumn(jsonResultColumn, from_json(col(jsonColumn), masterSchema.getSparkRowElementTemplate.getType))

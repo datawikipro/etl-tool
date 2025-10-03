@@ -11,12 +11,6 @@ import pro.datawiki.schemaValidator.json.JsonSchemaTemplate
  * @param value Значение с плавающей точкой
  */
 case class JsonSchemaDoubleTemplate() extends JsonSchemaTemplate {
-  /**
-   * Генерирует схему для типа с плавающей точкой.
-   *
-   * @param schema Объект BaseSchemaDouble
-   * @return JValue, представляющий схему числа с плавающей точкой
-   */
   override def generateJValue(): JValue = {
     JObject("type" -> JString("number"))
   }

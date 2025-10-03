@@ -73,7 +73,8 @@ case class YamlDataOdsMongoDBMirrorTemplate(
             dataFrameIn = "src",
             configLocation = s"/opt/etl-tool/configMigrationSchemas/mongodb__${sourceSchema}__$sourceTable.yaml"
           ),
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
       ),
       target = List.apply(
@@ -141,7 +142,8 @@ case class YamlDataOdsMongoDBMirrorTemplate(
           sparkSqlLazy = null,
           extractSchema = null,
           extractAndValidateDataFrame = null,
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
       ),
       target = List.apply(
@@ -168,7 +170,8 @@ case class YamlDataOdsMongoDBMirrorTemplate(
               )),
             uniqueKey = metadata.primaryKey,
             deduplicationKey = List.apply(),
-            partitionBy = null
+            partitionBy = null,
+            scd="SCD_3"
           ),
           ignoreError = false
         )

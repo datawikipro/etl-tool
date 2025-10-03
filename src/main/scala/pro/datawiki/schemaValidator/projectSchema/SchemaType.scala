@@ -18,25 +18,16 @@ enum SchemaType {
     }
   }
 
-  /**
-   * Проверяет, является ли тип числовым
-   */
   def isNumeric: Boolean = this match {
     case Int | Long | Double => true
     case _ => false
   }
 
-  /**
-   * Проверяет, является ли тип примитивным
-   */
   def isPrimitive: Boolean = this match {
     case String | Int | Long | Boolean | Double | Null => true
     case _ => false
   }
 
-  /**
-   * Проверяет, является ли тип составным
-   */
   def isComplex: Boolean = this match {
     case Object | Array => true
     case _ => false
@@ -44,9 +35,6 @@ enum SchemaType {
 }
 
 object SchemaType {
-  /**
-   * Создает SchemaType из строки
-   */
   def apply(typeStr: String): SchemaType = {
     typeStr.toLowerCase match {
       case "string" => SchemaType.String

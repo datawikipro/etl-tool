@@ -8,6 +8,7 @@ import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.{DataFrame, Row}
 import pro.datawiki.sparkLoader.LogMode
 import pro.datawiki.sparkLoader.connection.ConnectionTrait
+import pro.datawiki.sparkLoader.dictionaryEnum.ConnectionEnum
 import pro.datawiki.sparkLoader.transformation.TransformationCache
 import pro.datawiki.yamlConfiguration.YamlClass
 import sttp.client4.*
@@ -16,7 +17,10 @@ import java.io.{File, FileInputStream}
 import scala.util.{Failure, Success, Try}
 
 
-class LoaderGoogleAds(in: YamlConfig) extends ConnectionTrait {
+class LoaderGoogleAds(in: YamlConfig, configLocation: String) extends ConnectionTrait {
+  private val _configLocation: String = configLocation
+  
+  logInfo("Creating Google Ads connection")
 
   val credentialsPath = in.config
   //  val credentials: GoogleCredentials = ServiceAccountCredentials.fromStream(new FileInputStream(credentialsPath))
@@ -62,13 +66,23 @@ class LoaderGoogleAds(in: YamlConfig) extends ConnectionTrait {
       println(s"Error occurred: ${exception.getMessage}")
   }
 
-  override def close(): Unit = {}
+  override def close(): Unit = {
+    ConnectionTrait.removeFromCache(getCacheKey())
+  }
+
+  override def getConnectionEnum(): ConnectionEnum = {
+    ConnectionEnum.googleAds
+  }
+
+  override def getConfigLocation(): String = {
+    _configLocation
+  }
 }
 
 
 object LoaderGoogleAds extends YamlClass {
   def apply(inConfig: String): LoaderGoogleAds = {
-    val loader = new LoaderGoogleAds(mapper.readValue(getLines(inConfig), classOf[YamlConfig]))
+    val loader = new LoaderGoogleAds(mapper.readValue(getLines(inConfig), classOf[YamlConfig]), inConfig)
 
     return loader
   }

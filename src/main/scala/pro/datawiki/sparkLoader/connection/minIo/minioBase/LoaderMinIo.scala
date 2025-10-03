@@ -6,7 +6,7 @@ import io.minio.*
 import pro.datawiki.exception.{NotImplementedException, TableNotExistException}
 import pro.datawiki.sparkLoader.connection.fileBased.FileBaseFormat
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, FileStorageTrait}
-import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode
+import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, WriteMode}
 import pro.datawiki.sparkLoader.traits.LoggingTrait
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 
@@ -17,7 +17,11 @@ import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
 case class LoaderMinIo(format: FileBaseFormat,
-                       configYaml: YamlConfig) extends FileStorageTrait, ConnectionTrait, LoggingTrait {
+                       configYaml: YamlConfig, 
+                       configLocation: String) extends FileStorageTrait, ConnectionTrait, LoggingTrait {
+  private val _configLocation: String = configLocation
+  
+  logInfo("Creating MinIO connection")
 
   def optimizeDataFramePartitions(df: DataFrame): DataFrame = {
     try {
@@ -303,7 +307,17 @@ case class LoaderMinIo(format: FileBaseFormat,
 
   def getMasterFolder: String = configYaml.bucket
 
-  override def close(): Unit = {}
+  override def close(): Unit = {
+    ConnectionTrait.removeFromCache(getCacheKey())
+  }
+
+  override def getConnectionEnum(): ConnectionEnum = {
+    ConnectionEnum.minioParquet
+  }
+
+  override def getConfigLocation(): String = {
+    _configLocation
+  }
 
   override def readDfSchema(location: String): DataFrame = {
     throw NotImplementedException("readDfSchema method not implemented for MinIO")

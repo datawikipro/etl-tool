@@ -11,6 +11,7 @@ import pro.datawiki.sparkLoader.LogMode
 import pro.datawiki.sparkLoader.connection.selenium.LoaderSelenium.getWebDriver
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, FileStorageTrait}
 import pro.datawiki.sparkLoader.context.ApplicationContext
+import pro.datawiki.sparkLoader.dictionaryEnum.ConnectionEnum
 import pro.datawiki.sparkLoader.transformation.TransformationCacheFileStorage
 import pro.datawiki.yamlConfiguration.YamlClass
 
@@ -19,7 +20,10 @@ import java.util.Base64
 import java.util.concurrent.locks.ReentrantLock
 import scala.collection.mutable
 
-class LoaderSelenium(configYaml: YamlConfig) extends ConnectionTrait {
+class LoaderSelenium(configYaml: YamlConfig, configLocation: String) extends ConnectionTrait {
+  private val _configLocation: String = configLocation
+  
+  logInfo("Creating Selenium connection")
   private var cache: TransformationCacheFileStorage = null
 
   def set(inCache: String): Unit = {
@@ -95,12 +99,21 @@ class LoaderSelenium(configYaml: YamlConfig) extends ConnectionTrait {
   override def close(): Unit = {
     LoaderSelenium.close()
     if cache != null then cache.close()
+    ConnectionTrait.removeFromCache(getCacheKey())
+  }
+
+  override def getConnectionEnum(): ConnectionEnum = {
+    ConnectionEnum.selenium
+  }
+
+  override def getConfigLocation(): String = {
+    _configLocation
   }
 }
 
 object LoaderSelenium extends YamlClass {
   def apply(inConfig: String): LoaderSelenium = {
-    val loader = new LoaderSelenium(mapper.readValue(getLines(inConfig), classOf[YamlConfig]))
+    val loader = new LoaderSelenium(mapper.readValue(getLines(inConfig), classOf[YamlConfig]), inConfig)
     return loader
   }
 

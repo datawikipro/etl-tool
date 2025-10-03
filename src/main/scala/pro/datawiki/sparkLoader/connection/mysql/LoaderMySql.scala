@@ -10,7 +10,7 @@ import pro.datawiki.exception.NotImplementedException
 import pro.datawiki.sparkLoader.configuration.yamlConfigTarget.yamlConfigTargetDatabase.YamlConfigTargetColumn
 import pro.datawiki.sparkLoader.connection.databaseTrait.{TableMetadata, TableMetadataType}
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait}
-import pro.datawiki.sparkLoader.dictionaryEnum.{SCDType, WriteMode}
+import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, SCDType, WriteMode}
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.yamlConfiguration.YamlClass
 
@@ -18,7 +18,10 @@ import java.nio.file.{Files, Paths}
 import java.sql.Connection
 import java.util.Properties
 
-class LoaderMySql(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait {
+class LoaderMySql(configYaml: YamlConfig, configLocation: String) extends ConnectionTrait, DatabaseTrait {
+  private val _configLocation: String = configLocation
+  
+  logInfo("Creating MySQL connection")
 
   override def getDataFrameBySQL(sql: String): DataFrame = {
     val df = SparkObject.spark.sqlContext.read.jdbc(getJdbc, s"""($sql) a """, getProperties)
@@ -69,6 +72,15 @@ class LoaderMySql(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait
     if session != null then {
       session.disconnect()
     }
+    ConnectionTrait.removeFromCache(getCacheKey())
+  }
+
+  override def getConnectionEnum(): ConnectionEnum = {
+    ConnectionEnum.mysql
+  }
+
+  override def getConfigLocation(): String = {
+    _configLocation
   }
 
 
@@ -94,7 +106,7 @@ object LoaderMySql extends YamlClass {
     val mapper: ObjectMapper = new ObjectMapper(new YAMLFactory())
     mapper.registerModule(DefaultScalaModule)
     val configYaml: YamlConfig = mapper.readValue(lines, classOf[YamlConfig])
-    return new LoaderMySql(configYaml)
+    return new LoaderMySql(configYaml, inConfig)
   }
 
   def encodeDataType(in: TableMetadataType): String = throw NotImplementedException("Method not implemented")

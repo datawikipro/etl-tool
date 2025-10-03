@@ -10,9 +10,6 @@ import pro.datawiki.diMigration.traits.LoggingTrait
 
 class MigrationProcess(sourceReader: SourceTrait, targetWriter: TargetMigration) extends LoggingTrait {
 
-  /**
-   * Выполняет миграцию с proper error handling
-   */
   def runMigration(fullFileLocation: String): Unit = {
     val startTime = logOperationStart("migration", s"fullFileLocation: $fullFileLocation")
 

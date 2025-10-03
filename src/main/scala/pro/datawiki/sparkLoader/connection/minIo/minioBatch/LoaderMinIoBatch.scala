@@ -4,10 +4,14 @@ import org.apache.spark.sql.DataFrame
 import pro.datawiki.sparkLoader.connection.FileStorageTrait
 import pro.datawiki.sparkLoader.connection.fileBased.FileBaseFormat
 import pro.datawiki.sparkLoader.connection.minIo.minioBase.{LoaderMinIo, YamlConfig}
-import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode
+import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, WriteMode}
 import pro.datawiki.sparkLoader.traits.LoggingTrait
 
-class LoaderMinIoBatch(format: FileBaseFormat, configYaml: YamlConfig) extends LoaderMinIo(format, configYaml) with FileStorageTrait with LoggingTrait {
+class LoaderMinIoBatch(format: FileBaseFormat, configYaml: YamlConfig, configLocation: String) extends LoaderMinIo(format, configYaml, configLocation) with FileStorageTrait with LoggingTrait {
+  
+  override def getConnectionEnum(): ConnectionEnum = {
+    ConnectionEnum.minioParquet
+  }
 
   private def write(df: DataFrame, inFormat:String, inWriteMode:String, finishLocation:String, useCache: Boolean):Unit={
     logInfo(s"Starting write operation - Format: $inFormat, Mode: $inWriteMode, Location: $finishLocation, UseCache: $useCache")

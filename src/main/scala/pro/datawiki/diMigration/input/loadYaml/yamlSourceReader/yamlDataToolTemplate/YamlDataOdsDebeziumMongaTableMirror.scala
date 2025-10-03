@@ -139,7 +139,8 @@ case class YamlDataOdsDebeziumMongaTableMirror(
             baseSchema = s"/opt/etl-tool/configMigrationSchemas/stg__${kafkaTopic}_value.yaml", //TODO
           ),
           extractAndValidateDataFrame = null,
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
         YamlDataTemplateTransformation(
           objectName = "level2",
@@ -154,7 +155,8 @@ case class YamlDataOdsDebeziumMongaTableMirror(
             baseSchema = s"/opt/etl-tool/configMigrationSchemas/stg__${kafkaTopic}_key.yaml", //TODO
           ),
           extractAndValidateDataFrame = null,
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
         YamlDataTemplateTransformation(
           objectName = "level3",
@@ -174,7 +176,8 @@ case class YamlDataOdsDebeziumMongaTableMirror(
           sparkSqlLazy = null,
           extractSchema = null,
           extractAndValidateDataFrame = null,
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
         YamlDataTemplateTransformation(
           objectName = "level4",
@@ -188,7 +191,8 @@ case class YamlDataOdsDebeziumMongaTableMirror(
           sparkSqlLazy = null,
           extractSchema = null,
           extractAndValidateDataFrame = null,
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
       ),
       target = List.apply(
@@ -256,7 +260,8 @@ case class YamlDataOdsDebeziumMongaTableMirror(
           sparkSqlLazy = null,
           extractSchema = null,
           extractAndValidateDataFrame = null,
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
         YamlDataTemplateTransformation(
           objectName = "level2",
@@ -271,7 +276,8 @@ case class YamlDataOdsDebeziumMongaTableMirror(
           sparkSqlLazy = null,
           extractSchema = null,
           extractAndValidateDataFrame = null,
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
         YamlDataTemplateTransformation(
           objectName = "level3",
@@ -286,7 +292,8 @@ case class YamlDataOdsDebeziumMongaTableMirror(
           sparkSqlLazy = null,
           extractSchema = null,
           extractAndValidateDataFrame = null,
-          adHoc = null
+          adHoc = null,
+          deduplicate = null
         ),
       ),
       target = List.apply(
@@ -314,7 +321,8 @@ case class YamlDataOdsDebeziumMongaTableMirror(
               )),
             uniqueKey = metadata.primaryKey,
             deduplicationKey = List.apply(),
-            partitionBy = null
+            partitionBy = null,
+            scd="SCD_3"
           ),
           ignoreError = false
         )

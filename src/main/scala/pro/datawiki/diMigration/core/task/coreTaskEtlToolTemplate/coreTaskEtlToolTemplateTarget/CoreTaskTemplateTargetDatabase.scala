@@ -16,4 +16,5 @@ case class CoreTaskTemplateTargetDatabase(
                                            deduplicationKey: List[String] = List.apply(),
 
                                            partitionBy: List[String] = List.apply(),
+                                           scd:String,
                                          )

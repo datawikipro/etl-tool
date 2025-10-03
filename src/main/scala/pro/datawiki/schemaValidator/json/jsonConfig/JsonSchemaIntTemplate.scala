@@ -11,12 +11,6 @@ import pro.datawiki.schemaValidator.json.JsonSchemaTemplate
  * @param value Целочисленное значение
  */
 case class JsonSchemaIntTemplate() extends JsonSchemaTemplate {
-  /**
-   * Генерирует схему для целочисленного типа.
-   *
-   * @param schema Объект BaseSchemaInt
-   * @return JValue, представляющий схему целого числа
-   */
   override def generateJValue(): JValue = {
     JObject("type" -> JString("integer"))
   }

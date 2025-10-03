@@ -226,7 +226,7 @@ class EtlToolMigration(targetLocation: String, templateLocation: String) extends
                           jsonColumn = fs.jsonColumn,
                           jsonResultColumn = fs.jsonResultColumn,
                           baseSchema = fs.baseSchema,
-                          mergeSchema = true,
+                          mergeSchema =  fs.mergeSchema,
                           loadMode = ProgressMode.batch.toString2
                         )
                     },
@@ -246,6 +246,15 @@ class EtlToolMigration(targetLocation: String, templateLocation: String) extends
                           templateName = fs.templateName,
                           columnId = fs.columnId,
                           asyncNumber = fs.asyncNumber
+                        )
+                    },
+                    deduplicate = con.deduplicate match {
+                      case null => null
+                      case fs =>
+                        YamlConfigTransformationDeduplicate(
+                          sourceTable = fs.sourceTable,
+                          uniqueKey = fs.uniqueKey,
+                          deduplicationKey = fs.deduplicationKey
                         )
                     }
                   )
@@ -271,8 +280,8 @@ class EtlToolMigration(targetLocation: String, templateLocation: String) extends
                             )
                           ),
                           uniqueKey = fs.uniqueKey,
-                          deduplicationKey = fs.deduplicationKey,
-                          partitionBy = fs.partitionBy)
+                          partitionBy = fs.partitionBy,
+                            scd = fs.scd)
                     },
                     fileSystem = con.fileSystem match {
                       case null => null

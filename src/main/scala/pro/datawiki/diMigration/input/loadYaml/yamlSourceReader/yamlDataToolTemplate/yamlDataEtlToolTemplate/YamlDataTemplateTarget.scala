@@ -31,7 +31,8 @@ case class YamlDataTemplateTarget(
         )),
         uniqueKey = fs.uniqueKey,
         deduplicationKey = fs.deduplicationKey,
-        partitionBy = fs.partitionBy
+        partitionBy = fs.partitionBy,
+          scd = fs.scd
       )
     },
     fileSystem = fileSystem match {

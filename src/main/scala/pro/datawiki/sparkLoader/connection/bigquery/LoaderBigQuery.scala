@@ -4,14 +4,17 @@ import org.apache.spark.sql.DataFrame
 import pro.datawiki.exception.NotImplementedException
 import pro.datawiki.sparkLoader.connection.databaseTrait.{TableMetadata, TableMetadataType}
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait}
-import pro.datawiki.sparkLoader.dictionaryEnum.{SCDType, WriteMode}
+import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, SCDType, WriteMode}
 import pro.datawiki.sparkLoader.traits.LoggingTrait
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.yamlConfiguration.YamlClass
 
 import java.sql.Connection
 
-class LoaderBigQuery(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTrait, LoggingTrait {
+class LoaderBigQuery(configYaml: YamlConfig, configLocation: String) extends ConnectionTrait, DatabaseTrait, LoggingTrait {
+  private val _configLocation: String = configLocation
+  
+  logInfo("Creating BigQuery connection")
 
   def readDfBigQuery(projectId: String,
                      datasetId: String,
@@ -63,6 +66,15 @@ class LoaderBigQuery(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTr
 
   override def close(): Unit = {
     // Spark BigQuery коннектор не требует явного закрытия соединений
+    ConnectionTrait.removeFromCache(getCacheKey())
+  }
+
+  override def getConnectionEnum(): ConnectionEnum = {
+    ConnectionEnum.bigQuery
+  }
+
+  override def getConfigLocation(): String = {
+    _configLocation
   }
 
   override def getDataFrameBySQL(sql: String): DataFrame = {
@@ -85,7 +97,7 @@ class LoaderBigQuery(configYaml: YamlConfig) extends ConnectionTrait, DatabaseTr
 object LoaderBigQuery extends YamlClass {
   def apply(inConfig: String): LoaderBigQuery = {
     val configYaml: YamlConfig = mapper.readValue(getLines(inConfig), classOf[YamlConfig])
-    val loader = new LoaderBigQuery(configYaml)
+    val loader = new LoaderBigQuery(configYaml, inConfig)
     return loader
   }
 }

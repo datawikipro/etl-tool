@@ -38,12 +38,6 @@ object JsonSchemaWriter {
     return baseSchema merge schemaContent
   }
 
-  /**
-   * Генерирует схему для массива.
-   *
-   * @param schema Объект BaseSchemaArray
-   * @return JValue, представляющий схему массива
-   */
   private def generateArraySchema(schema: BaseSchemaArrayTemplate): JValue = {
     val itemSchema = schema.getBaseElement match {
       case objTemplate: BaseSchemaObjectTemplate =>
@@ -71,12 +65,6 @@ object JsonSchemaWriter {
     )
   }
 
-  /**
-   * Создает пустую структуру по шаблону для использования в генерации схемы.
-   *
-   * @param template Шаблон схемы
-   * @return Пустая структура схемы, соответствующая шаблону
-   */
   private def createEmptyStructFromTemplate(template: BaseSchemaTemplate): BaseSchemaTemplate = {
     template match {
       case objTemplate: BaseSchemaObjectTemplate => new BaseSchemaObjectTemplate(objTemplate.inElements, objTemplate.isIgnorable)

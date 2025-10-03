@@ -10,11 +10,6 @@ import pro.datawiki.schemaValidator.json.JsonStruct
  * @param value Строковое значение
  */
 case class JsonSchemaString(value: String) extends JsonStruct {
-  /**
-   * Преобразует строковое значение в структуру базовой схемы.
-   *
-   * @return Структура базовой схемы для строкового значения
-   */
   override def getBaseSchemaElementData: BaseSchemaStruct = BaseSchemaString(value, false)
 
   override def isEmpty: Boolean = false
@@ -22,11 +17,5 @@ case class JsonSchemaString(value: String) extends JsonStruct {
 
 
 object JsonSchemaString {
-  /**
-   * Создает JsonSchemaString из JSON строкового значения.
-   *
-   * @param jString JSON строковое значение
-   * @return Представление JSON строки в виде JsonSchemaString
-   */
   def apply(jString: JString): JsonSchemaString = JsonSchemaString(jString.s)
 }

@@ -5,9 +5,13 @@ import org.apache.spark.sql.streaming.Trigger
 import pro.datawiki.sparkLoader.connection.FileStorageTrait
 import pro.datawiki.sparkLoader.connection.fileBased.FileBaseFormat
 import pro.datawiki.sparkLoader.connection.minIo.minioBase.{LoaderMinIo, YamlConfig}
-import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode
+import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, WriteMode}
 
-class LoaderMinIoJsonStream(format: FileBaseFormat, configYaml: YamlConfig) extends LoaderMinIo(format, configYaml) with FileStorageTrait {
+class LoaderMinIoJsonStream(format: FileBaseFormat, configYaml: YamlConfig, configLocation: String) extends LoaderMinIo(format, configYaml, configLocation) with FileStorageTrait {
+  
+  override def getConnectionEnum(): ConnectionEnum = {
+    ConnectionEnum.minioJsonStream
+  }
 
   @Override
   override def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = {

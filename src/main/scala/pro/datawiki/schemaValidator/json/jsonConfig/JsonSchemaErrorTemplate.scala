@@ -11,12 +11,6 @@ import pro.datawiki.schemaValidator.json.JsonSchemaTemplate
  * @param value Строковое значение
  */
 case class JsonSchemaErrorTemplate() extends JsonSchemaTemplate {
-  /**
-   * Генерирует схему для строкового типа.
-   *
-   * @param schema Объект BaseSchemaString
-   * @return JValue, представляющий схему строки
-   */
   override def generateJValue(): JValue = {
     return JObject("type" -> JString("string"), "description" -> JString("Неопознанный тип"))
   }

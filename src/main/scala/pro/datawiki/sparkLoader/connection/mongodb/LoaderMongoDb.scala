@@ -4,14 +4,17 @@ import org.apache.spark.sql.DataFrame
 import pro.datawiki.exception.NotImplementedException
 import pro.datawiki.sparkLoader.connection.databaseTrait.{TableMetadata, TableMetadataType}
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait, NoSQLDatabaseTrait}
-import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode
+import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, WriteMode}
 import pro.datawiki.sparkLoader.traits.LoggingTrait
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.yamlConfiguration.YamlClass
 
 import java.sql.Connection
 
-class LoaderMongoDb(configYaml: YamlConfig) extends ConnectionTrait, NoSQLDatabaseTrait, LoggingTrait {
+class LoaderMongoDb(configYaml: YamlConfig, configLocation: String) extends ConnectionTrait, NoSQLDatabaseTrait, LoggingTrait {
+  private val _configLocation: String = configLocation
+  
+  logInfo("Creating MongoDB connection")
 
   override def writeDf(df: DataFrame, tableFullName: String, writeMode: WriteMode): Unit = {
     val startTime = logOperationStart("write DataFrame to MongoDB", s"collection: $tableFullName, mode: $writeMode")
@@ -112,7 +115,15 @@ class LoaderMongoDb(configYaml: YamlConfig) extends ConnectionTrait, NoSQLDataba
   }
 
   override def close(): Unit = {
+    ConnectionTrait.removeFromCache(getCacheKey())
+  }
 
+  override def getConnectionEnum(): ConnectionEnum = {
+    ConnectionEnum.mongodb
+  }
+
+  override def getConfigLocation(): String = {
+    _configLocation
   }
 
 }
@@ -120,7 +131,7 @@ class LoaderMongoDb(configYaml: YamlConfig) extends ConnectionTrait, NoSQLDataba
 object LoaderMongoDb extends YamlClass {
   def apply(inConfig: String): LoaderMongoDb = {
     val configYaml: YamlConfig = mapper.readValue(getLines(inConfig), classOf[YamlConfig])
-    return new LoaderMongoDb(configYaml)
+    return new LoaderMongoDb(configYaml, inConfig)
   }
 
   private def encodeDataType(in: TableMetadataType): String = throw NotImplementedException("Method not implemented for MongoDB")

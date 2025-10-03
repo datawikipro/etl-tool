@@ -15,13 +15,6 @@ trait JsonSchemaTemplate {
 }
 
 object JsonSchemaTemplate {
-  /**
-   * Создает соответствующий JsonSchemaElement из JSON значения.
-   *
-   * @param json JSON значение для преобразования
-   * @return Соответствующий тип JsonSchemaElement
-   * @throws SchemaValidationException если тип JSON не поддерживается
-   */
   def apply(json: BaseSchemaTemplate): JsonSchemaTemplate = {
     json match {
       case x: BaseSchemaObjectTemplate => JsonSchemaObjectTemplate(x)

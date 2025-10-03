@@ -13,15 +13,6 @@ import scala.jdk.CollectionConverters.*
  */
 object AvroSchemaWriter {
 
-  /**
-   * Преобразует BaseSchemaTemplate в строку Avro Schema.
-   *
-   * @param schema     Структура схемы для преобразования
-   * @param namespace  Пространство имен для схемы Avro
-   * @param recordName Имя корневой записи для схемы Avro
-   * @param docString  Документация для схемы
-   * @return Строка, содержащая схему Avro
-   */
   def convertToAvroSchema(schema: BaseSchemaTemplate,
                           namespace: String = "com.datawiki",
                           recordName: String = "GeneratedRecord",
@@ -30,15 +21,6 @@ object AvroSchemaWriter {
     avroSchema.toString(true) // Возвращаем схему в виде отформатированной строки JSON
   }
 
-  /**
-   * Генерирует объект Avro Schema для заданной структуры схемы.
-   *
-   * @param schema     Структура схемы для преобразования
-   * @param namespace  Пространство имен для схемы Avro
-   * @param recordName Имя записи для схемы Avro
-   * @param docString  Документация для схемы
-   * @return Объект Schema, представляющий Avro схему
-   */
   def generateAvroSchema(schema: BaseSchemaTemplate,
                          namespace: String,
                          recordName: String,
@@ -59,15 +41,7 @@ object AvroSchemaWriter {
     }
   }
 
-  /**
-   * Генерирует схему Avro для объектного типа.
-   *
-   * @param schema     Шаблон объекта
-   * @param namespace  Пространство имен для схемы Avro
-   * @param recordName Имя записи для схемы Avro
-   * @param docString  Документация для схемы
-   * @return Объект Schema, представляющий объектную схему
-   */
+
   private def generateObjectSchema(schema: BaseSchemaObjectTemplate,
                                    namespace: String,
                                    recordName: String,
@@ -97,15 +71,7 @@ object AvroSchemaWriter {
     record
   }
 
-  /**
-   * Генерирует схему Avro для массива.
-   *
-   * @param schema     Шаблон массива
-   * @param namespace  Пространство имен для схемы Avro
-   * @param recordName Имя записи для элементов массива
-   * @param docString  Документация для схемы
-   * @return Объект Schema, представляющий схему массива
-   */
+ 
   private def generateArraySchema(schema: BaseSchemaArrayTemplate,
                                   namespace: String,
                                   recordName: String,
@@ -117,12 +83,6 @@ object AvroSchemaWriter {
     Schema.createArray(itemSchema)
   }
 
-  /**
-   * Делает первую букву строки заглавной.
-   *
-   * @param str Исходная строка
-   * @return Строка с заглавной первой буквой
-   */
   private def capitalize(str: String): String = {
     if (str == null || str.isEmpty) str
     else str.substring(0, 1).toUpperCase + str.substring(1)

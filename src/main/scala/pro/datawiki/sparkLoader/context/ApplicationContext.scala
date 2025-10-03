@@ -48,7 +48,7 @@ object ApplicationContext {
 
     val md = MessageDigest.getInstance("SHA-256")
     val result = md.digest(id.getBytes("UTF-8")).map("%02x".format(_)).mkString
-    setGlobalVariable("locationBasedOnRunId", result)
+    setGlobalVariable("locationBasedOnRunId", s"$result")
 
   }
 
@@ -80,7 +80,7 @@ object ApplicationContext {
 
   def getPartitions2(in: String*): List[(String, String)] = {
     in.map(col => (col, getGlobalVariable(
-      if col == "runId" then "locationBasedOnRunId" else col
+      if col == "runId" || col ==  "run_id" then "locationBasedOnRunId" else col
     ))).toList
   }
 

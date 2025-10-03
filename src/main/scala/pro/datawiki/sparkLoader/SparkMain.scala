@@ -1,7 +1,7 @@
 package pro.datawiki.sparkLoader
 
 import pro.datawiki.exception.DataProcessingException
-import pro.datawiki.sparkLoader.configuration.{EltConfig}
+import pro.datawiki.sparkLoader.configuration.EltConfig
 import pro.datawiki.sparkLoader.connection.ConnectionTrait
 import pro.datawiki.sparkLoader.context.ApplicationContext
 import pro.datawiki.sparkLoader.dictionaryEnum.ProgressStatus

@@ -2,8 +2,10 @@ package pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTem
 
 import pro.datawiki.diMigration.core.task.CoreTask
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigSource.{YamlDataTemplateSourceBigQuery, YamlDataTemplateSourceDBTable, YamlDataTemplateSourceFileSystem}
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTarget.YamlDataTemplateTargetDummy
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.{YamlDataTemplateConnect, YamlDataTemplateSource, YamlDataTemplateTarget, YamlDataTemplateTransformation}
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.{Metadata, YamlDataTaskToolTemplate}
+import pro.datawiki.sparkLoader.connection.clickhouse.LoaderClickHouse
 import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, InitModeEnum}
 import pro.datawiki.yamlConfiguration.YamlClass
 
@@ -83,7 +85,26 @@ case class YamlDataOdsBigQueryMirrorTemplate(
       dependencies = List.apply(s"stg__batch__${taskName}")
     )
 
-    return stg.getCoreTask ++ ods.getCoreTask
+    val clickhouse = new YamlDataEtlToolTemplate(
+      taskName = support.getClickhouseTaskName,
+      yamlFile = support.getClickhouseYamlFile,
+      connections = List.apply(support.getClickhouseDataWarehouse),
+      preEtlOperations = List.apply(support.getClickhouseYamlConfigEltOnServerOperation(metadata)),
+      sources = List.apply(),
+      transform = List.apply(),
+      target = List.apply(
+        YamlDataTemplateTarget(
+          database = null,
+          fileSystem = null,
+          messageBroker = null,
+          dummy = YamlDataTemplateTargetDummy(),
+          ignoreError = false
+        )
+      ),
+      dependencies = List.apply(ods.taskName)
+    )
+
+    return stg.getCoreTask ++ ods.getCoreTask ++ clickhouse.getCoreTask
   }
 }
 

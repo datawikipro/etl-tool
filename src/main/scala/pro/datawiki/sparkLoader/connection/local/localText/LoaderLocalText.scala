@@ -6,10 +6,13 @@ import pro.datawiki.sparkLoader.SparkObject
 import pro.datawiki.sparkLoader.SparkObject.spark
 import pro.datawiki.sparkLoader.connection.local.localBase.{LoaderLocalBase, YamlConfig}
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, FileStorageTrait}
-import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode
+import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, WriteMode}
 import pro.datawiki.yamlConfiguration.YamlClass
 
-class LoaderLocalText(configYaml: YamlConfig) extends LoaderLocalBase(configYaml), ConnectionTrait, FileStorageTrait {
+class LoaderLocalText(configYaml: YamlConfig, configLocation: String) extends LoaderLocalBase(configYaml), ConnectionTrait, FileStorageTrait {
+  private val _configLocation: String = configLocation
+  
+  logInfo("Creating Local Text connection")
   override def saveRaw(in: String, inLocation: String): Unit = super.saveRaw(in, inLocation)
 
   override def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = {
@@ -33,7 +36,17 @@ class LoaderLocalText(configYaml: YamlConfig) extends LoaderLocalBase(configYaml
     return ""
   }
 
-  override def close(): Unit = {}
+  override def close(): Unit = {
+    ConnectionTrait.removeFromCache(getCacheKey())
+  }
+
+  override def getConnectionEnum(): ConnectionEnum = {
+    ConnectionEnum.localText
+  }
+
+  override def getConfigLocation(): String = {
+    _configLocation
+  }
 
   override def readDfSchema(location: String): DataFrame = throw NotImplementedException("Method not implemented for LocalText")
 
@@ -47,7 +60,7 @@ class LoaderLocalText(configYaml: YamlConfig) extends LoaderLocalBase(configYaml
 object LoaderLocalText extends YamlClass {
   def apply(inConfig: String): LoaderLocalText = {
     val configYaml: YamlConfig = mapper.readValue(getLines(inConfig), classOf[YamlConfig])
-    val loader = new LoaderLocalText(configYaml)
+    val loader = new LoaderLocalText(configYaml, inConfig)
     return loader
   }
 }

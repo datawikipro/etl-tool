@@ -6,14 +6,8 @@ import pro.datawiki.diMigration.traits.LoggingTrait
 import pro.datawiki.diMigration.{AttributeYamlSource, AttributeYamlTarget, MigrationProcess}
 
 
-/**
- * Сервис для работы с LoadObject
- */
 class LoadObjectService(fileSystemService: FileSystemService) extends LoggingTrait {
 
-  /**
-   * Выполняет миграцию для всех файлов в LoadObject
-   */
   def runMigration(loadObject: LoadObject, sourceConfig: AttributeYamlSource, targetConfig: AttributeYamlTarget): Unit = {
     if (loadObject.isEmpty) {
       return
@@ -23,9 +17,6 @@ class LoadObjectService(fileSystemService: FileSystemService) extends LoggingTra
 
   }
 
-  /**
-   * Выполняет миграцию для одного файла
-   */
   private def runSingleMigration(
                                   fullFileLocation: String,
                                   sourceConfig: AttributeYamlSource,

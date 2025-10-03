@@ -6,6 +6,7 @@ import pro.datawiki.exception.{ConfigurationException, TableNotExistException}
 import pro.datawiki.sparkLoader.connection.selenium.LoaderSelenium
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, FileStorageTrait}
 import pro.datawiki.sparkLoader.context.ApplicationContext
+import pro.datawiki.sparkLoader.dictionaryEnum.ConnectionEnum
 import pro.datawiki.sparkLoader.transformation.TransformationCacheFileStorage
 import pro.datawiki.yamlConfiguration.YamlClass
 
@@ -15,14 +16,17 @@ import javax.mail.*
 import javax.mail.internet.InternetAddress
 import javax.mail.search.*
 
-class LoaderMail(configYaml: YamlConfigMail) extends ConnectionTrait {
+class LoaderMail(configYaml: YamlConfigMail, configLocation: String) extends ConnectionTrait {
+  private val _configLocation: String = configLocation
+  
+  logInfo("Creating Mail connection")
   private var cache: TransformationCacheFileStorage = null
 
   var localSelenium: LoaderSelenium = null
 
   def getSelenium: LoaderSelenium = {
     if localSelenium != null then return localSelenium
-    localSelenium = new LoaderSelenium(configYaml.getSeleniumConfig)
+    localSelenium = new LoaderSelenium(configYaml.getSeleniumConfig, configLocation)
     return localSelenium
   }
 
@@ -122,13 +126,22 @@ class LoaderMail(configYaml: YamlConfigMail) extends ConnectionTrait {
 
   override def close(): Unit = {
     if cache != null then cache.close()
+    ConnectionTrait.removeFromCache(getCacheKey())
+  }
+
+  override def getConnectionEnum(): ConnectionEnum = {
+    ConnectionEnum.mail
+  }
+
+  override def getConfigLocation(): String = {
+    _configLocation
   }
 }
 
 object LoaderMail extends YamlClass {
   def apply(inConfig: String): LoaderMail = {
     try {
-      val loader = new LoaderMail(mapper.readValue(getLines(inConfig), classOf[YamlConfigMail]))
+      val loader = new LoaderMail(mapper.readValue(getLines(inConfig), classOf[YamlConfigMail]), inConfig)
       return loader
     } catch
       case e: Error => throw ConfigurationException(s"Ошибка при инициализации LoaderMail: ${e.getMessage}", e)

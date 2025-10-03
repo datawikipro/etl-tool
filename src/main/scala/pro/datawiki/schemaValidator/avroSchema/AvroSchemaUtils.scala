@@ -10,15 +10,6 @@ import pro.datawiki.schemaValidator.baseSchema.BaseSchemaTemplate
  */
 object AvroSchemaUtils {
 
-  /**
-   * Преобразует BaseSchemaTemplate в строку Avro Schema.
-   *
-   * @param schemaTemplate Шаблон схемы для преобразования
-   * @param namespace      Пространство имен для схемы Avro
-   * @param recordName     Имя записи для схемы Avro
-   * @param docString      Документация для схемы
-   * @return Строка, представляющая Avro Schema
-   */
   def convertTemplateToAvroSchema(schemaTemplate: BaseSchemaTemplate,
                                   namespace: String = "com.datawiki",
                                   recordName: String = "GeneratedRecord",

@@ -10,22 +10,11 @@ import pro.datawiki.schemaValidator.json.JsonStruct
  * @param value Значение boolean.
  */
 class JsonSchemaBoolean(value: Boolean) extends JsonStruct {
-  /**
-   * Преобразует булево значение в структуру базовой схемы.
-   *
-   * @return Структура базовой схемы для булева значения.
-   */
   override def getBaseSchemaElementData: BaseSchemaStruct = BaseSchemaBoolean(value, false)
 
   override def isEmpty: Boolean = false
 }
 
 object JsonSchemaBoolean {
-  /**
-   * Создает JsonSchemaBoolean из JSON булева значения.
-   *
-   * @param in JSON булево значение.
-   * @return Представление JSON булева значения в виде JsonSchemaBoolean.
-   */
   def apply(in: JBool): JsonSchemaBoolean = new JsonSchemaBoolean(in.value)
 }

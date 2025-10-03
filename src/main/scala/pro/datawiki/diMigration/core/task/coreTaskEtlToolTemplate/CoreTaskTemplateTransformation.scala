@@ -10,6 +10,7 @@ case class CoreTaskTemplateTransformation(
                                            extractSchema: CoreTaskTemplateTransformationExtractSchema,
                                            extractAndValidateDataFrame: CoreTaskTemplateTransformationExtractAndValidateDataFrame,
                                            adHoc: CoreTaskTemplateTransformationAdHoc,
+                                           deduplicate: CoreTaskTemplateTransformationDeduplicate,
                                          ) {
 
 }

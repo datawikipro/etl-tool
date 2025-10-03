@@ -41,7 +41,7 @@ object Metadata {
         }).filter(col => col.column_name match {
           case "valid_from_dttm" => false
           case "valid_to_dttm" => false
-          case "timestamp" => false
+          case "run_id" => false
           case _ => true
         })
       }
