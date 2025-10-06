@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.{JsonIgnore, JsonInclude}
 import pro.datawiki.exception.ConfigurationException
 import pro.datawiki.sparkLoader.configuration.yamlConfigTarget.{YamlConfigTargetDatabase, YamlConfigTargetDummy, YamlConfigTargetFileSystem, YamlConfigTargetMessageBroker}
 import pro.datawiki.sparkLoader.dictionaryEnum.ProgressStatus
+import pro.datawiki.sparkLoader.traits.LoggingTrait
 import pro.datawiki.yamlConfiguration.LogicClass
 
 @JsonInclude(JsonInclude.Include.NON_ABSENT)
@@ -12,7 +13,7 @@ case class YamlConfigTarget(database: YamlConfigTargetDatabase,
                             messageBroker: YamlConfigTargetMessageBroker,
                             dummy: YamlConfigTargetDummy,
                             ignoreError: Boolean
-                           ) extends LogicClass {
+                           ) extends LogicClass with LoggingTrait {
   @JsonIgnore
   def getLogic: YamlConfigTargetTrait = {
     super.getLogic(database, fileSystem, messageBroker, dummy) match
@@ -26,12 +27,16 @@ case class YamlConfigTarget(database: YamlConfigTargetDatabase,
       getLogic.writeTarget()
       return ProgressStatus.done
     } catch {
+      case e: org.apache.kafka.common.errors.UnknownTopicOrPartitionException => {
+        logError("Read topic", e)
+        return ProgressStatus.skip
+      }
       case e: Exception => {
         if ignoreError then {
           println(e.toString)
           return ProgressStatus.skip
         }
-        
+
         throw e
       }
     }

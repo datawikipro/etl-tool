@@ -45,6 +45,9 @@ class BaseSchemaStringTemplate(inIsIgnorable: Boolean) extends BaseSchemaTemplat
       case x: BaseSchemaDoubleTemplate => BaseSchemaStringTemplate(inIsIgnorable)
       case x: BaseSchemaArrayTemplate => BaseSchemaStringTemplate(inIsIgnorable) //TODO potential problem
       case null => BaseSchemaStringTemplate(inIsIgnorable)
+      case other => {
+        throw Exception()
+      }
     }
   }
 

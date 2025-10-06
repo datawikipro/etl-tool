@@ -249,12 +249,18 @@ case class YamlConfigTargetDatabase(
 
     val columns = df.schema.fields.map { field =>
       field.dataType match {
-        case MapType(_, _, _) | StructType(_) | ArrayType(_, _) =>
-          // Convert complex types to JSON string
+        // Structs and Maps -> convert to JSON string
+        case StructType(_) | MapType(_, _, _) =>
           to_json(col(field.name)).as(field.name)
-        case _ =>
-          // Keep simple types as is
+
+        // Arrays: keep simple arrays of strings or ints as arrays; otherwise stringify
+        case ArrayType(StringType, _) | ArrayType(IntegerType, _) =>
           col(field.name)
+        case ArrayType(_, _) =>
+          to_json(col(field.name)).as(field.name)
+
+        // Keep simple types as-is
+        case _ => col(field.name)
       }
     }
 

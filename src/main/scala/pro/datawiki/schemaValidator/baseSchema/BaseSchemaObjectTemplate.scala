@@ -157,8 +157,7 @@ case class BaseSchemaObjectTemplate(inElements: List[(String, BaseSchemaTemplate
   }
 
   override def getProjectSchema: SchemaObject = {
-    var list: List[SchemaElement] = List.apply()
-    inElements.map(i => {
+    val list: List[SchemaElement] = inElements.map(i => {
       i._2 match
         case x: BaseSchemaStringTemplate => (SchemaElement(name = i._1, `type` = SchemaType.String.toString, `array` = null, `object` = null, `map` = null, isIgnorable = false))
         case x: BaseSchemaNullTemplate => (SchemaElement(name = i._1, `type` = SchemaType.Null.toString, `array` = null, `object` = null, `map` = null, isIgnorable = false))

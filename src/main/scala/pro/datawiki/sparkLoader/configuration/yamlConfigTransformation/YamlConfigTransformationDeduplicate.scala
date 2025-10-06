@@ -24,7 +24,7 @@ case class YamlConfigTransformationDeduplicate(
          |  from deduplicated 
          | where rn = 1""".stripMargin
     
-    TaskTemplateSparkSql(sql)
+    return TaskTemplateSparkSql(sql)
   }
 
   @JsonIgnore

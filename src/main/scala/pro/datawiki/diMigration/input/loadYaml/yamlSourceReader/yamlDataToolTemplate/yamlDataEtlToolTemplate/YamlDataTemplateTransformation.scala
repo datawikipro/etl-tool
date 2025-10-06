@@ -43,7 +43,7 @@ class YamlDataTemplateTransformation(
           jsonColumn = fs.jsonColumn,
           jsonResultColumn = fs.jsonResultColumn,
           baseSchema = fs.baseSchema,
-          mergeSchema = false
+          mergeSchema = fs.mergeSchema,
         )
       },
       extractAndValidateDataFrame = extractAndValidateDataFrame match {

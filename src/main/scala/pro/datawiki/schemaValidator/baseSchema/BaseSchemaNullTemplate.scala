@@ -40,3 +40,9 @@ class BaseSchemaNullTemplate(inIsIgnorable: Boolean) extends BaseSchemaTemplate 
     throw NotImplementedException("getSparkRowElement not implemented for BaseSchemaNullTemplate")
   }
 }
+
+object BaseSchemaNullTemplate {
+  def apply(inIsIgnorable:Boolean): BaseSchemaNullTemplate= {
+    return new BaseSchemaNullTemplate(inIsIgnorable)
+  }
+}

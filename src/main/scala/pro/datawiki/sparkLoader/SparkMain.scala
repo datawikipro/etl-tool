@@ -89,6 +89,7 @@ object SparkMain extends LoggingTrait {
           case ProgressStatus.skip =>
             logInfo("ETL process skipped")
             etlProcessId.foreach(processId => completeETLProcess(processId, ETLProgressStatus.Skipped)            )
+            System.exit(2)
             return
           case ProgressStatus.error =>
             throw DataProcessingException("ETL process failed with error status")
@@ -96,6 +97,11 @@ object SparkMain extends LoggingTrait {
             throw DataProcessingException()
         }
       } catch {
+        case e: org.apache.spark.sql.streaming.StreamingQueryException => { //TODO
+          logError("ETL process skipped", e)
+          System.exit(2)
+          return
+        }
         case e: Exception =>
           throw e
       } finally {

@@ -36,7 +36,9 @@ class ProjectSchemaConstructor extends Migration {
   }
 
   override def writeTemplate(baseSchema: BaseSchemaTemplate): String = {
-    return YamlClass.toYaml(baseSchema.getProjectSchema)
+    val schema = baseSchema.getProjectSchema
+
+    return YamlClass.toYaml(schema)
   }
 
   override def readSchema(inFileName: String): BaseSchemaStruct = {

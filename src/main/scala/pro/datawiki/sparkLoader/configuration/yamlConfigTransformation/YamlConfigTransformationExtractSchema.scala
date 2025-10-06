@@ -9,12 +9,12 @@ import pro.datawiki.sparkLoader.taskTemplate.{TaskTemplate, TaskTemplateExtractD
 
 @JsonInclude(JsonInclude.Include.NON_ABSENT)
 case class YamlConfigTransformationExtractSchema(
-                                                  tableName: String = throw Exception("a"),
-                                                  jsonColumn: String = throw Exception("b"),
-                                                  jsonResultColumn: String = throw Exception("c"),
-                                                  baseSchema: String = throw Exception("d"),
-                                                  mergeSchema: Boolean = throw Exception("e"),
-                                                  loadMode: String = throw Exception("f")
+                                                  tableName: String,
+                                                  jsonColumn: String,
+                                                  jsonResultColumn: String,
+                                                  baseSchema: String,
+                                                  mergeSchema: Boolean,
+                                                  loadMode: String
                                                 ) extends YamlConfigTransformationTrait {
   @JsonIgnore
   override def getTaskTemplate: TaskTemplate = {

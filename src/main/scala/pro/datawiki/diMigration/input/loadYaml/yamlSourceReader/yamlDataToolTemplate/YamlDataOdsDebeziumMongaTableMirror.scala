@@ -136,7 +136,8 @@ case class YamlDataOdsDebeziumMongaTableMirror(
             tableName = "source",
             jsonColumn = "value",
             jsonResultColumn = "parsed_value",
-            baseSchema = s"/opt/etl-tool/configMigrationSchemas/stg__${kafkaTopic}_value.yaml", //TODO
+            baseSchema = s"/opt/etl-tool/configMigrationSchemas/stg__${kafkaTopic}_value.yaml",
+            mergeSchema = true,
           ),
           extractAndValidateDataFrame = null,
           adHoc = null,
@@ -152,7 +153,8 @@ case class YamlDataOdsDebeziumMongaTableMirror(
             tableName = "level1",
             jsonColumn = "key",
             jsonResultColumn = "parsed_key",
-            baseSchema = s"/opt/etl-tool/configMigrationSchemas/stg__${kafkaTopic}_key.yaml", //TODO
+            baseSchema = s"/opt/etl-tool/configMigrationSchemas/stg__${kafkaTopic}_key.yaml",
+            mergeSchema = true
           ),
           extractAndValidateDataFrame = null,
           adHoc = null,

@@ -4,5 +4,6 @@ case class YamlDataTemplateTransformationExtractSchema(
                                                         tableName: String,
                                                         jsonColumn: String,
                                                         jsonResultColumn: String,
-                                                        baseSchema: String
+                                                        baseSchema: String,
+mergeSchema: Boolean
                                                       )

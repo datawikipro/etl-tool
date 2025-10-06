@@ -16,6 +16,7 @@ import pro.datawiki.yamlConfiguration.YamlClass
 
 import java.sql.{Connection, DriverManager, ResultSet}
 import java.util.Properties
+import java.util.concurrent.ConcurrentHashMap
 
 class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends ConnectionTrait, DatabaseTrait, SupportIdMap, LoggingTrait {
   private val _configLocation: String = configLocation
@@ -52,12 +53,19 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
 
         val cache: TransformationCacheDatabase = TransformationCacheDatabase()
         cache.saveTable(DataFrameOriginal(df), overwriteTable, this)
+        try {
         runSQL(
           s"""insert into $tableSchema.$tableName(${columnsKey.mkString(",")})
              |select ${columnsValue.mkString(",")} from ${cache.getLocation}
              | ON CONFLICT (${uniqueKeyNew.mkString(",")}) DO NOTHING
              |""".stripMargin)
+        } catch {
+          case e: Exception=> {
+            throw e
+          }
+        } finally {
         runSQL(s"""drop table if exists ${cache.getLocation}""".stripMargin)
+        }
       }
     }
 
@@ -144,7 +152,7 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
       val updateValidIntervalSql =
         s"""
            |update $tableSchema.$tableName tgt
-           |   set valid_to_dttm = src.valid_to_dttm - interval '1 microsecond'
+           |   set valid_to_dttm = src.valid_from_dttm - interval '1 microsecond'
            |  from ${cache.getLocation}_3 src
            | where tgt.valid_to_dttm = to_date('2100','yyyy')
            |   and src.update_command = 'Update'
@@ -279,11 +287,11 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
 
   override def runSQL(sql: String): Boolean = {
     val stm = getConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
-    println(sql) //TODO
     try {
       stm.execute(sql)
     } catch {
       case e: Exception=> {
+        println(sql) //TODO
         throw e
       }
     }
@@ -303,6 +311,9 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
   var connection: Connection = null
 
   var server: YamlServerHost = null
+  
+  // Cache for table column metadata to avoid repeated database queries
+  private val tableColumnsCache: ConcurrentHashMap[String, List[TableMetadataColumn]] = new ConcurrentHashMap[String, List[TableMetadataColumn]]()
 
   @Override
   def getConnection: Connection = {
@@ -342,6 +353,17 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
   }
 
   private def getTableColumns(tableSchema: String, tableName: String): List[TableMetadataColumn] = {
+    val cacheKey = s"$tableSchema.$tableName"
+    
+    // Check cache first
+    tableColumnsCache.get(cacheKey) match {
+      case cachedColumns if cachedColumns != null =>
+        logInfo(s"Using cached table columns for $cacheKey")
+        return cachedColumns
+      case _ => // Continue with database query
+    }
+    
+    logInfo(s"Fetching table columns from database for $cacheKey")
     val sql =
       s"""select column_name,
          |       data_type
@@ -358,6 +380,11 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
         LoaderPostgres.decodeDataType(row.get(1).toString),
         false
       ))
+      
+      // Cache the result
+      tableColumnsCache.put(cacheKey, b)
+      logInfo(s"Cached table columns for $cacheKey")
+      
       return b
     }
     catch {
@@ -385,6 +412,9 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
   override def close(): Unit = {
     if connection == null then return
     connection.close()
+    // Clear table columns cache when connection is closed
+    tableColumnsCache.clear()
+    logInfo("Cleared table columns cache")
     // Remove from cache when connection is closed
     ConnectionTrait.removeFromCache(getCacheKey())
   }

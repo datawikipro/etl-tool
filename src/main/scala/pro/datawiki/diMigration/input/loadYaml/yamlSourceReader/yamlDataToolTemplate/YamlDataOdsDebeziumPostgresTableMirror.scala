@@ -5,7 +5,7 @@ import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemp
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigSource.yamlConfigSourceKafka.YamlDataTemplateSourceKafkaTopic
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigSource.{YamlDataTemplateSourceFileSystem, YamlDataTemplateSourceKafka}
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTarget.{YamlDataTemplateTargetColumn, YamlDataTemplateTargetDatabase, YamlDataTemplateTargetDummy, YamlDataTemplateTargetFileSystem}
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTransformation.{YamlDataTemplateTransformationExtractSchema, YamlDataTemplateTransformationSparkSql}
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTransformation.{YamlDataTemplateTransformationDeduplicate, YamlDataTemplateTransformationExtractSchema, YamlDataTemplateTransformationSparkSql}
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.{Metadata, YamlDataTaskToolTemplate}
 import pro.datawiki.sparkLoader.configuration.yamlConfigEltOnServerOperation.YamlConfigEltOnServerSQL
 import pro.datawiki.sparkLoader.connection.clickhouse.LoaderClickHouse
@@ -135,6 +135,7 @@ case class YamlDataOdsDebeziumPostgresTableMirror(
             jsonColumn = "value",
             jsonResultColumn = "parsed_value",
             baseSchema = s"/opt/etl-tool/configMigrationSchemas/stg__${kafkaTopic}_value.yaml", //TODO
+            mergeSchema = true
           ),
           extractAndValidateDataFrame = null,
           adHoc = null,
@@ -150,7 +151,8 @@ case class YamlDataOdsDebeziumPostgresTableMirror(
             tableName = "level1",
             jsonColumn = "key",
             jsonResultColumn = "parsed_key",
-            baseSchema = s"/opt/etl-tool/configMigrationSchemas/stg__${kafkaTopic}_key.yaml", //TODO
+            baseSchema = s"/opt/etl-tool/configMigrationSchemas/stg__${kafkaTopic}_key.yaml",
+            mergeSchema = true,
           ),
           extractAndValidateDataFrame = null,
           adHoc = null,
@@ -278,6 +280,21 @@ case class YamlDataOdsDebeziumPostgresTableMirror(
           adHoc = null,
           deduplicate = null
         ),
+        YamlDataTemplateTransformation(
+          objectName = "level3",
+          cache = null,
+          idMap = null,
+          sparkSql = null,
+          sparkSqlLazy = null,
+          extractSchema = null,
+          extractAndValidateDataFrame = null,
+          adHoc = null,
+          deduplicate = YamlDataTemplateTransformationDeduplicate(
+            sourceTable= "level2",
+            uniqueKey= metadata.primaryKey,
+            deduplicationKey= List.apply("ts_ms")
+          )
+        ),
       ),
       target = List.apply(
         YamlDataTemplateTarget(
@@ -287,7 +304,7 @@ case class YamlDataOdsDebeziumPostgresTableMirror(
 
           database = YamlDataTemplateTargetDatabase(
             connection = "postgres",
-            source = "level2",
+            source = "level3",
             mode = WriteMode.merge,
             partitionMode = null, //TODO
             targetSchema = s"ods__${tableSchema}",
@@ -330,23 +347,20 @@ case class YamlDataOdsDebeziumPostgresTableMirror(
             sql = List.apply(
               s"""CREATE TABLE IF NOT EXISTS ods__${tableSchema}._${tableName}
                  |(
-                 |    ${metadata.columns.map(col => s"${col.column_name} ${LoaderClickHouse.encodeIsNullable(col.isNullable, LoaderClickHouse.encodeDataType(col.data_type))}").mkString(",\n    ")}, valid_from_dttm Datetime, valid_to_dttm Datetime
+                 |    ${metadata.columns.map(col => s"${col.column_name} ${LoaderClickHouse.encodeIsNullable(col.isNullable, LoaderClickHouse.encodeDataType(col.data_type))}").mkString(",\n    ")}, valid_from_dttm Datetime, valid_to_dttm Datetime, run_id String
                  |)
                  |    ENGINE = PostgreSQL('${dwhInfo.hostPort}', '${dwhInfo.database}', '${tableName}', '${dwhInfo.username}', '${dwhInfo.password}', 'ods__${tableSchema}', 'connect_timeout=15, read_write_timeout=300');""".stripMargin,
-              s"""drop table if exists ods__${tableSchema}.${tableName}_new;""",
-              s"""CREATE TABLE IF NOT EXISTS ods__${tableSchema}.${tableName}_new
+              s"""CREATE TABLE IF NOT EXISTS ods__${tableSchema}.${tableName}
                  |(
                  |    ${metadata.columns.map(col => s"${col.column_name} ${LoaderClickHouse.encodeIsNullable(col.isNullable, LoaderClickHouse.encodeDataType(col.data_type))}").mkString(",\n    ")}, valid_from_dttm Datetime, valid_to_dttm Datetime
                  |)
-                 |    ENGINE = MergeTree ORDER BY (${metadata.primaryKey.mkString(",")})  SETTINGS index_granularity = 8192;""".stripMargin,
-              s"""insert into ods__${tableSchema}.${tableName}_new (${metadata.columns.map(col => s"${col.column_name}").mkString(",")}, valid_from_dttm , valid_to_dttm )
+                 |    ENGINE = ReplacingMergeTree(valid_from_dttm) ORDER BY (${metadata.primaryKey.mkString(",")})  SETTINGS index_granularity = 8192;""".stripMargin,
+              s"""insert into ods__${tableSchema}.${tableName} (${metadata.columns.map(col => s"${col.column_name}").mkString(",")}, valid_from_dttm , valid_to_dttm )
                  |select ${metadata.columns.map(col => s"${col.column_name}").mkString(",")}, valid_from_dttm , valid_to_dttm
                  |  from ods__${tableSchema}._${tableName}
                  | where valid_to_dttm = cast('2100-01-01' as Date)
                  | SETTINGS external_storage_connect_timeout_sec=3000000,external_storage_rw_timeout_sec=3000000,connect_timeout=3000000;""".stripMargin,
-              s"""drop table if exists ods__${tableSchema}.${tableName}; """,
-              s"""rename table ods__${tableSchema}.${tableName}_new to ods__${tableSchema}.${tableName};"""
-
+              s"""OPTIMIZE TABLE ods__${tableSchema}.${tableName} FINAL;""".stripMargin,
             ),
           ),
           ignoreError = false

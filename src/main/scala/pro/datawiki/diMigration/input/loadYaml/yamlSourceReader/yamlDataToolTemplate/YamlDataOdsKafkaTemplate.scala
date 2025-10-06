@@ -127,7 +127,8 @@ case class YamlDataOdsKafkaTemplate(
             tableName = "source",
             jsonColumn = "value",
             jsonResultColumn = "parsed_value",
-            baseSchema = s"/opt/etl-tool/configMigrationSchemas/stg__${kafkaTopic}.yaml", //TODO
+            baseSchema = s"/opt/etl-tool/configMigrationSchemas/stg__${kafkaTopic}.yaml",
+            mergeSchema = false,
           ),
           extractAndValidateDataFrame = null,
           adHoc = null,
@@ -230,7 +231,8 @@ case class YamlDataOdsKafkaTemplate(
             tableName = "source",
             jsonColumn = "value",
             jsonResultColumn = "parsed_value",
-            baseSchema = s"/opt/etl-tool/configMigrationSchemas/stg__${kafkaTopic}.yaml", //TODO
+            baseSchema = s"/opt/etl-tool/configMigrationSchemas/stg__${kafkaTopic}.yaml",
+            mergeSchema = true,
           ),
           extractAndValidateDataFrame = null,
           adHoc = null,
