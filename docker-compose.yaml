@@ -2,9 +2,9 @@ services:
   scala:
 #    image: datawiki/etl-tool:0.3.6
     build:
-      context: ../../etl-tool1
+      context: .
     privileged: true
     container_name: scala
     volumes:
-      - ./:/opt/etl-tool
-#      - /opt/etl-tool/.cache:/root/.cache
+      - /opt/etl-tool/:/opt/etl-tool
+      - /opt/etl-tool/.cache:/root/.cache
