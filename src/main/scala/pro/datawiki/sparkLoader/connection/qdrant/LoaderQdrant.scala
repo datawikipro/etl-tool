@@ -2,6 +2,7 @@ package pro.datawiki.sparkLoader.connection.qdrant
 
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Row}
+import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, NoSQLDatabaseTrait}
 import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, WriteMode}
 import pro.datawiki.sparkLoader.traits.LoggingTrait
@@ -13,13 +14,13 @@ import scala.collection.mutable.ListBuffer
 
 class LoaderQdrant(configYaml: YamlConfig, configLocation: String) extends ConnectionTrait, NoSQLDatabaseTrait, LoggingTrait {
   private val _configLocation: String = configLocation
-  
+
   logInfo("Creating Qdrant connection")
 
   private var server: YamlServerHost = null
   private implicit val backend: SyncBackend = DefaultSyncBackend()
 
-  override def readDf(location: String): DataFrame = {
+  override def readDf(location: String): DataFrameTrait = {
     try {
       if (server == null) {
         server = getServer
@@ -36,7 +37,7 @@ class LoaderQdrant(configYaml: YamlConfig, configLocation: String) extends Conne
       val df = SparkObject.spark.createDataFrame(rowsRDD, schema)
 
       LogMode.debugDF(df)
-      return df
+      return DataFrameOriginal(df)
     } catch {
       case e: Exception =>
         logger.error(s"Error reading Qdrant collection: $location", e)
@@ -66,13 +67,13 @@ class LoaderQdrant(configYaml: YamlConfig, configLocation: String) extends Conne
         throw e
     }
   }
-//
-//  override def readDfSchema(location: String): DataFrame = {
-//    // Для Qdrant возвращаем пустой DataFrame с базовой схемой
-//    val schema = createSchema()
-//    val emptyRDD = SparkObject.spark.sparkContext.emptyRDD[Row]
-//    SparkObject.spark.createDataFrame(emptyRDD, schema)
-//  }
+  //
+  //  override def readDfSchema(location: String): DataFrame = {
+  //    // Для Qdrant возвращаем пустой DataFrame с базовой схемой
+  //    val schema = createSchema()
+  //    val emptyRDD = SparkObject.spark.sparkContext.emptyRDD[Row]
+  //    SparkObject.spark.createDataFrame(emptyRDD, schema)
+  //  }
 
   private def getServer: YamlServerHost = {
     configYaml.server.replica.foreach { replica =>

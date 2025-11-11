@@ -1,41 +1,78 @@
 package pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate
 
-import pro.datawiki.diMigration.core.dag.{CoreBaseDag, CoreDag}
-import pro.datawiki.diMigration.core.dictionary.Schedule
 import pro.datawiki.diMigration.core.task.CoreTask
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.*
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigSource.{YamlDataTemplateSourceDBTable, YamlDataTemplateSourceFileSystem}
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTarget.{YamlDataTemplateTargetColumn, YamlDataTemplateTargetDatabase, YamlDataTemplateTargetFileSystem}
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTransformation.YamlDataTemplateTransformationExtractAndValidateDataFrame
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.{YamlDataTemplateConnect, YamlDataTemplateSource, YamlDataTemplateTarget, YamlDataTemplateTransformation}
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.{Metadata, YamlDataTaskToolTemplate, YamlDataToolTemplate}
-import pro.datawiki.sparkLoader.connection.databaseTrait.{TableMetadata, TableMetadataColumn}
-import pro.datawiki.sparkLoader.connection.{DatabaseTrait, FileStorageTrait}
-import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, InitModeEnum, PartitionModeEnum, WriteMode}
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTarget.{YamlDataTemplateTargetDummy, YamlDataTemplateTargetFileSystem}
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTransformation.{YamlDataTemplateTransformationExtractAndValidateDataFrame, YamlDataTemplateTransformationSparkSql}
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplateSupport.{YamlDataEtlToolTemplateSupportOds, YamlDataEtlToolTemplateSupportStg}
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.{Metadata, YamlDataTaskToolTemplate}
+import pro.datawiki.sparkLoader.connection.DatabaseTrait
+import pro.datawiki.sparkLoader.connection.postgres.LoaderPostgres
+import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, InitModeEnum, WriteMode}
 import pro.datawiki.yamlConfiguration.YamlClass
 
-import scala.collection.mutable
-
 case class YamlDataOdsPostgresMirrorTemplate(
-                                              taskName: String=throw Exception(),
-                                              yamlFileCoreLocation: String=throw Exception(),
-                                              yamlFileLocation: String=throw Exception(),
-                                              connection: String=throw Exception(),
-                                              configLocation: String=throw Exception(),
-                                              sourceSchema: String=throw Exception(),
-                                              sourceTable: String=throw Exception(),
-                                              tableSchema: String=throw Exception(),
-                                              tableName: String=throw Exception(),
-                                              metadataConnection: String=throw Exception(),
-                                              metadataConfigLocation: String=throw Exception()
+                                              taskName: String,
+                                              yamlFileCoreLocation: String,
+                                              yamlFileLocation: String,
+                                              connection: String,
+                                              configLocation: String,
+                                              sourceSchema: String,
+                                              sourceTable: String,
+                                              tableSchema: String,
+                                              tableName: String,
+                                              metadataConnection: String,
+                                              metadataConfigLocation: String,
+                                              business_date: String,
+                                              extra_code: String,
+                                              dwhConfigLocation: String
                                             ) extends YamlDataTaskToolTemplate {
-  override def getCoreTask: List[CoreTask] = {
-    val connectionTrait = DatabaseTrait.apply(connection, configLocation)
 
-    val metadata = Metadata(metadataConnection, metadataConfigLocation, s"ods__$tableSchema", tableName)
+  override def isRunFromControlDag: Boolean = true
+
+  val connectionTrait = DatabaseTrait.apply(connection, configLocation)
+
+  val metadata = Metadata(metadataConnection, metadataConfigLocation, s"ods__$tableSchema", tableName)
+  val support = new YamlDataEtlToolTemplateSupport(
+    taskName = taskName,
+    sourceCode = "postgres",
+    sourceTableSchema = tableSchema,
+    sourceTableName = tableName,
+    sourceLogicTableSchema = tableSchema,
+    sourceLogicTableName = tableName,
+    targetTableSchema = tableSchema,
+    targetTableName = tableName,
+    connection = "kafka",
+    yamlFileCoreLocation = yamlFileCoreLocation,
+    yamlFileLocation = yamlFileLocation
+  )
+
+
+  val stgSupport = new YamlDataEtlToolTemplateSupportStg(
+    taskName = taskName,
+    sourceLogicTableSchema = tableSchema,
+    sourceLogicTableName = tableName,
+    yamlFileCoreLocation = yamlFileCoreLocation,
+    yamlFileLocation = yamlFileLocation,
+    sourceCode = "postgres")
+
+  val odsSupport = new YamlDataEtlToolTemplateSupportOds(
+    taskName = taskName,
+    tableSchema = tableSchema,
+    tableName = tableName,
+    metadata = metadata,
+    yamlFileCoreLocation = yamlFileCoreLocation,
+    yamlFileLocation = yamlFileLocation,
+    sourceCode = "postgres")
+
+  override def getCoreTask: List[CoreTask] = {
+    val dwhLoader = LoaderPostgres(dwhConfigLocation)
+    val dwhInfo = dwhLoader.getDwhConnectionInfo
 
     val stg = new YamlDataEtlToolTemplate(
-      taskName = s"stg__batch__${taskName}",
-      yamlFile = s"${yamlFileCoreLocation}/ods__${yamlFileLocation}__postgres/stg/$sourceTable.yaml",
+      taskName = stgSupport.getStgBatchTaskName,
+      yamlFile = stgSupport.getStgYamlFile,
       connections = List.apply(
         YamlDataTemplateConnect(
           sourceName = "postgres",
@@ -51,7 +88,7 @@ case class YamlDataOdsPostgresMirrorTemplate(
       preEtlOperations = List.empty,
       sources = List.apply(
         YamlDataTemplateSource(
-          sourceName = "postgres",
+          support.getPostgres.getSourceName,
           objectName = "src",
           sourceDb = YamlDataTemplateSourceDBTable(
             tableSchema = sourceSchema,
@@ -86,30 +123,26 @@ case class YamlDataOdsPostgresMirrorTemplate(
             connection = "datewarehouse",
             source = "src",
             mode = WriteMode.overwritePartition,
-            partitionMode = PartitionModeEnum.direct.toString,
             targetFile = s"stg/${tableSchema}/${sourceTable}",
             partitionBy = List.apply("run_id"),
           ),
           ignoreError = false
         )
       ),
+      postEtlOperations = List.empty,
       dependencies = List.empty
     )
 
     val ods = new YamlDataEtlToolTemplate(
-      taskName = s"ods__batch__${taskName}",
-      yamlFile = s"${yamlFileCoreLocation}/ods__${yamlFileLocation}__postgres/ods/$sourceTable.yaml",
+      taskName = support.getOdsBatchTaskName,
+      yamlFile = support.getOdsYamlFile,
       connections = List.apply(
         YamlDataTemplateConnect(
           sourceName = "datewarehouse",
           connection = ConnectionEnum.minioParquet.toString,
           configLocation = "/opt/etl-tool/configConnection/minio.yaml" //TODO
         ),
-        YamlDataTemplateConnect(
-          sourceName = "postgres",
-          connection = "postgres",
-          configLocation = "/opt/etl-tool/configConnection/postgres.yaml"
-        ),
+        support.getPostgres,
       ),
       preEtlOperations = List.empty,
       sources = List.apply(
@@ -127,47 +160,68 @@ case class YamlDataOdsPostgresMirrorTemplate(
           initMode = InitModeEnum.instantly.toString
         )
       ),
-      transform = List.apply(),
-      target = List.apply(
-        YamlDataTemplateTarget(
-          database = YamlDataTemplateTargetDatabase(
-            connection = "postgres",
-            source = "src",
-            mode = metadata.columns.isEmpty match {
-              case true => WriteMode.overwritePartition
-              case false => WriteMode.merge
-            },
-            partitionMode = null, //TODO
-                        targetSchema = s"ods__${tableSchema}",
-            targetTable = s"${tableName}",
-            columns = metadata.columns.map(col =>
-              YamlDataTemplateTargetColumn(
-                columnName = col.column_name,
-                isNullable = true,
-                columnType = col.data_type.getTypeInSystem("postgres"),
-                columnTypeDecode = false
-              )),
-            uniqueKey = metadata.primaryKey,
-            deduplicationKey = List.apply(),
-            partitionBy = null,
-            scd="SCD_3"
+      transform = List.apply(
+        YamlDataTemplateTransformation(
+          objectName = "level1",
+          cache = null,
+          idMap = null,
+          sparkSql = YamlDataTemplateTransformationSparkSql(
+            sql = s"select * $extra_code from src",
           ),
-          fileSystem = null,
-          messageBroker = null,
-          dummy = null,
-          ignoreError = false
-        )
+          sparkSqlLazy = null,
+          extractSchema = null,
+          extractAndValidateDataFrame = null,
+          adHoc = null,
+          deduplicate = null
+        ),
       ),
+      target = List.apply(
+        odsSupport.writeOds(
+          metadata.columns.isEmpty match {
+            case true => WriteMode.overwritePartition
+            case false => WriteMode.mergeFull
+          }, "level1")
+      ),
+      postEtlOperations = List.empty,
       dependencies = List.apply(s"stg__batch__${taskName}")
     )
 
-    return stg.getCoreTask ++ ods.getCoreTask
+    val clickhouse = new YamlDataEtlToolTemplate(
+      taskName = s"clickhouse__batch__${taskName.replace("-", "_")}",
+      yamlFile = s"${yamlFileCoreLocation}/ods__${yamlFileLocation}__postgres/clickhouse/$sourceTable.yaml",
+      connections = List.apply(
+        support.getPostgres,
+        support.getClickhouseConfig,
+      ),
+      preEtlOperations =List.apply(support.getClickhouseYamlConfigEltOnServerOperation(metadata)),
+      sources =List.apply(support.getDataForDM),
+      transform = List.apply(),
+      target = List.apply(support.getClickhouseTarget("clickhouseUnico", "src", metadata)      ),
+      postEtlOperations =List.apply(support.getClickhouseYamlConfigEltOnServerOperationPost(metadata)),
+      dependencies = List.apply(ods.taskName)
+    )
+
+    val snowflake = new YamlDataEtlToolTemplate(
+      taskName = support.getSnowflakeBatchTaskName,
+      yamlFile = support.getSnowflakeYamlFile,
+      connections = List.apply(
+        support.getPostgres,
+        support.getAmazonS3,
+      ),
+      preEtlOperations = List.empty,
+      sources = List.apply(support.getDataForDM),
+      transform = List.apply(),
+      target = List.apply(support.getSnowflakeTarget("datewarehouse", "src")),
+      postEtlOperations = List.empty,
+      dependencies = List.apply(ods.taskName)
+    )
+    return stg.getCoreTask ++ ods.getCoreTask ++ snowflake.getCoreTask ++ clickhouse.getCoreTask
   }
 }
 
 
 object YamlDataOdsPostgresMirrorTemplate extends YamlClass {
-  def apply(inConfig: String, row: mutable.Map[String, String]): YamlDataOdsPostgresMirrorTemplate = {
+  def apply(inConfig: String, row: Map[String, String]): YamlDataOdsPostgresMirrorTemplate = {
     val text: String = getLines(inConfig, row)
     val configYaml: YamlDataOdsPostgresMirrorTemplate = mapper.readValue(text, classOf[YamlDataOdsPostgresMirrorTemplate])
     return configYaml

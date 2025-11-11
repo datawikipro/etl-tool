@@ -3,7 +3,6 @@ package pro.datawiki.sparkLoader.transformation
 import org.apache.spark.sql.DataFrame
 import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
 import pro.datawiki.exception.UnsupportedOperationException
-import pro.datawiki.sparkLoader.connection.local.localJson.LoaderLocalJson
 import pro.datawiki.sparkLoader.connection.minIo.minioBase.LoaderMinIo
 import pro.datawiki.sparkLoader.connection.minIo.minioBatch.LoaderMinIoBatch
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait, FileStorageTrait}

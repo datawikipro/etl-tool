@@ -9,10 +9,11 @@ import pro.datawiki.sparkLoader.transformation.TransformationCache
 case class YamlConfigTransformationIdMapBaseConfig(
                                                     systemCode: String,
                                                     columnNames: List[String],
+                                                    timeColumn: String,
+                                                    secondForExpire: Int = -1,
                                                     domainName: String,
                                                   ) {
   def getTaskTemplateIdMapConfig: TaskTemplateIdMapConfig = {
-    TaskTemplateIdMapConfig(systemCode, columnNames, domainName)
+    TaskTemplateIdMapConfig(systemCode, columnNames, domainName,timeColumn,secondForExpire)
   }
-
 }

@@ -67,13 +67,13 @@ class LoaderClickHouse(sourceName: String, configYaml: YamlConfig, configLocatio
     return getJdbcDb(configYaml.server.master)
   }
   
-  override def writeDf(df: DataFrame, tableSchema: String, tableName: String, writeMode: WriteMode, scdType: SCDType): Unit =  {
+  override def writeDf(df: DataFrame, tableSchema: String, tableName: String, writeMode: WriteMode, scdType: SCDType, partitionBy: List[(String,String)]): Unit =  {
     writeMode match
       case WriteMode.overwriteTable => {
-        df.write.mode(WriteMode.append.toSparkString).jdbc(getJdbc, tableName, getProperties)
+        df.write.mode(WriteMode.append.toSparkString).jdbc(getJdbc, s"$tableSchema.$tableName", getProperties)
       }
       case WriteMode.append => {
-        df.write.mode(WriteMode.append.toSparkString).jdbc(getJdbc, tableName, getProperties)
+        df.write.mode(WriteMode.append.toSparkString).jdbc(getJdbc, s"$tableSchema.$tableName", getProperties)
       }
       case _ => throw NotImplementedException("Method not implemented")
   }
@@ -117,13 +117,62 @@ class LoaderClickHouse(sourceName: String, configYaml: YamlConfig, configLocatio
 
   override def encodeDataType(in: TableMetadataType): String = throw NotImplementedException("Method not implemented")
 
-  override def decodeDataType(in: String): TableMetadataType = throw NotImplementedException("Method not implemented")
+  override def decodeDataType(in: String): TableMetadataType = {
+//Todo копия с postgres
+    in match {
+      case "bigint" => return TableMetadataType.Bigint
+      case "boolean" => return TableMetadataType.Boolean
+      case "character varying" => return TableMetadataType.Varchar
+      case "date" => return TableMetadataType.Date
+      case "double precision" => return TableMetadataType.DoublePrecision
+      case "integer" => return TableMetadataType.Integer
+      case "int" => return TableMetadataType.Integer
+      case "numeric" => return TableMetadataType.Numeric
+      case "real" => return TableMetadataType.Real
+      case "text" => return TableMetadataType.Text
+      case "ARRAY" => return TableMetadataType.Text
+      case "jsonb" => return TableMetadataType.Text
+      case "uuid" => return TableMetadataType.Text
+      case "timestamp with time zone" => return TableMetadataType.TimestampWithTimeZone
+      case "timestamp without time zone" => return TableMetadataType.TimestampWithoutTimeZone
+      case "USER-DEFINED" => return TableMetadataType.Text
+      case "bytea" => return TableMetadataType.Text
+      case "String" => return TableMetadataType.String
+      case "UInt8" => return TableMetadataType.Uint
+      case _ => {
+        throw NotImplementedException(s"Unsupported PostgreSQL data type decoding: '$in'")
+      }
+    }
+  }
 
   override def readDf(tableSchema: String, tableName: String): DataFrame = throw NotImplementedException("Method not implemented")
 
   override def readDf(tableSchema: String, tableName: String, partitionName: String): DataFrame = throw NotImplementedException("Method not implemented")
 
   override def readDfSchema(tableSchema: String, tableName: String): DataFrame = throw NotImplementedException("Method not implemented")
+
+  override def setTemporaryTable(tableName: String, sql: String): Boolean = throw NotImplementedException("Method not implemented")
+
+  override def convertComplexTypesToJson(df: DataFrame): DataFrame = {
+    import org.apache.spark.sql.functions._
+    import org.apache.spark.sql.types._
+
+    val columns = df.schema.fields.map { field =>
+      field.dataType match {
+        // Structs and Maps -> convert to JSON string
+        case StructType(_) | MapType(_, _, _) =>
+          to_json(col(field.name)).as(field.name)
+
+        case ArrayType(_, _) =>
+          to_json(col(field.name)).as(field.name)
+
+        // Keep simple types as-is
+        case _ => col(field.name)
+      }
+    }
+
+    df.select(columns*)
+  }
 }
 
 object LoaderClickHouse extends YamlClass {

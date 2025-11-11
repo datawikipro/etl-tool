@@ -81,7 +81,7 @@ object SparkMain extends LoggingTrait {
 
         val etlProcessId: Option[String] = initLoging(config,args.toList)
 
-        val result: ProgressStatus = EltConfig(config.configLocation) match {
+        EltConfig(config.configLocation) match {
           case ProgressStatus.done =>
             logInfo("ETL process completed successfully")
             etlProcessId.foreach(processId => completeETLProcess(processId, ETLProgressStatus.Completed)            )
@@ -102,18 +102,18 @@ object SparkMain extends LoggingTrait {
           System.exit(2)
           return
         }
-        case e: Exception =>
-          throw e
+//        case e: Exception =>
+//          throw e
       } finally {
         logInfo("Closing connections")
         ApplicationContext.closeConnections()
         // Закрываем ETL progress logger
         getETLProgressLogger.foreach(_.close())
       }
-    } catch {
-      case e: Exception =>
-        logError("spark ETL process", e, "unexpected error occurred")
-        System.exit(1)
+//    } catch {
+//      case e: Exception =>
+//        logError("spark ETL process", e, "unexpected error occurred")
+//        System.exit(1)
     } finally {
       logOperationEnd("spark ETL process", startTime)
     }

@@ -16,7 +16,7 @@ case class SchemaElement(
                           `object`: SchemaObject,
                           `map`: SchemaMap,
                           isIgnorable: Boolean = false
-                        ) extends LogicClass, SchemaTrait {
+                        ) extends SchemaTrait {
   @JsonIgnore
   def getBaseElement: BaseSchemaTemplate = {
     val logic = getLogic
@@ -43,7 +43,7 @@ case class SchemaElement(
 
   @JsonIgnore
   def getLogic: Any = {
-    super.getLogic(`type`, `array`, `object`, `map`)
+    LogicClass.getLogic(`type`, `array`, `object`, `map`)
   }
 
   @JsonIgnore

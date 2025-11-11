@@ -37,7 +37,7 @@ class TaskTemplateExtractDataFromJsonBySchemaBatch(tableName: String,
       var masterSchema: BaseSchemaTemplate = savedSchema
 
       if mergeSchema then {
-        val list = df/*.filter(s"$jsonColumn <> '' and $jsonColumn is not null")*/.select(s"$jsonColumn").distinct().collect().toList
+        val list = df.filter(s"$jsonColumn <> '' and $jsonColumn is not null").select(s"$jsonColumn").distinct().collect().toList
         logInfo(s"Found ${list.length} distinct JSON values in column: $jsonColumn")
         val jsons: List[String] = list.map(i => i.get(0).toString)
 

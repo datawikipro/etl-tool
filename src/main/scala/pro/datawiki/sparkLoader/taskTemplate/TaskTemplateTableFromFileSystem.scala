@@ -11,7 +11,8 @@ import scala.collection.mutable
 class TaskTemplateTableFromFileSystem(tableName: String,
                                       partitionBy: List[String] = List.apply(),
                                       where: String,
-                                      limit: Int, source: FileStorageTrait) extends TaskTemplate with LoggingTrait {
+                                      limit: Int, 
+                                      source: FileStorageTrait) extends TaskTemplate with LoggingTrait {
   override def run(parameters: Map[String, String], isSync: Boolean): List[DataFrameTrait] = {
     val startTime = logOperationStart("file system table load", s"table: $tableName")
 
@@ -19,7 +20,7 @@ class TaskTemplateTableFromFileSystem(tableName: String,
       logInfo(s"Loading data from file system table: $tableName")
       logConfigInfo("file system table", s"partitions: ${partitionBy.length}, where: $where, limit: $limit")
 
-      var df = source.readDf(tableName, partitionBy, ApplicationContext.getPartitions(partitionBy *))
+      var df = source.readDf(tableName, partitionBy, ApplicationContext.getPartitions(partitionBy *), true)
 
       // Проверяем наличие поврежденных записей (для JSON файлов)
       if (df.columns.contains("_corrupt_record")) {

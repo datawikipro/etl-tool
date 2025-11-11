@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.{JsonIgnore, JsonInclude}
 import org.apache.spark.sql.DataFrame
 import pro.datawiki.datawarehouse.DataFrameTrait
 import pro.datawiki.exception.NotImplementedException
-import pro.datawiki.sparkLoader.configuration.{ YamlConfigTargetTrait}
+import pro.datawiki.sparkLoader.configuration.YamlConfigTargetTrait
 import pro.datawiki.sparkLoader.connection.{FileStorageTrait, QueryTrait}
 
 

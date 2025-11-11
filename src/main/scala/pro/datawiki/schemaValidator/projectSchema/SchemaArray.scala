@@ -10,10 +10,10 @@ import pro.datawiki.yamlConfiguration.LogicClass
 case class SchemaArray(
                         `object`: SchemaObject,
                         `type`: String
-                      ) extends LogicClass, SchemaTrait {
+                      ) extends SchemaTrait {
   @JsonIgnore
   def getLogic: Any = {
-    super.getLogic(`object`, `type`)
+    LogicClass.getLogic(`object`, `type`)
   }
 
   @JsonIgnore

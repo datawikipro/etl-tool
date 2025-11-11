@@ -10,7 +10,7 @@ import pro.datawiki.sparkLoader.transformation.TransformationCache
 
 import scala.collection.mutable
 
-class TaskConsumer(inTaskTemplate: TaskTemplate) extends Task {
+class TaskConsumer(inTaskTemplate: TaskTemplate,skipIfEmpty: Boolean) extends Task {
 //  var cache: TransformationCache = null
 //  var connection: ConnectionTrait = null
   var isSkipIfEmpty: Boolean = false

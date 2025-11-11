@@ -47,18 +47,6 @@ class TransformationCacheFileStorage() extends TransformationCache {
     }
   }
 
-  override def readDirty(inConnection: ConnectionTrait): List[DataFrameTrait] = {
-    val connect = inConnection match {
-      case x: FileStorageTrait => x
-      case _ => throw UnsupportedOperationException("Unsupported connection type for TransformationCacheFileStorage")
-    }
-    var list: List[DataFrameTrait] = List.apply()
-    connect.getFolder(s"$locTable").foreach(i => {
-      list = list.appended(DataFrameDirty(i, connect.readDf(s"${locTable}/$i")))
-    })
-    return list
-  }
-
   override def deleteTable(inConnection: ConnectionTrait): Unit = {
     val connect = inConnection match {
       case x: FileStorageTrait => x

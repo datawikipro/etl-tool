@@ -10,7 +10,8 @@ import scala.collection.mutable
 case class YamlDataTemplateTransformationIdMap(
                                                 sourceName: String,
                                                 connection: String,
-                                                idMapGenerate: List[YamlConfigTransformationIdMapConfig] = List.apply(),
+                                                idMapGenerateSimple: List[YamlConfigTransformationIdMapConfig] = List.apply(),
+                                                idMapGenerateSCD: List[YamlConfigTransformationIdMapConfig] = List.apply(),
                                                 idMapRestore: List[YamlConfigTransformationIdMapConfig] = List.apply(),
                                                 idMapMerge: List[YamlConfigTransformationIdMapMerge] = List.apply()
                                               )

@@ -110,8 +110,18 @@ class LoaderMinIoBatch(format: FileBaseFormat, configYaml: YamlConfig, configLoc
 
   @Override
   override def writeDfPartitionAuto(df: DataFrame, location: String, partitionName: List[String], writeMode: WriteMode): Unit = {
-    val optimizedDf = super.optimizeDataFramePartitions(df)
-    optimizedDf.orderBy(partitionName.head, partitionName *).write.format(format.toString).option("nullValue", "\\N").partitionBy(partitionName *).mode(writeMode.toSparkString).save(s"s3a://${configYaml.bucket}/${location}/")
+    val optimizedDf = super.optimizeDataFramePartitions(df.distinct())
+    optimizedDf.orderBy(partitionName.head, partitionName *).
+      write.format(format.toString).option("nullValue", "\\N").
+      partitionBy(partitionName *).
+      mode(writeMode.toSparkString)
+      .option("compression", "snappy")
+      .option("fs.s3a.fast.upload", "true")
+      .option("fs.s3a.fast.upload.buffer", "disk")
+      .option("fs.s3a.committer.name", "directory")
+      //        .option("fs.s3a.committer.staging.conflict-mode", "replace")//TODO не трогать вызывает проблемы
+      .option("fs.s3a.committer.staging.unique-filenames", "true")
+      .save(s"s3a://${configYaml.bucket}/${location}/")
     return
 
   }

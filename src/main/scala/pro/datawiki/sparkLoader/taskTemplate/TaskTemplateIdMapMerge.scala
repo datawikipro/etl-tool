@@ -10,12 +10,13 @@ import scala.collection.mutable
 
 case class TaskTemplateIdMapMerge(sourceName: String,
                                   connection: DatabaseTrait,
+                                  dataAtServer:Boolean,
                                   in: TaskTemplateIdMapConfig,
                                   out: TaskTemplateIdMapConfig
                                  ) extends TaskTemplate {
   val cache: TransformationCacheDatabase = TransformationCacheDatabase()
 
-  override def run(parameters:Map[String, String], isSync: Boolean): List[DataFrameTrait] = {
+  private def getTableFromSpark: String = {
     val sql: String =
       s"""
          |select cast(${in.columnNames.mkString("!@#")}  as String) as in_ccd,
@@ -29,14 +30,24 @@ case class TaskTemplateIdMapMerge(sourceName: String,
     var df = SparkObject.spark.sql(sqlText = sql)
     LogMode.debugDF(df)
     cache.saveTable(DataFrameOriginal(df), overwriteTable,connection)
+    cache.getLocation
+  }
+  
+  override def run(parameters:Map[String, String], isSync: Boolean): List[DataFrameTrait] = {
+
     connection match {
-      case x: SupportIdMap =>
+      case x: SupportIdMap => {
+        var tableName = dataAtServer match {
+          case true => x.createViewIdMapMerge(sourceName, in.columnNames,out.columnNames)
+          case false => getTableFromSpark
+        }
         x.mergeIdMap(
           inTable = cache.getLocation,
           domain = in.domainName,
           inSystemCode = in.systemCode,
           outSystemCode = out.systemCode
         )
+      }
       case _ => throw UnsupportedOperationException("Unsupported connection type for ID map merge")
     }
     return List.empty

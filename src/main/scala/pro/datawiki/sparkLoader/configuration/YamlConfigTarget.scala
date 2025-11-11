@@ -13,10 +13,10 @@ case class YamlConfigTarget(database: YamlConfigTargetDatabase,
                             messageBroker: YamlConfigTargetMessageBroker,
                             dummy: YamlConfigTargetDummy,
                             ignoreError: Boolean
-                           ) extends LogicClass with LoggingTrait {
+                           ) extends  LoggingTrait {
   @JsonIgnore
   def getLogic: YamlConfigTargetTrait = {
-    super.getLogic(database, fileSystem, messageBroker, dummy) match
+    LogicClass.getLogic(database, fileSystem, messageBroker, dummy) match
       case x: YamlConfigTargetTrait => return x
       case _ => throw ConfigurationException(s"Unsupported target type: ${this.getClass.getSimpleName}")
   }

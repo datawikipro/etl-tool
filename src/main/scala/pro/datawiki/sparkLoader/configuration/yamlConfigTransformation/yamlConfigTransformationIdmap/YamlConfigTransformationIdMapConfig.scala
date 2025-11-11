@@ -6,10 +6,12 @@ case class YamlConfigTransformationIdMapConfig(
                                                 systemCode: String,
                                                 columnNames: List[String],
                                                 domainName: String,
+                                                timeColumn: String,
+                                                secondForExpire: Int = -1,
                                                 alias: String
                                               ) {
   def getTaskTemplateIdMapConfig: TaskTemplateIdMapConfig = {
-    TaskTemplateIdMapConfig(systemCode, columnNames, domainName)
+    TaskTemplateIdMapConfig(systemCode, columnNames, domainName,timeColumn,secondForExpire)
   }
 
   def getAlias: String = {

@@ -7,7 +7,9 @@ case class YamlConfigHost(
                          ) {
   def getUrl: String = {
     if hostUrl != null then return hostUrl
+    if hostPort == 443 then return s"https://$hostName"
     return s"http://$hostName:$hostPort"
+
   }
 
   def getCheckUrl: String = {

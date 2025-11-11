@@ -12,12 +12,14 @@ case class YamlConfigSourceWeb(
                                 run: String,
                                 isDirty: Boolean,
                                 schemas: List[YamlConfigSchema] = List.apply(),
+                                validateStatusColumn: String,
+                                validateStatusValue: List[String]
                               ) extends YamlConfigSourceApiTrait, YamlConfigSourceTrait {
 
   override def getTaskTemplate(connection: ConnectionTrait): TaskTemplate = {
     connection match
       case x: LoaderSelenium => TaskTemplateSelenium(x)
-      case x: LoaderJsonApi => TaskTemplateJsonApi(x,schemas)
+      case x: LoaderJsonApi => TaskTemplateJsonApi(x,schemas,  validateStatusColumn,    validateStatusValue)
       case _ => throw UnsupportedOperationException(s"Unsupported connection type for Web source: ${connection.getClass.getSimpleName}")
   }
 

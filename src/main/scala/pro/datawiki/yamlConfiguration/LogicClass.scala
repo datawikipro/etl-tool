@@ -1,12 +1,9 @@
 package pro.datawiki.yamlConfiguration
 
-import com.fasterxml.jackson.annotation.{JsonIgnore, JsonInclude}
 import pro.datawiki.exception.ValidationException
 
-@JsonInclude(JsonInclude.Include.NON_ABSENT)
-class LogicClass {
+object LogicClass {
   
-  @JsonIgnore
   def getLogic(in: Any*): Any = {
     val list = in.toList.filter(_ != null)
 

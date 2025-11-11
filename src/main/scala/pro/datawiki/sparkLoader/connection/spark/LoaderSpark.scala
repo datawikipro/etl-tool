@@ -22,8 +22,10 @@ object LoaderSpark {
       case "integer" => return TableMetadataType.Integer
       case "array" => return TableMetadataType.Array
       case "decimal(20,6)" => return TableMetadataType.DoublePrecision
+      case "decimal(20,0)" => return TableMetadataType.Integer
       case "decimal(20,5)" => return TableMetadataType.DoublePrecision
-
+      case "float" => return TableMetadataType.DoublePrecision
+      case "binary" => return TableMetadataType.String
       case _ => {
         throw NotImplementedException(s"Unsupported Spark data type decoding: '$in'")
       }

@@ -15,6 +15,7 @@ case class YamlDataByTemplate(
                                dagName: String,
                                dagNameTemplate: String,
                                pythonFile: String = throw Exception("pythonFile must be initialized"),
+                               retries: Int = 1,
                                description: String,
                                templateLogic: List[TemplateLogic],
                                nameTemplate: List[String],
@@ -55,17 +56,18 @@ case class YamlDataByTemplate(
         }
       }
       
-
       list = list.appended(CoreBaseDag(
-        dagName = WorkWithText.replaceWithoutDecode(dagName, variablesDagLevel),
+        dagName = WorkWithText.replaceWithoutDecode(dagName, variablesDagLevel.toMap),
         tags = List.apply("ods") ::: nameTemplate,
-        dagDescription = WorkWithText.replaceWithoutDecode(description, variablesDagLevel),
+        dagDescription = WorkWithText.replaceWithoutDecode(description, variablesDagLevel.toMap),
         schedule = Schedule(schedule),
         startDate = parseStartDate(startDate),
         catchup = catchup,
-        pythonFile = WorkWithText.replaceWithoutDecode(pythonFile, variablesDagLevel),
+        retries = retries,
+        pythonFile = WorkWithText.replaceWithoutDecode(pythonFile, variablesDagLevel.toMap),
         taskPipelines = templateLogic.map(rw => {
-          YamlDataTaskToolTemplate(rw.templateType, rw.templateLocation, variablesSourceLevel).getCoreTask
+          val a = YamlDataTaskToolTemplate(rw.templateType, rw.templateLocation, variablesSourceLevel.toMap)
+          (a.getCoreTask,a.isRunFromControlDag)
         })
       ))
 

@@ -7,7 +7,7 @@ import pro.datawiki.sparkLoader.connection.fileBased.FileBaseFormat
 import pro.datawiki.sparkLoader.connection.minIo.minioBase.{LoaderMinIo, YamlConfig}
 import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, WriteMode}
 
-class LoaderMinIoJsonStream(format: FileBaseFormat, configYaml: YamlConfig, configLocation: String) extends LoaderMinIo(format, configYaml, configLocation) with FileStorageTrait {
+class LoaderMinIoStream(format: FileBaseFormat, configYaml: YamlConfig, configLocation: String) extends LoaderMinIo(format, configYaml, configLocation) with FileStorageTrait {
   
   override def getConnectionEnum(): ConnectionEnum = {
     ConnectionEnum.minioJsonStream

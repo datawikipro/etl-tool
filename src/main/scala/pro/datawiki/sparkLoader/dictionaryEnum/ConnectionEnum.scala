@@ -1,7 +1,7 @@
 package pro.datawiki.sparkLoader.dictionaryEnum
 
 enum ConnectionEnum {
-  case mysql, postgres, mongodb, kafka, kafkaSaslSSL, kafkaAmazon, s3Amazon, clickhouse, bigQuery,
+  case mysql, postgres, mongodb, kafka, kafkaSaslSSL, kafkaAmazon, clickhouse, bigQuery,
        minioParquet, minioJson, minioJsonStream, minioText, localText, localJson, localParquet,
        selenium, jsonApi, googleAds, mail, qdrant
 
@@ -13,7 +13,6 @@ enum ConnectionEnum {
       case `kafka` => "kafka"
       case `kafkaSaslSSL` => "kafkaSaslSSL"
       case `kafkaAmazon` => "kafkaAmazon"
-      case `s3Amazon` => "s3Amazon"
       case `clickhouse` => "clickhouse"
       case `bigQuery` => "bigQuery"
       case `minioParquet` => "minioParquet"
@@ -43,7 +42,6 @@ object ConnectionEnum {
       case "kafka" => ConnectionEnum.kafka
       case "kafkaSaslSSL" => ConnectionEnum.kafkaSaslSSL
       case "kafkaAmazon" => ConnectionEnum.kafkaAmazon
-      case "s3Amazon" => ConnectionEnum.s3Amazon
       case "clickhouse" => ConnectionEnum.clickhouse
       case "bigQuery" => ConnectionEnum.bigQuery
       case "minioParquet" => ConnectionEnum.minioParquet

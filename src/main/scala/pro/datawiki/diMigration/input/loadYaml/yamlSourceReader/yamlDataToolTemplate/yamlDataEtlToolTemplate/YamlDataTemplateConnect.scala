@@ -8,5 +8,6 @@ class YamlDataTemplateConnect(
                                connection: String,
                                configLocation: String,
                              ) {
+  def getSourceName:String = sourceName
   def getCoreConnection: CoreTaskTemplateConnect = CoreTaskTemplateConnect(sourceName, connection, configLocation)
 }

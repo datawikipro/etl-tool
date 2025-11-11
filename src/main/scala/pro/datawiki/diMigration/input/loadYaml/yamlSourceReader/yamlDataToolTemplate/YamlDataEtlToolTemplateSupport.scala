@@ -1,52 +1,80 @@
 package pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate
 
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigSource.{YamlDataTemplateSourceBigQuery, YamlDataTemplateSourceDBTable, YamlDataTemplateSourceFileSystem}
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.*
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigSource.YamlDataTemplateSourceDBTable
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTarget.{YamlDataTemplateTargetColumn, YamlDataTemplateTargetDatabase, YamlDataTemplateTargetFileSystem}
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTransformation.YamlDataTemplateTransformationExtractAndValidateDataFrame
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.{YamlDataTemplateConnect, YamlDataTemplateSource, YamlDataTemplateTarget, YamlDataTemplateTransformation}
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.YamlConfigEltOnServerOperation
 import pro.datawiki.sparkLoader.configuration.yamlConfigEltOnServerOperation.YamlConfigEltOnServerSQL
 import pro.datawiki.sparkLoader.connection.clickhouse.LoaderClickHouse
 import pro.datawiki.sparkLoader.connection.databaseTrait.TableMetadata
 import pro.datawiki.sparkLoader.connection.postgres.LoaderPostgres
-import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, InitModeEnum, PartitionModeEnum, WriteMode}
-
+import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode.append
+import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, InitModeEnum, WriteMode}
 
 class YamlDataEtlToolTemplateSupport(
-                                      taskName: String = throw Exception(),
-                                      sourceTableSchema: String = throw Exception(),
-                                      sourceTableName: String = throw Exception(),
-                                      sourceLogicTableSchema: String = throw Exception(),
-                                      sourceLogicTableName: String = throw Exception(),
-                                      targetTableSchema: String = throw Exception(),
-                                      targetTableName: String = throw Exception(),
-                                      connection: String = throw Exception(),
-                                      yamlFileCoreLocation: String = throw Exception(),
-                                      yamlFileLocation: String = throw Exception()
+                                      taskName: String,
+                                      sourceCode: String,
+                                      sourceTableSchema: String,
+                                      sourceTableName: String,
+                                      sourceLogicTableSchema: String,
+                                      sourceLogicTableName: String,
+                                      targetTableSchema: String,
+                                      targetTableName: String,
+                                      connection: String,
+                                      yamlFileCoreLocation: String,
+                                      yamlFileLocation: String
                                     ) {
 
   val dwhConfigLocation = "/opt/etl-tool/configConnection/postgres.yaml"
   val dwhLoader = LoaderPostgres(dwhConfigLocation)
   val dwhInfo = dwhLoader.getDwhConnectionInfo
 
-  def getStgTaskName: String = s"stg__batch__${taskName}"
+  def getOdsTaskName: String = s"ods__${taskName}"
 
-  def getOdsTaskName: String = s"ods__batch__${taskName}"
+  def getOdsBatchTaskName: String = s"ods__batch__${taskName}"
 
-  def getClickhouseTaskName: String = s"clickhouse__batch__${taskName}"
+  def getClickhouseTaskName: String = s"clickhouse__${taskName}"
 
-  def getStgFolder: String = s"stg/${sourceLogicTableSchema}/${sourceLogicTableName}"
+  def getClickhouseBatchTaskName: String = s"clickhouse__batch__${taskName}"
 
-  def getStgYamlFile: String = s"${yamlFileCoreLocation}/ods__${yamlFileLocation}__bigQuery/stg/$taskName.yaml"
+  def getSnowflakeTaskName: String = s"snowflake__${taskName}"
 
-  def getOdsYamlFile: String = s"${yamlFileCoreLocation}/ods__${yamlFileLocation}__bigQuery/ods/$taskName.yaml"
+  def getSnowflakeBatchTaskName: String = s"snowflake__batch__${taskName}"
 
-  def getClickhouseYamlFile: String = s"${yamlFileCoreLocation}/ods__${yamlFileLocation}__bigQuery/Clickhouse/$taskName.yaml"
+  def getOdsYamlFile: String = s"${yamlFileCoreLocation}/ods__${yamlFileLocation}__${sourceCode}/ods/$taskName.yaml"
+
+  def getClickhouseYamlFile: String = s"${yamlFileCoreLocation}/ods__${yamlFileLocation}__${sourceCode}/clickhouse/$taskName.yaml"
+
+  def getSnowflakeYamlFile: String = s"${yamlFileCoreLocation}/ods__${yamlFileLocation}__${sourceCode}/snowflake/$taskName.yaml"
+
+  def getJsonStreamDataWarehouse: YamlDataTemplateConnect = YamlDataTemplateConnect(
+    sourceName = "datewarehouse",
+    connection = "minioJsonStream",
+    configLocation = "/opt/etl-tool/configConnection/minio.yaml" //TODO
+  )
+
+  def getJsonDataWarehouse: YamlDataTemplateConnect = YamlDataTemplateConnect(
+    sourceName = "datewarehouseJson",
+    connection = ConnectionEnum.minioJson.toString,
+    configLocation = "/opt/etl-tool/configConnection/minio.yaml" //TODO
+  )
 
   def getParquetDataWarehouse: YamlDataTemplateConnect = YamlDataTemplateConnect(
-    sourceName = "datewarehouse",
+    sourceName = "datewarehouseParquet",
     connection = ConnectionEnum.minioParquet.toString,
     configLocation = "/opt/etl-tool/configConnection/minio.yaml" //TODO
+  )
+
+  def getPostgres: YamlDataTemplateConnect = YamlDataTemplateConnect(
+    sourceName = "postgres",
+    connection = "postgres",
+    configLocation = "/opt/etl-tool/configConnection/postgres.yaml"
+  )
+
+  def getAmazonS3: YamlDataTemplateConnect = YamlDataTemplateConnect(
+    sourceName = "datewarehouse",
+    connection = ConnectionEnum.minioParquet.toString,
+    configLocation = "/opt/etl-tool/configConnection/s3.yaml" //TODO
   )
 
   def getMainDataWarehouseName: String = "datewarehouseMain"
@@ -79,35 +107,6 @@ class YamlDataEtlToolTemplateSupport(
       deduplicate = null
     )
 
-  def getStgYamlDataTemplateTarget: YamlDataTemplateTarget =
-    YamlDataTemplateTarget(
-      database = null,
-      messageBroker = null,
-      dummy = null,
-      fileSystem = YamlDataTemplateTargetFileSystem(
-        connection = "datewarehouse",
-        source = "src",
-        mode = WriteMode.overwritePartition,
-        partitionMode = PartitionModeEnum.direct.toString,
-        targetFile = getStgFolder,
-        partitionBy = List.apply("run_id"),
-      ),
-      ignoreError = false
-    )
-
-  def getOdsYamlDataTemplateSourceYamlDataTemplateSource: YamlDataTemplateSource = YamlDataTemplateSource(
-    sourceName = "datewarehouse",
-    objectName = "src",
-    sourceFileSystem = YamlDataTemplateSourceFileSystem(
-      tableName = getStgFolder,
-      tableColumns = List.apply(),
-      partitionBy = List.apply("run_id"),
-      where = null,
-      limit = 0
-    ),
-    initMode = InitModeEnum.instantly.toString
-  )
-
   def getOdsYamlDataTemplateTarget(metadata: TableMetadata): YamlDataTemplateTarget =
     YamlDataTemplateTarget(
       database = YamlDataTemplateTargetDatabase(
@@ -115,7 +114,7 @@ class YamlDataEtlToolTemplateSupport(
         source = "src",
         mode = metadata.columns.isEmpty match {
           case true => WriteMode.overwritePartition
-          case false => WriteMode.merge
+          case false => WriteMode.mergeDelta
         },
         partitionMode = null, //TODO
         targetSchema = s"ods__${targetTableSchema}",
@@ -128,7 +127,6 @@ class YamlDataEtlToolTemplateSupport(
             columnTypeDecode = false
           )),
         uniqueKey = metadata.primaryKey,
-        deduplicationKey = List.apply(),
         partitionBy = null,
         scd = "SCD_3"
 
@@ -145,28 +143,82 @@ class YamlDataEtlToolTemplateSupport(
       sourceName = "clickhouseUnico",
       sql = YamlConfigEltOnServerSQL(
         sql = List.apply(
-          s"""CREATE TABLE IF NOT EXISTS ods__${targetTableSchema}._${targetTableName}
-             |(
-             |    ${metadata.columns.map(col => s"${col.column_name} ${LoaderClickHouse.encodeIsNullable(col.isNullable, LoaderClickHouse.encodeDataType(col.data_type))}").mkString(",\n    ")}, valid_from_dttm Datetime, valid_to_dttm Datetime
-             |)
-             |    ENGINE = PostgreSQL('${dwhInfo.hostPort}', '${dwhInfo.database}', '${targetTableName}', '${dwhInfo.username}', '${dwhInfo.password}', 'ods__${targetTableSchema}', 'connect_timeout=15, read_write_timeout=300');""".stripMargin,
-          s"""drop table if exists ods__${targetTableSchema}.${targetTableName}_new;""",
-          s"""CREATE TABLE IF NOT EXISTS ods__${targetTableSchema}.${targetTableName}_new
+          s"""CREATE TABLE IF NOT EXISTS ods__${targetTableSchema}.${targetTableName}
              |(
              |    ${metadata.columns.map(col => s"${col.column_name} ${LoaderClickHouse.encodeIsNullable(col.isNullable, LoaderClickHouse.encodeDataType(col.data_type))}").mkString(",\n    ")}, valid_from_dttm Datetime, valid_to_dttm Datetime
              |)
              |    ENGINE = MergeTree ORDER BY (${metadata.primaryKey.mkString(",")})  SETTINGS index_granularity = 8192;""".stripMargin,
-          s"""insert into ods__${targetTableSchema}.${targetTableName}_new (${metadata.columns.map(col => s"${col.column_name}").mkString(",")}, valid_from_dttm , valid_to_dttm )
-             |select ${metadata.columns.map(col => s"${col.column_name}").mkString(",")}, valid_from_dttm , valid_to_dttm
-             |  from ods__${targetTableSchema}._${targetTableName}
-             | where valid_to_dttm = cast('2100-01-01' as Date)
-             | SETTINGS external_storage_connect_timeout_sec=3000000,external_storage_rw_timeout_sec=3000000,connect_timeout=3000000;""".stripMargin,
-          s"""drop table if exists ods__${targetTableSchema}.${targetTableName}; """,
-          s"""rename table ods__${targetTableSchema}.${targetTableName}_new to ods__${targetTableSchema}.${targetTableName};"""
         ),
       ),
       ignoreError = false
     )
 
+  def getClickhouseYamlConfigEltOnServerOperationPost(metadata: TableMetadata): YamlConfigEltOnServerOperation =
+    YamlConfigEltOnServerOperation(
+      eltOnServerOperationName = "preSql",
+      sourceName = "clickhouseUnico",
+      sql = YamlConfigEltOnServerSQL(
+        sql = List.apply(s"""OPTIMIZE TABLE ods__${targetTableSchema}.${targetTableName} FINAL;""".stripMargin),
+      ),
+      ignoreError = false
+    )
+
+  def getClickhouseTarget(inConnectionName: String, inSourceName: String, metadata: TableMetadata): YamlDataTemplateTarget = YamlDataTemplateTarget(
+    database = YamlDataTemplateTargetDatabase(
+      connection = inConnectionName,
+      source = inSourceName,
+      mode = append,
+      partitionMode = null, //TODO
+      targetSchema = s"ods__${targetTableSchema}",
+      targetTable = s"${targetTableName}",
+      columns = metadata.columns.map(col =>
+        YamlDataTemplateTargetColumn(
+          columnName = col.column_name,
+          isNullable = true,
+          columnType = col.data_type.getTypeInSystem("postgres"),
+          columnTypeDecode = false
+        )),
+      uniqueKey = metadata.primaryKey,
+      partitionBy = null,
+      scd = "SCD_0"
+    ),
+    messageBroker = null,
+    dummy = null,
+    fileSystem = null,
+    ignoreError = false
+  )
+
+  def getSnowflakeTarget(inConnectionName: String, inSourceName: String): YamlDataTemplateTarget = YamlDataTemplateTarget(
+    database = null,
+    messageBroker = null,
+    dummy = null,
+    fileSystem = YamlDataTemplateTargetFileSystem(
+      connection = inConnectionName,
+      source = inSourceName,
+      mode = WriteMode.overwritePartition,
+      targetFile = s"dwh-backups/ods__${targetTableSchema}/${targetTableName}",
+      partitionBy = List.apply("run_id"),
+    ),
+    ignoreError = false
+  )
+
+
+  def getClickhouseConfig: YamlDataTemplateConnect = YamlDataTemplateConnect(
+    sourceName = "clickhouseUnico",
+    connection = "clickhouse",
+    configLocation = "/opt/etl-tool/configConnection/clickhouse.yaml"
+  )
+
+  def getDataForDM: YamlDataTemplateSource = YamlDataTemplateSource(
+    getPostgres.getSourceName,
+    objectName = "src",
+    sourceDb = YamlDataTemplateSourceDBTable(
+      tableSchema = s"ods__$targetTableSchema",
+      tableName = targetTableName,
+      tableColumns = List.apply(),
+      filter = s"run_id = '$${run_id}'"
+    ),
+    initMode = InitModeEnum.instantly.toString
+  )
 
 }

@@ -6,7 +6,7 @@ import scala.collection.mutable
 
 object WorkWithText {
 
-  def replaceWithoutDecode(in: String, row: mutable.Map[String, String]): String = {
+  def replaceWithoutDecode(in: String, row: Map[String, String]): String = {
     var result: String = in
     row.foreach(i => {
       try {

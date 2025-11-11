@@ -2,7 +2,7 @@ import sbt.Keys.libraryDependencies
 
 import scala.collection.Seq
 
-ThisBuild / version := "0.2.2-SNAPSHOT"
+ThisBuild / version := "0.2.4-SNAPSHOT"
 
 ThisBuild / scalaVersion := "3.4.2"
 

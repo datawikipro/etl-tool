@@ -3,33 +3,71 @@ package pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTem
 import pro.datawiki.diMigration.core.task.CoreTask
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.*
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigSource.yamlConfigSourceKafka.YamlDataTemplateSourceKafkaTopic
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigSource.{YamlDataTemplateSourceFileSystem, YamlDataTemplateSourceKafka}
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTarget.{YamlDataTemplateTargetColumn, YamlDataTemplateTargetDatabase, YamlDataTemplateTargetDummy, YamlDataTemplateTargetFileSystem}
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigSource.{YamlDataTemplateSourceDBTable, YamlDataTemplateSourceFileSystem, YamlDataTemplateSourceKafka}
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTarget.{YamlDataTemplateTargetColumn, YamlDataTemplateTargetDatabase, YamlDataTemplateTargetFileSystem}
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTransformation.{YamlDataTemplateTransformationDeduplicate, YamlDataTemplateTransformationExtractSchema, YamlDataTemplateTransformationSparkSql}
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplateSupport.{YamlDataEtlToolTemplateSupportKafka, YamlDataEtlToolTemplateSupportOds, YamlDataEtlToolTemplateSupportStg}
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.{Metadata, YamlDataTaskToolTemplate}
-import pro.datawiki.sparkLoader.configuration.yamlConfigEltOnServerOperation.YamlConfigEltOnServerSQL
-import pro.datawiki.sparkLoader.connection.clickhouse.LoaderClickHouse
 import pro.datawiki.sparkLoader.connection.databaseTrait.TableMetadataType
-import pro.datawiki.sparkLoader.connection.postgres.{DwhConnectionInfo, LoaderPostgres}
-import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, InitModeEnum, PartitionModeEnum, WriteMode}
+import pro.datawiki.sparkLoader.connection.postgres.LoaderPostgres
+import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, InitModeEnum, WriteMode}
 import pro.datawiki.yamlConfiguration.YamlClass
 
-import scala.collection.mutable
-
 case class YamlDataOdsDebeziumPostgresTableMirror(
-                                                   taskName: String=throw Exception(),
-                                                   yamlFileCoreLocation: String=throw Exception(),
-                                                   yamlFileLocation: String=throw Exception(),
-                                                   metadataConnection: String=throw Exception(),
-                                                   metadataConfigLocation: String=throw Exception(),
-                                                   kafkaTopic: String=throw Exception(),
-                                                   tableSchema: String=throw Exception(),
-                                                   tableName: String=throw Exception(),
-                                                   dwhConfigLocation: String=throw Exception(),
+                                                   taskName: String,
+                                                   yamlFileCoreLocation: String,
+                                                   yamlFileLocation: String,
+                                                   metadataConnection: String,
+                                                   metadataConfigLocation: String,
+                                                   kafkaTopic: String,
+                                                   tableSchema: String,
+                                                   tableName: String,
+                                                   dwhConfigLocation: String,
+                                                   business_date: String,
+                                                   extra_code: String
                                                  ) extends YamlDataTaskToolTemplate {
+
+  override def isRunFromControlDag: Boolean = false
 
   override def getCoreTask: List[CoreTask] = {
     val metadata = Metadata(metadataConnection, metadataConfigLocation, s"ods__$tableSchema", tableName)
+    val kafkaSupport = new YamlDataEtlToolTemplateSupportKafka(
+      taskName = taskName,
+      kafkaTopic = kafkaTopic,
+      yamlFileCoreLocation = yamlFileCoreLocation,
+      yamlFileLocation = yamlFileLocation,
+      sourceCode = "kafka")
+
+    val stgSupport = new YamlDataEtlToolTemplateSupportStg(
+      taskName = taskName,
+      sourceLogicTableSchema = tableSchema,
+      sourceLogicTableName = tableName,
+      yamlFileCoreLocation = yamlFileCoreLocation,
+      yamlFileLocation = yamlFileLocation,
+      sourceCode = "kafka")
+
+    val odsSupport = new YamlDataEtlToolTemplateSupportOds(
+      taskName = taskName,
+      tableSchema = tableSchema,
+      tableName = tableName,
+      metadata = metadata,
+      yamlFileCoreLocation = yamlFileCoreLocation,
+      yamlFileLocation = yamlFileLocation,
+      sourceCode = "kafka")
+
+    val support = new YamlDataEtlToolTemplateSupport(
+      taskName = taskName,
+      sourceCode = "debezium",
+      sourceTableSchema = tableSchema,
+      sourceTableName = tableName,
+      sourceLogicTableSchema = tableSchema,
+      sourceLogicTableName = tableName,
+      targetTableSchema = tableSchema,
+      targetTableName = tableName,
+      connection = "kafka",
+      yamlFileCoreLocation = yamlFileCoreLocation,
+      yamlFileLocation = yamlFileLocation
+    )
 
     if (dwhConfigLocation == null) {
       throw new IllegalArgumentException("dwhConfigLocation cannot be null")
@@ -37,27 +75,15 @@ case class YamlDataOdsDebeziumPostgresTableMirror(
     val dwhLoader = LoaderPostgres(dwhConfigLocation)
     val dwhInfo = dwhLoader.getDwhConnectionInfo
 
-    val taskNameKafka = s"kafka__$taskName"
     val taskNameStg = s"stg__${taskName}"
     val taskNameOds = s"ods__${taskName}"
     val taskNameSync = s"sync__${taskName}"
 
     val kafka = new YamlDataEtlToolTemplate(
-      taskName = taskNameKafka,
-      yamlFile = s"${yamlFileCoreLocation}/ods__${yamlFileLocation}__debezium/kafka/$kafkaTopic.yaml",
+      taskName = kafkaSupport.getKafkaTaskName,
+      yamlFile = kafkaSupport.getKafkaYamlFile,
       preEtlOperations = List.empty,
-      connections = List.apply(
-        YamlDataTemplateConnect(
-          sourceName = "kafkaUnico",
-          connection = "kafkaSaslSSL",
-          configLocation = "/opt/etl-tool/configConnection/kafka.yaml"
-        ),
-        YamlDataTemplateConnect(
-          sourceName = "datewarehouse",
-          connection = "minioJsonStream",
-          configLocation = "/opt/etl-tool/configConnection/minio.yaml" //TODO
-        ),
-      ),
+      connections = List(kafkaSupport.getConnect, support.getJsonStreamDataWarehouse),
       sources = List.apply(
         YamlDataTemplateSource(
           sourceName = "kafkaUnico",
@@ -80,7 +106,6 @@ case class YamlDataOdsDebeziumPostgresTableMirror(
             connection = "datewarehouse",
             source = "source",
             mode = WriteMode.streamByRunId,
-            partitionMode = PartitionModeEnum.streamByRunId.toString,
             targetFile = s"kafka/$kafkaTopic",
             partitionBy = List.apply(),
           ),
@@ -89,6 +114,7 @@ case class YamlDataOdsDebeziumPostgresTableMirror(
           ignoreError = false
         )
       ),
+      postEtlOperations = List.empty,
       dependencies = List.empty
     )
 
@@ -206,7 +232,6 @@ case class YamlDataOdsDebeziumPostgresTableMirror(
             mode = WriteMode.overwritePartition,
             targetFile = s"stg/${kafkaTopic}/kafka",
             partitionBy = List.apply("run_id"),
-            partitionMode = PartitionModeEnum.direct.toString,
           ),
           messageBroker = null,
           dummy = null,
@@ -214,7 +239,8 @@ case class YamlDataOdsDebeziumPostgresTableMirror(
           ignoreError = false
         )
       ),
-      dependencies = List.apply(taskNameKafka)
+      postEtlOperations = List.empty,
+      dependencies = List.apply(kafka.taskName)
     )
 
     val ods = new YamlDataEtlToolTemplate(
@@ -226,11 +252,7 @@ case class YamlDataOdsDebeziumPostgresTableMirror(
           connection = ConnectionEnum.minioParquet.toString,
           configLocation = "/opt/etl-tool/configConnection/minio.yaml" //TODO
         ),
-        YamlDataTemplateConnect(
-          sourceName = "postgres",
-          connection = "postgres",
-          configLocation = "/opt/etl-tool/configConnection/postgres.yaml"
-        ),
+        support.getPostgres,
       ),
       preEtlOperations = List.empty,
       sources = List.apply(
@@ -256,7 +278,7 @@ case class YamlDataOdsDebeziumPostgresTableMirror(
           sparkSql = YamlDataTemplateTransformationSparkSql(
             sql =
               s"""select value.after.*,
-                 |       timestamp as ts_ms
+                 |       timestamp as ts_ms $extra_code
                  |  from source""".stripMargin,
           ),
           sparkSqlLazy = null,
@@ -290,9 +312,9 @@ case class YamlDataOdsDebeziumPostgresTableMirror(
           extractAndValidateDataFrame = null,
           adHoc = null,
           deduplicate = YamlDataTemplateTransformationDeduplicate(
-            sourceTable= "level2",
-            uniqueKey= metadata.primaryKey,
-            deduplicationKey= List.apply("ts_ms")
+            sourceTable = "level2",
+            uniqueKey = metadata.primaryKey,
+            deduplicationKey = List.apply("ts_ms")
           )
         ),
       ),
@@ -305,7 +327,7 @@ case class YamlDataOdsDebeziumPostgresTableMirror(
           database = YamlDataTemplateTargetDatabase(
             connection = "postgres",
             source = "level3",
-            mode = WriteMode.merge,
+            mode = WriteMode.mergeDelta,
             partitionMode = null, //TODO
             targetSchema = s"ods__${tableSchema}",
             targetTable = s"${tableName}",
@@ -320,74 +342,50 @@ case class YamlDataOdsDebeziumPostgresTableMirror(
                 }
               )),
             uniqueKey = metadata.primaryKey,
-            deduplicationKey = List.apply("ts_ms desc"),
             partitionBy = null,
-            scd="SCD_3"
+            scd = "SCD_3"
           ),
           ignoreError = false
         )
       ),
+      postEtlOperations = List.empty,
       dependencies = List.apply(taskNameStg)
     )
     val clickhouse = new YamlDataEtlToolTemplate(
-      taskName = taskNameSync,
-      yamlFile = s"${yamlFileCoreLocation}/ods__${yamlFileLocation}__debezium/clickhouse/$kafkaTopic.yaml",
+      taskName = support.getClickhouseTaskName,
+      yamlFile = support.getClickhouseYamlFile,
       connections = List.apply(
-        YamlDataTemplateConnect(
-          sourceName = "clickhouseUnico",
-          connection = "clickhouse",
-          configLocation = "/opt/etl-tool/configConnection/clickhouse.yaml"
-        ),
-      ),
-      preEtlOperations = List.apply(
-        YamlConfigEltOnServerOperation(
-          eltOnServerOperationName = "preSql",
-          sourceName = "clickhouseUnico",
-          sql = YamlConfigEltOnServerSQL(
-            sql = List.apply(
-              s"""CREATE TABLE IF NOT EXISTS ods__${tableSchema}._${tableName}
-                 |(
-                 |    ${metadata.columns.map(col => s"${col.column_name} ${LoaderClickHouse.encodeIsNullable(col.isNullable, LoaderClickHouse.encodeDataType(col.data_type))}").mkString(",\n    ")}, valid_from_dttm Datetime, valid_to_dttm Datetime, run_id String
-                 |)
-                 |    ENGINE = PostgreSQL('${dwhInfo.hostPort}', '${dwhInfo.database}', '${tableName}', '${dwhInfo.username}', '${dwhInfo.password}', 'ods__${tableSchema}', 'connect_timeout=15, read_write_timeout=300');""".stripMargin,
-              s"""CREATE TABLE IF NOT EXISTS ods__${tableSchema}.${tableName}
-                 |(
-                 |    ${metadata.columns.map(col => s"${col.column_name} ${LoaderClickHouse.encodeIsNullable(col.isNullable, LoaderClickHouse.encodeDataType(col.data_type))}").mkString(",\n    ")}, valid_from_dttm Datetime, valid_to_dttm Datetime
-                 |)
-                 |    ENGINE = ReplacingMergeTree(valid_from_dttm) ORDER BY (${metadata.primaryKey.mkString(",")})  SETTINGS index_granularity = 8192;""".stripMargin,
-              s"""insert into ods__${tableSchema}.${tableName} (${metadata.columns.map(col => s"${col.column_name}").mkString(",")}, valid_from_dttm , valid_to_dttm )
-                 |select ${metadata.columns.map(col => s"${col.column_name}").mkString(",")}, valid_from_dttm , valid_to_dttm
-                 |  from ods__${tableSchema}._${tableName}
-                 | where valid_to_dttm = cast('2100-01-01' as Date)
-                 | SETTINGS external_storage_connect_timeout_sec=3000000,external_storage_rw_timeout_sec=3000000,connect_timeout=3000000;""".stripMargin,
-              s"""OPTIMIZE TABLE ods__${tableSchema}.${tableName} FINAL;""".stripMargin,
-            ),
-          ),
-          ignoreError = false
-        )
-      ),
-      sources = List.apply(),
+        support.getPostgres,support.getClickhouseConfig),
+      preEtlOperations = List.apply(support.getClickhouseYamlConfigEltOnServerOperation(metadata)),
+      sources = List.apply(support.getDataForDM),
       transform = List.apply(),
-      target = List.apply(
-        YamlDataTemplateTarget(
-          database = null,
-          fileSystem = null,
-          messageBroker = null,
-          dummy = YamlDataTemplateTargetDummy(),
-          ignoreError = false
-        )
-      ),
+      target = List.apply(support.getClickhouseTarget("clickhouseUnico", "src", metadata)),
+      postEtlOperations =List.apply(support.getClickhouseYamlConfigEltOnServerOperationPost(metadata)),
       dependencies = List.apply(taskNameOds)
     )
 
-    return kafka.getCoreTask ++ stg.getCoreTask ++ ods.getCoreTask ++ clickhouse.getCoreTask
+    val snowflake = new YamlDataEtlToolTemplate(
+      taskName = support.getSnowflakeTaskName,
+      yamlFile = support.getSnowflakeYamlFile,
+      connections = List.apply(
+        support.getPostgres,
+        support.getAmazonS3,
+      ),
+      preEtlOperations = List.empty,
+      sources = List.apply(support.getDataForDM),
+      transform = List.apply(),
+      target = List.apply(support.getSnowflakeTarget("datewarehouse", "src")),
+      postEtlOperations = List.empty,
+      dependencies = List.apply(ods.taskName)
+    )
+    return kafka.getCoreTask ++ stg.getCoreTask ++ ods.getCoreTask ++ clickhouse.getCoreTask ++ snowflake.getCoreTask
   }
 
 }
 
 
 object YamlDataOdsDebeziumPostgresTableMirror extends YamlClass {
-  def apply(inConfig: String, row: mutable.Map[String, String]): YamlDataOdsDebeziumPostgresTableMirror = {
+  def apply(inConfig: String, row: Map[String, String]): YamlDataOdsDebeziumPostgresTableMirror = {
     val text: String = getLines(inConfig, row)
     val configYaml: YamlDataOdsDebeziumPostgresTableMirror = mapper.readValue(text, classOf[YamlDataOdsDebeziumPostgresTableMirror])
     return configYaml

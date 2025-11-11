@@ -1,6 +1,6 @@
 package pro.datawiki.sparkLoader.taskTemplate
 
-import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
+import pro.datawiki.datawarehouse.{DataFrameEmpty, DataFrameOriginal, DataFrameTrait}
 import pro.datawiki.schemaValidator.baseSchema.BaseSchemaObjectTemplate
 import pro.datawiki.schemaValidator.projectSchema.SchemaObject
 import pro.datawiki.sparkLoader.traits.LoggingTrait
@@ -21,6 +21,7 @@ class TaskTemplateExtractAndValidateDataFrame(
       // Получаем данные из источника
       logInfo(s"Loading data from: $dataFrameIn")
       val df = SparkObject.spark.sql(s"""select * from $dataFrameIn""")
+      if df.count() ==0 then return List.apply(DataFrameEmpty())
       LogMode.debugDF(df)
 
       // Создаем объект схемы из полей DataFrame

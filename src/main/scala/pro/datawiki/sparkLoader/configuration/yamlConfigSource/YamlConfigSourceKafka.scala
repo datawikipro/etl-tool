@@ -13,10 +13,10 @@ case class YamlConfigSourceKafka(
                                   topics: YamlConfigSourceKafkaTopic,
                                   listTopics: YamlConfigSourceKafkaListTopics,
                                   topicsByRegexp: YamlConfigSourceKafkaTopicsByRegexp
-                                ) extends LogicClass, YamlConfigSourceTrait {
+                                ) extends  YamlConfigSourceTrait {
   @JsonIgnore
   def getLogic: Any = {
-    super.getLogic(topics, listTopics, topicsByRegexp)
+    LogicClass.getLogic(topics, listTopics, topicsByRegexp)
   }
 
   @JsonIgnore

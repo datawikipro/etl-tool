@@ -13,10 +13,10 @@ case class YamlConfigTemplate(
                                getDomAttribute: YamlConfigTemplateGetDomAttribute,
                                getDomProperty: YamlConfigTemplateGetDomProperty,
                                getText: YamlConfigTemplateGetText,
-                             ) extends LogicClass {
+                             )  {
 
   def getSubElements(webElement: WebElement): Map[String, SeleniumType] = {
-    val logic = getLogic(findElement, findElements, getDomAttribute, getDomProperty, getText)
+    val logic = LogicClass.getLogic(findElement, findElements, getDomAttribute, getDomProperty, getText)
     logic match
       case x: YamlConfigTemplateFinderTrait => {
         val list: List[WebElement] = x.getSelenium(webElement)

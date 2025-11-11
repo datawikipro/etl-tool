@@ -6,4 +6,6 @@ case class CoreTaskTemplateSourceWeb(
                                       run: String,
                                       isDirty: Boolean,
                                       schemas: List[CoreTaskTemplateSourceWebConfigSchema],
+                                      validateStatusColumn:String,
+                                      validateStatusValue: List[String]
                                     )

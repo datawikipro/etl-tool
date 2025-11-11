@@ -2,7 +2,7 @@ package pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTem
 
 import org.apache.spark.sql.DataFrame
 import pro.datawiki.datawarehouse.DataFrameTrait
-import pro.datawiki.sparkLoader.configuration.{ YamlConfigTargetTrait}
+import pro.datawiki.sparkLoader.configuration.YamlConfigTargetTrait
 import pro.datawiki.sparkLoader.connection.{FileStorageTrait, QueryTrait}
 
 

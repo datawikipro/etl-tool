@@ -10,5 +10,4 @@ import scala.collection.mutable
 
 trait Task extends LoggingTrait {
   def run(targetName: String, parameters: Map[String, String], isSync: Boolean): ProgressStatus
-  def setSkipIfEmpty(in: Boolean): Unit
 }

@@ -14,17 +14,6 @@ class TransformationCacheDatabase() extends TransformationCache {
 
   def getLocation: String = s"$tmpSchema.$location"
 
-  override def readDirty(connection: ConnectionTrait): List[DataFrameTrait] = throw UnsupportedOperationException("readDirty not implemented in TransformationCacheDatabase")
-  //
-  //  def saveTablePartitionAuto(df: DataFrame,
-  //                             partitionName: List[String]): Unit = {
-  //    connect.writeDfPartitionAuto(df, location, partitionName,  WriteMode.overwrite)
-  //  }
-  //
-  //  def moveTablePartition(targetSchema: String, targetLocation: String, partitionName: List[String]): Boolean = {
-  //    connect.moveTablePartition(targetSchema, location, targetSchema, targetLocation, partitionName,  WriteMode.overwrite)
-  //  }
-
   @Override
   def readBaseTable(inConnection: ConnectionTrait): DataFrame = {
     val connect: DatabaseTrait = inConnection match {
@@ -45,8 +34,8 @@ class TransformationCacheDatabase() extends TransformationCache {
       case _ => throw UnsupportedOperationException(s"Unsupported connection type for TransformationCacheDatabase: ${inConnection.getClass.getSimpleName}")
     }
     mode match {
-      case WriteMode.overwriteTable => connect.writeDf(in.getDataFrame, tmpSchema,location, mode, SCDType.SCD_0)
-      case WriteMode.append => connect.writeDf(in.getDataFrame, tmpSchema,location, mode, SCDType.SCD_0)
+      case WriteMode.overwriteTable => connect.writeDf(in.getDataFrame, tmpSchema,location, mode, SCDType.SCD_0, List.empty)
+      case WriteMode.append => connect.writeDf(in.getDataFrame, tmpSchema,location, mode, SCDType.SCD_0, List.empty)
       case _ => throw UnsupportedOperationException(s"Unsupported WriteMode: $mode")
     }
   }

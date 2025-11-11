@@ -7,10 +7,11 @@ import scala.collection.mutable
 
 trait YamlDataTaskToolTemplate {
   def getCoreTask: List[CoreTask]
+  def isRunFromControlDag:Boolean
 }
 
 object YamlDataTaskToolTemplate {
-  def apply(templateName: String, templateLocation: String, row: mutable.Map[String, String]): YamlDataTaskToolTemplate = {
+  def apply(templateName: String, templateLocation: String, row: Map[String, String]): YamlDataTaskToolTemplate = {
     templateName match {
       case "Kafka" => return YamlDataOdsKafkaTemplate(templateLocation, row)
       case "OdsPostgresMirror" => return YamlDataOdsPostgresMirrorTemplate(templateLocation, row)

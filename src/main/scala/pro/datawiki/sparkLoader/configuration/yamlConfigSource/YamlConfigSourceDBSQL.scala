@@ -9,7 +9,6 @@ import pro.datawiki.sparkLoader.taskTemplate.{TaskTemplate, TaskTemplateSQLFromD
 case class YamlConfigSourceDBSQL(
                                   sql: String,
                                 ) extends YamlConfigSourceTrait {
-
   override def getTaskTemplate(connection: ConnectionTrait): TaskTemplate = {
     return TaskTemplateSQLFromDatabase(sql, connection)
   }

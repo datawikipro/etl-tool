@@ -6,14 +6,14 @@ case class YamlConfig(
                        cookies: List[KeyValue] = List.apply(),
                        headers: List[KeyValue] = List.apply(),
                        authType: AuthType,
-                       body: String,
+                       body: String = "",
                        resultType: String = "json",
-//                       host: String = throw IllegalArgumentException("host is required"),
+                       formData: List[KeyValue] = List.empty,
                        limit: Int,
                        startOffset: Int,
                        pageCount: String,
                        threadCount: Int = 5,
                        timeoutSeconds: Int = 10
                      ) {
-  
+
 }

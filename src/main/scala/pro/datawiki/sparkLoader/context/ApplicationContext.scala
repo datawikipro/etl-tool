@@ -34,7 +34,8 @@ object ApplicationContext {
     globalVariable += ("run_id", id)
     val patterns: List[Regex] = List.apply(
       """^scheduled__(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\+(\d{2}):(\d{2})$""".r,
-      """^manual__(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{6})\+(\d{2}):(\d{2})$""".r
+         """^manual__(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\+(\d{2}):(\d{2})$""".r
+
     )
     patterns.foreach(pattern => {
       if pattern.matches(id) then {
@@ -84,6 +85,6 @@ object ApplicationContext {
     ))).toList
   }
 
-  def getGlobalVariables: mutable.Map[String, String] = globalVariable
+  def getGlobalVariables:Map[String, String] = globalVariable.toMap
 
 }

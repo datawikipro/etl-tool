@@ -13,8 +13,7 @@ class TaskTemplateQdrant(
   override def run(parameters: Map[String, String], isSync: Boolean): List[DataFrameTrait] = {
     connection match {
       case qdrantLoader: LoaderQdrant =>
-        val df: DataFrame = qdrantLoader.readDf(collectionName)
-        val dataFrame = DataFrameOriginal(df)
+        val dataFrame: DataFrameTrait = qdrantLoader.readDf(collectionName)
         return List(dataFrame)
       case _ =>
         throw new Exception(s"Expected LoaderQdrant connection, but got ${connection.getClass.getName}")

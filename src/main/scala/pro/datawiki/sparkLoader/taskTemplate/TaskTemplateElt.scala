@@ -2,7 +2,7 @@ package pro.datawiki.sparkLoader.taskTemplate
 
 import pro.datawiki.datawarehouse.DataFrameTrait
 import pro.datawiki.exception.NotImplementedException
-import pro.datawiki.sparkLoader.connection.ConnectionTrait
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait}
 import pro.datawiki.sparkLoader.connection.clickhouse.LoaderClickHouse
 
 class TaskTemplateElt(sql: List[String],
@@ -10,7 +10,7 @@ class TaskTemplateElt(sql: List[String],
 
   override def run(parameters: Map[String, String], isSync: Boolean): List[DataFrameTrait] = {
     connection match {
-      case x: LoaderClickHouse => {
+      case x: DatabaseTrait => {
         sql.foreach(i => {
           try {
             if !x.runSQL(i) then {

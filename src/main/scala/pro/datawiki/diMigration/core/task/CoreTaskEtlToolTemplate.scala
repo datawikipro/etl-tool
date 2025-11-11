@@ -12,6 +12,7 @@ case class CoreTaskEtlToolTemplate(
                                     sources: List[CoreTaskTemplateSource],
                                     transform: List[CoreTaskTemplateTransformation],
                                     target: List[CoreTaskTemplateTarget],
+                                    postEtlOperations: List[CoreTaskTemplateEltOnServerOperation],
                                     dependencies: List[String]
                                   ) extends CoreTask {
 

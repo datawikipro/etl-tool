@@ -11,10 +11,7 @@ object MigrationMain extends LoggingTrait {
     try {
       val sourceConfig: AttributeYaml = AttributeYaml(configLocation)
 
-      val results = sourceConfig.transformations.map { transformation =>
-        transformation.process()
-        logInfo("Transformation completed successfully")
-      }
+      val results = sourceConfig.transformations.map { transformation => transformation.process() }
 
     } catch {
       case e: Exception =>

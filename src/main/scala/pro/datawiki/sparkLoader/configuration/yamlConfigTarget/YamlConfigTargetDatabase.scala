@@ -6,6 +6,7 @@ import org.apache.spark.sql.types.{LongType, StringType, TimestampType}
 import org.apache.spark.sql.{Column, DataFrame}
 import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFramePartition, DataFrameTrait}
 import pro.datawiki.exception.{DataProcessingException, IllegalArgumentException}
+import pro.datawiki.sparkLoader.LogMode
 import pro.datawiki.sparkLoader.configuration.YamlConfigTargetTrait
 import pro.datawiki.sparkLoader.configuration.yamlConfigTarget.yamlConfigTargetDatabase.YamlConfigTargetColumn
 import pro.datawiki.sparkLoader.connection.DatabaseTrait
@@ -15,7 +16,6 @@ import pro.datawiki.sparkLoader.connection.spark.LoaderSpark
 import pro.datawiki.sparkLoader.dictionaryEnum.{SCDType, WriteMode}
 import pro.datawiki.sparkLoader.traits.LoggingTrait
 import pro.datawiki.sparkLoader.transformation.TransformationCacheDatabase
-import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 
 @JsonInclude(JsonInclude.Include.NON_ABSENT)
 case class YamlConfigTargetDatabase(
@@ -24,14 +24,15 @@ case class YamlConfigTargetDatabase(
                                      mode: String = "append",
                                      targetSchema: String = throw IllegalArgumentException("targetSchema is required"),
                                      targetTable: String = throw IllegalArgumentException("targetTable is required"),
-                                     columns: List[YamlConfigTargetColumn],
+                                     columns: List[YamlConfigTargetColumn] = List.apply(),
                                      uniqueKey: List[String] = List.apply(),
                                      afterDQ: List[String] = List.apply(),
                                      partitionBy: List[String] = List.apply(),
-                                     scd:String = throw Exception()
+                                     scd: String = throw Exception()
                                    ) extends YamlConfigTargetBase(connection = connection, mode = mode, source = source) with YamlConfigTargetTrait with LoggingTrait {
   private var locCache: TransformationCacheDatabase = null
-  private val scdType:SCDType = SCDType(scd)
+  private val scdType: SCDType = SCDType(scd)
+
   @JsonIgnore
   def cache: TransformationCacheDatabase = {
     if locCache == null then locCache = new TransformationCacheDatabase()
@@ -57,10 +58,8 @@ case class YamlConfigTargetDatabase(
     return locAllFields
   }
 
-  private var locFieldsWithChanges: List[YamlConfigTargetColumn] = List.empty
 
   private def columnsWithChanges: List[YamlConfigTargetColumn] = {
-    if locFieldsWithChanges.nonEmpty then return locFieldsWithChanges
     return columns.filter(col => !uniqueKey.toSet.contains(col.columnName))
   }
 
@@ -112,6 +111,7 @@ case class YamlConfigTargetDatabase(
       sourceType = sourceType1.head.dataType.typeName
     } catch {
       case e: Exception => {
+        throw Exception(s"Column $columnName not found in dataFrame column list: ${df.schema.fields.map(col => col.name).mkString(", ")}")
         throw e
       }
     }
@@ -120,6 +120,10 @@ case class YamlConfigTargetDatabase(
 
     val sourceTypeEmin = LoaderSpark.decodeDataType(sourceType)
     if sourceTypeEmin.getMasterType == targetType.getMasterType then return df
+
+    if sourceTypeEmin.getMasterType == TableMetadataType.Integer &&
+      targetType.getMasterType == TableMetadataType.Real then return df
+
     if !isTypeDecode then
       throw DataProcessingException(s"Type conversion not allowed: column '$columnName' from $sourceTypeEmin to $targetType")
 
@@ -182,7 +186,7 @@ case class YamlConfigTargetDatabase(
       locDf = dataFrameColumnTypeDecode(locDf, col.columnName, col.columnType, col.columnTypeDecode)
       LogMode.debugDF(locDf)
     })
-    if list.nonEmpty then  locDf = locDf.select(list *)
+    if list.nonEmpty then locDf = locDf.select(list *)
     return locDf
 
   }
@@ -191,11 +195,38 @@ case class YamlConfigTargetDatabase(
   override def writeTarget(): Boolean = {
 
     loadMode match
-      case WriteMode.merge => {
+      case WriteMode.mergeDelta => {
         getSourceDf match {
           case x: DataFrameOriginal => {
             if uniqueKey.isEmpty then throw IllegalArgumentException("Unique key is required for merge operation")
-            loader.writeDfMerge(prepareDataFrame(x.getDataFrame), targetSchema, targetTable, scdType, columns.map(col => col.columnName), uniqueKey)
+            partitionBy.length match {
+              case 0 => loader.writeDfMergeDelta(prepareDataFrame(x.getDataFrame), targetSchema, targetTable, scdType, columns.map(col => col.columnName), uniqueKey, partitionBy.map(col=> (col,throw Exception())))
+              case 1 => {
+
+                val df = prepareDataFrame(x.getDataFrame).orderBy(partitionBy.map(col1 => col(col1))*)
+                x.getDataFrame.select(col(partitionBy.head)).distinct().collect().toList.map(col=> {
+                  val a = partitionBy.map(col1 => (col1, col.get(col.fieldIndex(col1)).toString))
+                  val df2 = df.where(a.map(col1=> s"${col1._1} = '${col1._2}'").mkString(" and "))
+                  LogMode.debugDF(df2)
+                  loader.writeDfMergeDelta(df2, targetSchema, targetTable, scdType, columns.map(col => col.columnName), uniqueKey, a)
+                })
+
+              }
+              case _=> throw Exception()
+            }
+
+
+            return true
+          }
+          case _ => throw IllegalArgumentException("Unsupported write mode")
+        }
+      }
+      case WriteMode.mergeFull => {
+        getSourceDf match {
+          case x: DataFrameOriginal => {
+            if uniqueKey.isEmpty then throw IllegalArgumentException("Unique key is required for merge operation")
+            //            loader.writeDfMergeFull(prepareDataFrame(x.getDataFrame), targetSchema, targetTable, scdType, columns.map(col => col.columnName), uniqueKey)
+            loader.writeDfMergeDelta(prepareDataFrame(x.getDataFrame), targetSchema, targetTable, scdType, columns.map(col => col.columnName), uniqueKey, partitionBy.map(col=> (col,throw Exception())))
             return true
           }
           case _ => throw IllegalArgumentException("Unsupported write mode")
@@ -204,11 +235,11 @@ case class YamlConfigTargetDatabase(
       case WriteMode.append => {
         getSourceDf match
           case x: DataFramePartition => {
-            x.getPartitions.foreach(i => loader.writeDfAppend(prepareDataFrame(i._2.getDataFrame), targetSchema, targetTable, SCDType.SCD_2, columns.map(col=> col.columnName), uniqueKey))
+            x.getPartitions.foreach(i => loader.writeDfAppend(prepareDataFrame(i._2.getDataFrame), targetSchema, targetTable, SCDType.SCD_2, columns.map(col => col.columnName), uniqueKey, partitionBy.map(col=> (col,throw Exception()))))
             return true
           }
           case x: DataFrameOriginal => {
-            loader.writeDfAppend(prepareDataFrame(x.getDataFrame), targetSchema, targetTable, SCDType.SCD_2,  columns.map(col=> col.columnName), uniqueKey)
+            loader.writeDfAppend(prepareDataFrame(x.getDataFrame), targetSchema, targetTable, scdType, columns.map(col => col.columnName), uniqueKey, partitionBy.map(col=> (col,throw Exception())))
             return true
           }
           case _ => throw IllegalArgumentException("Unsupported write mode")
@@ -217,7 +248,7 @@ case class YamlConfigTargetDatabase(
         getSourceDf match
           case x: DataFramePartition => throw UnsupportedOperationException("Overwrite table is not supported for partitioned tables")
           case x: DataFrameOriginal => {
-            loader.writeDfOverwriteTable(prepareDataFrame(x.getDataFrame), targetSchema, targetTable, SCDType.SCD_2,  columns.map(col=> col.columnName), uniqueKey)
+            loader.writeDfOverwriteTable(prepareDataFrame(x.getDataFrame), targetSchema, targetTable, SCDType.SCD_2, columns.map(col => col.columnName), uniqueKey, partitionBy.map(col=> (col,throw Exception())))
             return true
           }
           case _ => throw IllegalArgumentException("Unsupported write mode")
@@ -225,11 +256,11 @@ case class YamlConfigTargetDatabase(
       case WriteMode.overwritePartition => {
         getSourceDf match
           case x: DataFramePartition => {
-            x.getPartitions.foreach(i => loader.writeDfOverwritePartition(prepareDataFrame(i._2.getDataFrame), targetSchema, targetTable, SCDType.SCD_2,  columns.map(col=> col.columnName), uniqueKey))
+            x.getPartitions.foreach(i => loader.writeDfOverwritePartition(prepareDataFrame(i._2.getDataFrame), targetSchema, targetTable, SCDType.SCD_2, columns.map(col => col.columnName), uniqueKey, partitionBy.map(col=> (col,throw Exception()))))
             return true
           }
           case x: DataFrameOriginal => {
-            loader.writeDfAppend(prepareDataFrame(x.getDataFrame), targetSchema, targetTable, scdType,  columns.map(col=> col.columnName), uniqueKey)
+            loader.writeDfAppend(prepareDataFrame(x.getDataFrame), targetSchema, targetTable, scdType, columns.map(col => col.columnName), uniqueKey, partitionBy.map(col=> (col,throw Exception())))
             return true
           }
           case _ => throw IllegalArgumentException("Unsupported write mode")
@@ -238,33 +269,15 @@ case class YamlConfigTargetDatabase(
   }
 
   override def getSourceDf: DataFrameTrait = {
-    val df = super.getSourceDf
-    val dfConverted  = convertComplexTypesToJson(df.getDataFrame)
+    var df = super.getSourceDf
+    var dfConverted: DataFrame = loader match {
+      case x: DatabaseTrait => x.convertComplexTypesToJson(df.getDataFrame)
+      case _ => df.getDataFrame
+    }
+
+
     return DataFrameOriginal(dfConverted)
   }
 
-  private def convertComplexTypesToJson(df: DataFrame): DataFrame = {
-    import org.apache.spark.sql.functions._
-    import org.apache.spark.sql.types._
-
-    val columns = df.schema.fields.map { field =>
-      field.dataType match {
-        // Structs and Maps -> convert to JSON string
-        case StructType(_) | MapType(_, _, _) =>
-          to_json(col(field.name)).as(field.name)
-
-        // Arrays: keep simple arrays of strings or ints as arrays; otherwise stringify
-        case ArrayType(StringType, _) | ArrayType(IntegerType, _) =>
-          col(field.name)
-        case ArrayType(_, _) =>
-          to_json(col(field.name)).as(field.name)
-
-        // Keep simple types as-is
-        case _ => col(field.name)
-      }
-    }
-
-    df.select(columns*)
-  }
 
 }

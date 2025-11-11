@@ -30,7 +30,6 @@ case class YamlDataTemplateTarget(
 
         )),
         uniqueKey = fs.uniqueKey,
-        deduplicationKey = fs.deduplicationKey,
         partitionBy = fs.partitionBy,
           scd = fs.scd
       )
@@ -41,7 +40,6 @@ case class YamlDataTemplateTarget(
         connection = fs.connection,
         source = fs.source,
         mode = fs.mode,
-        partitionMode = fs.partitionMode,
         targetFile = fs.targetFile,
         partitionBy = fs.partitionBy
       )

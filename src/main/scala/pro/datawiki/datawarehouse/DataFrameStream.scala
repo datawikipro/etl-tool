@@ -11,7 +11,7 @@ class DataFrameStream(df: DataFrame) extends DataFrameTrait {
 
   override def getDataFrame: DataFrame = localDf
 
-  override def isEmpty: Boolean = throw UnsupportedOperationException("isEmpty not implemented for DataFrameStream")
+  override def isEmpty: Boolean = false
 
 
   override def isValidData: Boolean = true

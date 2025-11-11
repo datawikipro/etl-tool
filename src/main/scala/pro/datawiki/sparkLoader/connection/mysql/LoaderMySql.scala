@@ -94,9 +94,11 @@ class LoaderMySql(configYaml: YamlConfig, configLocation: String) extends Connec
 
   override def runSQL(in: String): Boolean = throw NotImplementedException("Method not implemented")
 
-  override def writeDf(df: DataFrame, tableSchema: String, tableName: String, writeMode: WriteMode, scdType: SCDType): Unit = throw NotImplementedException("Method not implemented")
+  override def writeDf(df: DataFrame, tableSchema: String, tableName: String, writeMode: WriteMode, scdType: SCDType, partitionBy: List[(String,String)]): Unit = throw NotImplementedException("Method not implemented")
 
   override def readDfSchema(tableSchema: String, tableName: String): DataFrame =throw NotImplementedException("Method not implemented")
+
+  override def setTemporaryTable(tableName: String, sql: String): Boolean = throw NotImplementedException("Method not implemented")
 }
 
 object LoaderMySql extends YamlClass {

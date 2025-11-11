@@ -21,7 +21,7 @@ class DataFrameLazySparkSql(sql: String, inInitTables: mutable.Map[String, DataF
   }
   override def getFullName(in: String): String = throw NotImplementedException("getFullName not implemented for DataFrameLazySparkSql")
 
-  override def isEmpty: Boolean = throw UnsupportedOperationException("isEmpty not implemented for DataFrameLazySparkSql")
+  override def isEmpty: Boolean = false
 
 
   override def isValidData: Boolean = true

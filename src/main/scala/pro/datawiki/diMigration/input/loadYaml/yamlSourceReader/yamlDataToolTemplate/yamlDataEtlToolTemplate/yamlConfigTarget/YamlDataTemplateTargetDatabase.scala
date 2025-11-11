@@ -19,7 +19,6 @@ case class YamlDataTemplateTargetDatabase(
                                            targetTable: String,
                                            columns: List[YamlDataTemplateTargetColumn],
                                            uniqueKey: List[String],
-                                           deduplicationKey: List[String],
                                            partitionBy: List[String],
                                            scd:String
                                          ) 

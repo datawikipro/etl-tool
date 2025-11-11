@@ -4,4 +4,5 @@ import pro.datawiki.diMigration.output.traits.TargetMigration
 
 case class CoreSqlDag(sql: String) extends CoreDag {
 
+  override def ttt: Unit = ???
 }

@@ -4,7 +4,7 @@ import _root_.org.apache.spark.sql.functions.lit
 import _root_.org.apache.spark.sql.{DataFrame, DataFrameReader}
 import io.minio.*
 import pro.datawiki.exception.{NotImplementedException, TableNotExistException}
-import pro.datawiki.sparkLoader.connection.fileBased.FileBaseFormat
+import pro.datawiki.sparkLoader.connection.fileBased.{FileBaseFormat, FileStorageCommon}
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, FileStorageTrait}
 import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, WriteMode}
 import pro.datawiki.sparkLoader.traits.LoggingTrait
@@ -17,77 +17,21 @@ import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
 case class LoaderMinIo(format: FileBaseFormat,
-                       configYaml: YamlConfig, 
+                       configYaml: YamlConfig,
                        configLocation: String) extends FileStorageTrait, ConnectionTrait, LoggingTrait {
   private val _configLocation: String = configLocation
-  
+
   logInfo("Creating MinIO connection")
 
-  def optimizeDataFramePartitions(df: DataFrame): DataFrame = {
-    try {
-      val rowCount = df.count()
-      val currentPartitions = df.rdd.getNumPartitions
+  def optimizeDataFramePartitions(df: DataFrame): DataFrame = FileStorageCommon.optimizeDataFramePartitions(df)
 
-      val targetPartitions = rowCount match {
-        case count if count < 200 => 1 // Very small datasets: single file
-        case count if count < 500 => 2 // Small datasets: 2 files
-        case count if count < 1000 => 4 // Medium-small: 4 files (~250 rows each)
-        case count if count < 5000 => Math.max(4, count / 500).toInt // Medium: ~500 rows per partition
-        case count if count < 50000 => Math.max(8, count / 1000).toInt // Large: ~1000 rows per partition
-        case _ => Math.max(16, Math.min(currentPartitions, 50)) // Very large: cap at 50 partitions
-      }
-
-      if (targetPartitions != currentPartitions) {
-        logInfo(s"Optimizing partitions: $currentPartitions -> $targetPartitions for $rowCount rows")
-        if (targetPartitions < currentPartitions) {
-          return df.coalesce(targetPartitions)
-        } else {
-          return df.repartition(targetPartitions)
-        }
-      } else {
-        logInfo(s"Partition count already optimal: $currentPartitions partitions for $rowCount rows")
-        return df
-      }
-    } catch {
-      case e: Exception =>
-        logWarning(s"Failed to optimize partitions, using original DataFrame: ${e.getMessage}")
-        return df
-    }
-  }
-
-  private def createDataFrameReader(): DataFrameReader = {
-    logInfo(s"Creating DataFrameReader for format: ${format.toString}")
-    var reader = SparkObject.spark.read.format(format.toString)
-
-    // Configure format-specific options
-    format match {
-      case FileBaseFormat.`json` =>
-        logInfo("Configuring DataFrameReader for JSON format")
-        if configYaml.corruptRecordColumn.nonEmpty then
-          reader = reader.option("columnNameOfCorruptRecord", configYaml.corruptRecordColumn.get)
-        if configYaml.jsonMode.nonEmpty then
-          reader = reader.option("mode", configYaml.jsonMode.get)
-        if configYaml.jsonMultiline.nonEmpty then
-          reader = reader.option("multiline", configYaml.jsonMultiline.get.toString)
-        return reader
-      case FileBaseFormat.`parquet` =>
-        logInfo("Configuring DataFrameReader for Parquet format")
-        // Parquet doesn't need corrupt record handling, but we can add other options if needed
-        reader = reader
-          .option("mergeSchema", "true") // Enable schema merging for Parquet files
-        return reader
-      case FileBaseFormat.`csv` =>
-        logInfo("Configuring DataFrameReader for CSV format")
-        reader = reader
-          .option("header", "true")
-          .option("inferSchema", "true")
-        return reader
-      case _ =>
-        logInfo(s"Using default configuration for format: ${format.toString}")
-        // For other formats, use default options
-        return reader
-    }
-  }
+  private def createDataFrameReader(): DataFrameReader =
+    FileStorageCommon.createDataFrameReader(
+      format,
+      configYaml.corruptRecordColumn,
+      configYaml.jsonMode,
+      configYaml.jsonMultiline
+    )
 
   def readDf(location: String): DataFrame = {
     val fullLocation = getLocation(location = location)
@@ -99,7 +43,7 @@ case class LoaderMinIo(format: FileBaseFormat,
 
   }
 
-  def readDf(location: String, keyPartitions: List[String], valuePartitions: List[String]): DataFrame = {
+  def readDf(location: String, keyPartitions: List[String], valuePartitions: List[String], withPartitionOnDataframe: Boolean): DataFrame = {
     val fullLocation = getLocation(location = location, keyPartitions = keyPartitions, valuePartitions = valuePartitions)
     val partitionPath = getLocationWithPostfix(location, keyPartitions, valuePartitions)
 
@@ -107,7 +51,7 @@ case class LoaderMinIo(format: FileBaseFormat,
     logInfo(s"Partition path: $partitionPath, keyPartitions: ${keyPartitions.mkString(",")}, valuePartitions: ${valuePartitions.mkString(",")}")
     logInfo(s"Using format: ${format.toString} for reading")
 
-    val list = getListElementsInFolder(configYaml.bucket, partitionPath)
+    val list = getListElementsInFolder(partitionPath)
     if list.isEmpty then {
       logWarning(s"No files found in partition path: $partitionPath")
       throw TableNotExistException(s"No files found in MinIO partition path: $partitionPath")
@@ -117,11 +61,11 @@ case class LoaderMinIo(format: FileBaseFormat,
 
 
     var df: DataFrame = createDataFrameReader().load(fullLocation)
-
-    keyPartitions.zipWithIndex.foreach { case (value, index) =>
-      df = df.withColumn(keyPartitions(index), lit(valuePartitions(index)))
+    if withPartitionOnDataframe then {
+      keyPartitions.zipWithIndex.foreach { case (value, index) =>
+        df = df.withColumn(keyPartitions(index), lit(valuePartitions(index)))
+      }
     }
-
     logInfo(s"Successfully read DataFrame with partitions from: $fullLocation")
     LogMode.debugDF(df)
     return df
@@ -154,26 +98,27 @@ case class LoaderMinIo(format: FileBaseFormat,
 
       minioClient.uploadObject(UploadObjectArgs.builder().`object`(localFileName).bucket(configYaml.bucket).filename(localFileName).build())
       copyFile(configYaml.bucket, localFileName, configYaml.bucket, inLocation)
-      removeFile(configYaml.bucket, localFileName)
+      removeFile(localFileName)
 
     } finally {
       new File(localFileName).delete()
     }
   }
 
-  def deleteFolder(sourceSchema: String, folderName: String): Boolean = {
-    val list: List[String] = getListElementsInFolder(sourceSchema, folderName)
+  override def deleteFolder(folderName: String): Boolean = {
+    val list: List[String] = getListElementsInFolder(folderName)
 
     list.foreach(fileFullLocation =>
-      removeFile(sourceSchema, fileFullLocation)
+      removeFile(fileFullLocation)
     )
     return true
+
   }
 
-  private def getListElementsInFolder(sourceSchema: String, oldTable: String): List[String] = {
+  private def getListElementsInFolder(oldTable: String): List[String] = {
     var list: List[String] = List.apply()
     val listArgs = ListObjectsArgs.builder()
-      .bucket(sourceSchema)
+      .bucket(configYaml.bucket)
       .prefix(oldTable)
       .recursive(true)
       .build()
@@ -184,15 +129,14 @@ case class LoaderMinIo(format: FileBaseFormat,
   }
 
   def getFolder(location: String): List[String] = {
-    val listArgs = ListObjectsArgs.builder().bucket(configYaml.bucket).prefix(location).recursive(true).delimiter("/").build()
-
-    var list: List[String] = List.apply()
+    val listArgs = ListObjectsArgs.builder().bucket(configYaml.bucket).prefix(location).delimiter("/").recursive(true).build()
     val objects = minioClient.listObjects(listArgs).asScala
-    objects.foreach(result => {
-      list = list.appended(result.get().objectName().replace(location + "/", "").split("/").init.mkString("/"))
-    })
+    val list: List[String] = objects.map(col => col.get().objectName()).
+      filterNot(col => col.contains("_spark_metadata")).
+      filterNot(col => col.contains("_temporary")).
+      toList.distinct
 
-    return list.distinct
+    return list
   }
 
   private def copyFile(bucketFrom: String, fileFrom: String, bucketTo: String, fileTo: String): Unit = {
@@ -201,18 +145,23 @@ case class LoaderMinIo(format: FileBaseFormat,
     minioClient.copyObject(copyArgs)
   }
 
-  private def removeFile(sourceSchema: String, fileFullLocation: String): Unit = {
-    val removeArgs = RemoveObjectArgs.builder().bucket(sourceSchema).`object`(fileFullLocation).build()
+  private def removeFile(fileFullLocation: String): Unit = {
+    val removeArgs = RemoveObjectArgs.builder().bucket(configYaml.bucket).`object`(fileFullLocation).build()
     minioClient.removeObject(removeArgs)
   }
 
-  override def moveTablePartition(sourceSchema: String, oldTable: String, newTableSchema: String, newTable: String, partitionName: List[String]): Boolean = {
-    val list: List[String] = getListElementsInFolder(sourceSchema, oldTable)
+  override def moveTablePartition(oldTable: String, newTable: String, partitionName: List[String]): Boolean = {
+    if partitionName.isEmpty then throw Exception()
+    partitionName.foreach(col => {
+      val list: List[String] = getListElementsInFolder(s"$oldTable/$col")
 
-    list.foreach(fileFullLocation =>
-      copyFile(sourceSchema, fileFullLocation, sourceSchema, newTable + fileFullLocation.stripPrefix(oldTable))
-      removeFile(sourceSchema, fileFullLocation)
+      list.foreach(fileFullLocation =>
+        copyFile(configYaml.bucket, fileFullLocation, configYaml.bucket, newTable + fileFullLocation.stripPrefix(oldTable))
+        removeFile(fileFullLocation)
+      )
+    }
     )
+
     return true
   }
 
@@ -292,18 +241,11 @@ case class LoaderMinIo(format: FileBaseFormat,
     return s"s3a://${configYaml.bucket}/$location"
   }
 
-  private def getLocationWithPostfix(location: String, keyPartitions: List[String], valuePartitions: List[String]): String = {
-    var postfix: String = ""
-    keyPartitions.zipWithIndex.foreach { case (value, index) => postfix += s"${keyPartitions(index)}=${valuePartitions(index)}/"
-    }
-    val location1 = s"$location/${postfix}"
-    return location1
-  }
+  private def getLocationWithPostfix(location: String, keyPartitions: List[String], valuePartitions: List[String]): String =
+    FileStorageCommon.buildPartitionedLocation(location, keyPartitions, valuePartitions)
 
-  def getLocation(location: String, keyPartitions: List[String], valuePartitions: List[String]): String = {
-    val location1 = s"s3a://${configYaml.bucket}/${getLocationWithPostfix(location, keyPartitions, valuePartitions)}"
-    return location1
-  }
+  def getLocation(location: String, keyPartitions: List[String], valuePartitions: List[String]): String =
+    FileStorageCommon.s3aUri(configYaml.bucket, getLocationWithPostfix(location, keyPartitions, valuePartitions))
 
   def getMasterFolder: String = configYaml.bucket
 
@@ -321,14 +263,6 @@ case class LoaderMinIo(format: FileBaseFormat,
 
   override def readDfSchema(location: String): DataFrame = {
     throw NotImplementedException("readDfSchema method not implemented for MinIO")
-  }
-
-  override def deleteFolder(location: String): Boolean = {
-    val list = getListElementsInFolder(configYaml.bucket, location)
-    list.foreach(fileFullLocation =>
-      removeFile(configYaml.bucket, fileFullLocation)
-    )
-    return true
   }
 
   override def writeDfPartitionAuto(df: DataFrame, location: String, partitionName: List[String], writeMode: WriteMode): Unit = {

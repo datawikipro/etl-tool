@@ -13,15 +13,25 @@ import pro.datawiki.sparkLoader.traits.LoggingTrait
 import pro.datawiki.sparkLoader.transformation.TransformationCacheDatabase
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.yamlConfiguration.YamlClass
-
 import java.sql.{Connection, DriverManager, ResultSet}
 import java.util.Properties
 import java.util.concurrent.ConcurrentHashMap
+import scala.util.Random
 
 class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends ConnectionTrait, DatabaseTrait, SupportIdMap, LoggingTrait {
+  var schemaName: String = ""
+
+  private def defaultSchema: String = {
+    if schemaName != "" then return schemaName
+    schemaName = s"tmp__${Random.alphanumeric.filter(_.isLetter).take(16).mkString}"
+    runSQL(s"create schema $schemaName;")
+    return schemaName
+  }
+
   private val _configLocation: String = configLocation
-  
+
   logInfo("Creating PostgreSQL connection")
+
   override def getDataFrameBySQL(sql: String): DataFrame = {
     val startTime = logOperationStart("PostgreSQL SQL query", s"sql: ${sql.take(100)}...")
 
@@ -43,36 +53,72 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
     }
   }
 
-  override def writeDfAppend(df: DataFrame, tableSchema: String, tableName: String, scdType: SCDType, targetColumns: List[String], uniqueKey: List[String]): Unit = {
+  override def writeDfAppend(df: DataFrame, tableSchema: String, tableName: String, scdType: SCDType, targetColumns: List[String], uniqueKey: List[String], partitionBy: List[(String,String)]): Unit = {
+    val table = TableSqlGenerate(tableSchema, tableName, scdType, targetColumns, uniqueKey, List.empty, this)
+    
     uniqueKey.length match {
-      case 0 => super.writeDfAppend(df, tableSchema, tableName, scdType, targetColumns, uniqueKey)
+      case 0 => super.writeDfAppend(df, tableSchema, tableName, scdType, targetColumns, uniqueKey,partitionBy)
       case _ => {
-        val columnsKey = targetColumns ::: List("valid_from_dttm", "valid_to_dttm","run_id")
-        val columnsValue = targetColumns ::: List("now() valid_from_dttm", "to_date('2100','yyyy') valid_to_dttm",org.apache.spark.sql.functions.lit(s"'${ApplicationContext.getRunId}'"))
-        val uniqueKeyNew = uniqueKey ::: List("valid_to_dttm")
-
         val cache: TransformationCacheDatabase = TransformationCacheDatabase()
         cache.saveTable(DataFrameOriginal(df), overwriteTable, this)
         try {
-        runSQL(
-          s"""insert into $tableSchema.$tableName(${columnsKey.mkString(",")})
-             |select ${columnsValue.mkString(",")} from ${cache.getLocation}
-             | ON CONFLICT (${uniqueKeyNew.mkString(",")}) DO NOTHING
-             |""".stripMargin)
+          runSQL(
+            s"""insert into ${table.getTableSchema}.${table.getTableName}(${table.getColumnKey.mkString(",")})
+               |select ${table.getColumnValue.mkString(",")} from ${cache.getLocation}
+               | ON CONFLICT (${table.getUniqueKey.mkString(",")}) DO NOTHING
+               |""".stripMargin)
         } catch {
-          case e: Exception=> {
+          case e: Exception => {
             throw e
           }
         } finally {
-        runSQL(s"""drop table if exists ${cache.getLocation}""".stripMargin)
+          runSQL(s"""drop table if exists ${cache.getLocation}""".stripMargin)
         }
       }
     }
 
   }
+  
+  override def writeDfMergeFull(df: DataFrame, tableSchema: String, tableName: String, scdType: SCDType, columns: List[String], uniqueKey: List[String], partitionBy: List[(String,String)]): Unit = {
+    writeDfMergeDelta(df, tableSchema, tableName, scdType, columns, uniqueKey,partitionBy)
+    val cache: TransformationCacheDatabase = TransformationCacheDatabase()
+    cache.saveTable(DataFrameOriginal(df), WriteMode.overwriteTable, this)
+    val deltaTableSql =
+      s"""
+         |select ${(uniqueKey).map(col => s""""${col}"""").mkString(",")} from $tableSchema.$tableName
+         |where valid_to_dttm = to_date('2100','yyyy')
+         |except
+         | select ${uniqueKey.map(col => s""""${col}"""").mkString(",")} from ${cache.getLocation} where ${uniqueKey.head} is not null
+         |""".stripMargin
+    val createDeltaTableSql = s"create table ${cache.getLocation}_4 as $deltaTableSql"
+    runSQL(createDeltaTableSql)
 
-  override def writeDfMerge(df: DataFrame, tableSchema: String, tableName: String, scdType: SCDType, columns: List[String], uniqueKey: List[String]): Unit = {
+    val updateValidIntervalSql =
+      s"""
+         |update $tableSchema.$tableName tgt
+         |   set valid_to_dttm = now() - interval '1 microsecond'
+         |  from ${cache.getLocation}_4 src
+         | where tgt.valid_to_dttm = to_date('2100','yyyy')
+         |   and ${uniqueKey.map(col => s"""src."${col}" = tgt."${col}"""").mkString(" and ")}
+         |""".stripMargin
+
+    runSQL(updateValidIntervalSql)
+
+    val insertDeletedSql = {
+      s"""
+         |insert into $tableSchema.$tableName (${uniqueKey.map(col => s""""${col}"""").mkString(",")})
+         |select ${uniqueKey.map(col => s""""${col}"""").mkString(",")}
+         |  from ${cache.getLocation}_4
+         |""".stripMargin
+    }
+
+    runSQL(insertDeletedSql)
+  }
+
+  override def writeDfMergeDelta(df: DataFrame, tableSchema: String, tableName: String, scdType: SCDType, columns: List[String], uniqueKey: List[String], partitionBy: List[(String,String)]): Unit = {
     val startTime = logOperationStart("PostgreSQL merge operation", s"table: $tableSchema.$tableName")
+    val table = TableSqlGenerate(tableSchema, tableName, scdType, columns, uniqueKey,partitionBy, this)
+    if !table.initTableAlias(defaultSchema) then throw Exception()
     // Create cache for temporary table
     val cache: TransformationCacheDatabase = TransformationCacheDatabase()
 
@@ -81,62 +127,50 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
         throw new IllegalArgumentException("Unique key is required for merge operation")
       }
 
-      logInfo(s"Starting merge operation for PostgreSQL table: $tableSchema.$tableName")
+      logInfo(s"Starting merge operation for PostgreSQL table: $tableSchema.$tableName for partition ${partitionBy.map(col => s"${col._1 -> col._2}").mkString(", ")}")
+
+      logInfo(s"Starting merge step1: $tableSchema.$tableName for partition ${partitionBy.map(col => s"${col._1 -> col._2}").mkString(", ")}")
 
       cache.saveTable(DataFrameOriginal(df), WriteMode.overwriteTable, this)
-      var systemColumns: List[(String, String)] = List.empty
-      scdType match {
-        case SCD_3 => {
-          systemColumns = List(
-            ("valid_from_dttm", "now()"),
-            ("valid_to_dttm", "to_date('2100','yyyy')"),
-            ("run_id",s"""'${ApplicationContext.getRunId}'"""))
 
-        }
-        case fs => {
-          throw Exception()
-        }
-      }
-
-      val columnsWithChanges = columns.filter(col => !uniqueKey.toSet.contains(col))
-      val columnsWithoutChanges = getTableColumns(tableSchema, tableName)
-        .map(col => col.column_name)
-        .filter(col => !uniqueKey.contains(col) && !columnsWithChanges.contains(col) && !systemColumns.map(col => col._1).contains(col))
 
       val deltaTableSql =
         s"""
-           |select ${(uniqueKey ::: columnsWithChanges).mkString(",")} from ${cache.getLocation}
+           |select ${(uniqueKey ::: table.getColumnsWithChanges).map(col => s""""${col}"""").mkString(",")} from ${cache.getLocation} where ${uniqueKey.head} is not null
            |except
-           |select ${(uniqueKey ::: columnsWithChanges).mkString(",")} from $tableSchema.$tableName
-           |where valid_to_dttm = to_date('2100','yyyy')
+           |select ${(uniqueKey ::: table.getColumnsWithChanges).map(col => s""""${col}"""").mkString(",")} from ${table.getTableAlias}
            |""".stripMargin
 
+
       val createDeltaTableSql = s"create table ${cache.getLocation}_2 as $deltaTableSql"
+
+      logInfo(s"Starting merge step2: $tableSchema.$tableName for partition ${partitionBy.map(col => s"${col._1 -> col._2}").mkString(", ")}")
+
       runSQL(createDeltaTableSql)
 
       // Calculate plan table
-      val joinString = uniqueKey.map(i => s"src.$i = tgt.$i").mkString(" and ")
+      val joinString = uniqueKey.map(col => s"""src."${col}" = tgt."${col}"""").mkString(" and ")
 
-      val orList = columnsWithChanges.map(col => {
-        val columnMetadata = getTableColumns(tableSchema, tableName).find(_.column_name == col)
-        columnMetadata match {
-          case Some(meta) if meta.isNullable =>
-            s"""   or (tgt.$col is not null and src.$col is null)
-               |   or src.$col <> tgt.$col""".stripMargin
-          case _ => s"   or src.$col <> tgt.$col"
+      val orList = table.getColumnsWithChanges.map(col => {
+        val columnMetadata: Option[TableMetadataColumn] = getTableColumns(tableSchema, tableName).find(_.column_name == col)
+        var result = s"""   or src."${col}" <> tgt."${col}""""
+        if (columnMetadata.isDefined) {
+          if columnMetadata.get.isNullable then
+            result += s"""   or (tgt."${col}" is not null and src."${col}" is null)""".stripMargin
         }
+        result
       })
 
       val tgtColumns = List.empty
-        ::: columnsWithChanges.map(col => s"       coalesce(tgt.$col, src.$col) as $col")
-        ::: columnsWithoutChanges.map(col => s"       src.$col as $col")
-        ::: uniqueKey.map(col => s"       tgt.$col as $col")
-        ::: systemColumns.map(col => s"       ${col._2} as ${col._1}")
+        ::: table.getColumnsWithChanges.map(col => s"""       coalesce(tgt."${col}", src."${col}") as "${col}"""")
+        ::: table.getColumnsWithoutChanges.map(col => s"""       src."${col}" as "${col}"""")
+        ::: uniqueKey.map(col => s"""       tgt."${col}" as "${col}"""")
+        ::: table.getSystemColumnValue.map(col => s"""       ${col}""")
 
       val planTableSql =
         s"""
            |create table ${cache.getLocation}_3 as
-           |with src as (select * from $tableSchema.$tableName where valid_to_dttm = to_date('2100','yyyy')),
+           |with src as (select * from ${table.getTableAlias}),
            |     tgt as (select * from ${cache.getLocation}_2)
            |select case when src.${uniqueKey.head} is not null then 'Update' else 'Insert' end as update_command,
            |       ${tgtColumns.mkString(",\n")}
@@ -145,13 +179,14 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
            |where src.${uniqueKey.head} is null
            |${orList.mkString("\n")}
            |""".stripMargin
+      logInfo(s"Starting merge step3: $tableSchema.$tableName for partition ${partitionBy.map(col => s"${col._1 -> col._2}").mkString(", ")}")
 
       runSQL(planTableSql)
 
       // Update valid interval
       val updateValidIntervalSql =
         s"""
-           |update $tableSchema.$tableName tgt
+           |update ${table.getTableAlias} tgt
            |   set valid_to_dttm = src.valid_from_dttm - interval '1 microsecond'
            |  from ${cache.getLocation}_3 src
            | where tgt.valid_to_dttm = to_date('2100','yyyy')
@@ -160,13 +195,13 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
            |""".stripMargin
 
       runSQL(updateValidIntervalSql)
+      logInfo(s"Starting merge step5: $tableSchema.$tableName for partition ${partitionBy.map(col => s"${col._1 -> col._2}").mkString(", ")}")
 
       val insertNewIntervalSql =
         s"""
-           |insert into $tableSchema.$tableName(${(uniqueKey ::: columnsWithChanges ::: columnsWithoutChanges ::: systemColumns.map(col => col._1)).mkString(", ")})
-           |select ${(uniqueKey ::: columnsWithChanges ::: columnsWithoutChanges ::: systemColumns.map(col => col._1)).mkString(", ")}
+           |insert into ${table.getTableAlias}(${((uniqueKey ::: table.getColumnsWithChanges ::: table.getColumnsWithoutChanges).map(col => s""""${col}"""") ::: table.getSystemColumnKey).mkString(", ")})
+           |select ${((uniqueKey ::: table.getColumnsWithChanges ::: table.getColumnsWithoutChanges).map(col => s""""${col}"""") ::: table.getSystemColumnValue).mkString(", ")}
            |  from ${cache.getLocation}_3 src
-           |  where src.update_command = 'Insert'
            |""".stripMargin
 
       runSQL(insertNewIntervalSql)
@@ -189,14 +224,14 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
     }
   }
 
-  override def writeDf(df: DataFrame, tableSchema: String, tableName: String, writeMode: WriteMode, scdType: SCDType): Unit = {
+  override def writeDf(df: DataFrame, tableSchema: String, tableName: String, writeMode: WriteMode, scdType: SCDType, partitionBy: List[(String,String)]): Unit = {
     val startTime = logOperationStart("PostgreSQL write DataFrame", s"table: ${tableSchema}.${tableName}, mode: $writeMode")
     var locDf: DataFrame = df
     scdType match {
       case SCDType.SCD_3 => {
         locDf = locDf.withColumn("valid_from_dttm", org.apache.spark.sql.functions.current_timestamp())
         locDf = locDf.withColumn("valid_to_dttm", org.apache.spark.sql.functions.to_timestamp(org.apache.spark.sql.functions.lit("2100-01-01 00:00:00")))
-        locDf = locDf.withColumn("run_id", org.apache.spark.sql.functions.lit(s"'${ApplicationContext.getRunId}'"))
+        locDf = locDf.withColumn("run_id", org.apache.spark.sql.functions.lit(s"${ApplicationContext.getRunId}"))
       }
       case SCDType.SCD_2 => {
         locDf = locDf.withColumn("valid_from_dttm", org.apache.spark.sql.functions.current_timestamp())
@@ -225,7 +260,6 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
   }
 
   override def generateIdMap(inTable: String, domain: String, systemCode: String): Boolean = {
-    val stm = getConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
     val sql =
       s"""insert into idmap.${domain}(ccd, system_code)
          |with id as (
@@ -233,16 +267,14 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
          |      from idmap.${domain}
          |     where system_code = '${systemCode}')
          |select data.ccd,'${systemCode}'
-         |  from ${inTable} as data
+         |  from $defaultSchema.${inTable} as data
          |  left join id using (ccd)
          | where id.ccd is null
          |   """.stripMargin
-    stm.execute(sql)
-    return true
+    runSQL(sql)
   }
 
   override def mergeIdMap(inTable: String, domain: String, inSystemCode: String, outSystemCode: String): Boolean = {
-    val stm = getConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
     val sql =
       s"""insert into idmap.${domain}(ccd, system_code, rk)
          |with  in_idmap as (select ccd, rk from idmap.${domain} where system_code = '${inSystemCode}'),
@@ -255,8 +287,7 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
          | group by data.out_ccd
          |having count(distinct in_idmap.rk) = 1
          |   """.stripMargin
-    stm.execute(sql)
-    return true
+    runSQL(sql)
   }
 
   override def readDfSchema(tableSchema: String, tableName: String): DataFrame = {
@@ -267,30 +298,12 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
     return df
   }
 
-  //  override def getPartitionsForTable(tableSchema:String, tableName: String): List[String] = {
-  //    val sql =
-  //      s"""select child.relnamespace::regnamespace AS partition_schema, child.relname AS partition_name
-  //         |  from pg_inherits
-  //         |   join pg_class as child on inhrelid = child.oid
-  //         |   join pg_class as parent on inhparent = parent.oid
-  //         |where parent.relnamespace::regnamespace || '.' || parent.relname = '${tableName}'
-  //         |order by 1,2 desc
-  //         |""".stripMargin
-  //    val df = getDataFrameBySQL(sql)
-  //    var list: List[String] = List.apply()
-  //    df.collect().toList.foreach(i => {
-  //      list = list.appended(s"${i.get(0).toString}.${i.get(1).toString}")
-  //    })
-  //
-  //    return list
-  //  }
-
   override def runSQL(sql: String): Boolean = {
     val stm = getConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
     try {
       stm.execute(sql)
     } catch {
-      case e: Exception=> {
+      case e: Exception => {
         println(sql) //TODO
         throw e
       }
@@ -311,7 +324,7 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
   var connection: Connection = null
 
   var server: YamlServerHost = null
-  
+
   // Cache for table column metadata to avoid repeated database queries
   private val tableColumnsCache: ConcurrentHashMap[String, List[TableMetadataColumn]] = new ConcurrentHashMap[String, List[TableMetadataColumn]]()
 
@@ -343,7 +356,7 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
 
   def getDwhConnectionInfo: DwhConnectionInfo = {
     if server == null then server = getServer
-    DwhConnectionInfo(
+    return DwhConnectionInfo(
       host = server.host,
       port = server.port,
       database = server.database,
@@ -352,9 +365,9 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
     )
   }
 
-  private def getTableColumns(tableSchema: String, tableName: String): List[TableMetadataColumn] = {
+  def getTableColumns(tableSchema: String, tableName: String): List[TableMetadataColumn] = {
     val cacheKey = s"$tableSchema.$tableName"
-    
+
     // Check cache first
     tableColumnsCache.get(cacheKey) match {
       case cachedColumns if cachedColumns != null =>
@@ -362,11 +375,12 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
         return cachedColumns
       case _ => // Continue with database query
     }
-    
+
     logInfo(s"Fetching table columns from database for $cacheKey")
     val sql =
       s"""select column_name,
-         |       data_type
+         |       data_type,
+         |       is_nullable
          |  from information_schema.columns
          | where table_schema = '$tableSchema'
          |   and table_name   = '$tableName'
@@ -378,13 +392,17 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
       val b = a.map(row => TableMetadataColumn(
         row.get(0).toString,
         LoaderPostgres.decodeDataType(row.get(1).toString),
-        false
+        row.get(2).toString match {
+          case "YES" => true
+          case "NO" => false
+          case fs => throw Exception()
+        }
       ))
-      
+
       // Cache the result
       tableColumnsCache.put(cacheKey, b)
       logInfo(s"Cached table columns for $cacheKey")
-      
+
       return b
     }
     catch {
@@ -411,6 +429,9 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
 
   override def close(): Unit = {
     if connection == null then return
+    if schemaName != "" then {
+      runSQL(s"drop schema $defaultSchema cascade;")
+    }
     connection.close()
     // Clear table columns cache when connection is closed
     tableColumnsCache.clear()
@@ -434,6 +455,42 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
   override def readDf(tableSchema: String, tableName: String): DataFrame = throw Exception("Method not implemented")
 
   override def readDf(tableSchema: String, tableName: String, partitionName: String): DataFrame = throw Exception("Method not implemented")
+
+  override def setTemporaryTable(tableName: String, sql: String): Boolean = {
+    runSQL(s"create view ${defaultSchema}.$tableName as $sql")
+  }
+
+  override def createViewIdMapGenerate(tableName: String, surrogateKey: List[String]): String = {
+    val targetTableName = Random.alphanumeric.filter(_.isLetter).take(16).mkString
+    val sql =
+      s"""
+         |select ${surrogateKey.mkString("|| '!@#' ||")} as ccd
+         |  from $defaultSchema.${tableName}
+         | where nullif(coalesce(${surrogateKey.mkString(",")}),'') is not null
+         | group by ccd
+         |  """.stripMargin
+
+    setTemporaryTable(targetTableName, sql)
+    return targetTableName
+  }
+
+  override def createViewIdMapMerge(tableName: String, inSurrogateKey: List[String], outSurrogateKey: List[String]): String = {
+    val targetTableName = Random.alphanumeric.filter(_.isLetter).take(16).mkString
+    val sql =
+      s"""
+         |select ${inSurrogateKey.mkString("!@#")}  as in_ccd,
+         |       ${outSurrogateKey.mkString("!@#")} as out_ccd
+         |  from $defaultSchema.$tableName
+         | where coalesce(${inSurrogateKey.mkString(",")}) is not null
+         |   and coalesce(${outSurrogateKey.mkString(",")}) is not null
+         | group by in_ccd, out_ccd
+         |  """.stripMargin
+
+    setTemporaryTable(targetTableName, sql)
+    return targetTableName
+
+
+  }
 }
 
 object LoaderPostgres extends YamlClass {

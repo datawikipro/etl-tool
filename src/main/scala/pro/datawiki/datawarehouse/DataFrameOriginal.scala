@@ -15,7 +15,7 @@ class DataFrameOriginal(df: DataFrame) extends DataFrameTrait {
     localDf
   }
 
-  override def isEmpty: Boolean = throw UnsupportedOperationException("isEmpty not implemented for DataFrameOriginal")
+  override def isEmpty: Boolean = false
   
   override def isValidData: Boolean = true
 

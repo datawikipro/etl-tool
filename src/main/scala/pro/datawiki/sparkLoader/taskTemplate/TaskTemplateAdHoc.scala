@@ -4,11 +4,12 @@ import org.apache.spark.sql.DataFrame
 import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
 import pro.datawiki.exception.ValidationException
 import pro.datawiki.sparkLoader.SparkObject
+import pro.datawiki.sparkLoader.connection.jsonApi.ValidateStatus
 
 case class TaskTemplateAdHoc(sourceObjectName: String,
                              templateName: String,
                              columnId: List[String],
-                             asyncNumber: Int 
+                             asyncNumber: Int
                             ) extends TaskTemplate {
   override def run(parameters: Map[String, String], isSync: Boolean): List[DataFrameTrait] = {
     if columnId.isEmpty then throw new ValidationException("columnId cannot be empty")

@@ -19,5 +19,5 @@ case class YamlConfigTransformationSparkSqlLazy(
   }
 
   @JsonIgnore
-  override def getTask(in: TaskTemplate): Task = TaskSimple(in)
+  override def getTask(in: TaskTemplate): Task = TaskSimple(in,false)
 }

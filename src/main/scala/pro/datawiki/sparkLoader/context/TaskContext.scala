@@ -7,6 +7,8 @@ import scala.collection.mutable
 
 object TaskContext {
 
+  var objectList: Map[String,TaskView] = Map.empty
+  
   private var taskTemplate: mutable.Map[String, TaskTemplate] = mutable.Map()
 
   def setTaskTemplate(name: String, task: TaskTemplate): Unit = {

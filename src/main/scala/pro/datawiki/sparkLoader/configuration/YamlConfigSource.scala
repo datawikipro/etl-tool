@@ -27,21 +27,21 @@ case class YamlConfigSource(
                              sourceBigQuery: YamlConfigSourceBigQuery,
                              initMode: String,
                              skipIfEmpty: Boolean = false
-                           ) extends LogicClass {
+                           )  {
   @JsonIgnore
   private def initModeEnum: InitModeEnum = InitModeEnum(initMode)
 
   @JsonIgnore
-  private def getLogic: Any = super.getLogic(sourceDb, sourceSQL, sourceFileSystem, sourceKafka, sourceWeb, sourceMail, sourceBigQuery)
-
-  @JsonIgnore
   def createTask(): Task = {
-    val taskTemplate: TaskTemplate = getLogic match
+    
+    val logic = LogicClass.getLogic(sourceDb, sourceSQL, sourceFileSystem, sourceKafka, sourceWeb, sourceMail, sourceBigQuery)
+    
+    val taskTemplate: TaskTemplate = logic match
       case x: YamlConfigSourceTrait => x.getTaskTemplate(ApplicationContext.getConnection(sourceName))
       case other => throw ConfigurationException(s"Неизвестный тип источника: '$other'. Пожалуйста, проверьте конфигурацию.")
 
     val task: Task = initModeEnum match
-      case InitModeEnum.instantly => TaskSimple(taskTemplate)
+      case InitModeEnum.instantly => TaskSimple(taskTemplate,skipIfEmpty)
       case InitModeEnum.adHoc => TaskAdHocRegister(taskTemplate)
       case InitModeEnum.consumer => {
         val timeZone: TimeZone = TimeZone.getTimeZone("UTC")
@@ -59,15 +59,16 @@ case class YamlConfigSource(
             val currentDateTime: LocalDateTime = LocalDateTime.now()
             x.setTime(currentDateTime)
 
-            TaskConsumer(x)
+            TaskConsumer(x,skipIfEmpty)
           }
           case other => throw ConfigurationException(s"Неподдерживаемый тип источника данных: '$other'. Проверьте конфигурацию источника.")
         }
 
       }
-      case _ => throw UnsupportedOperationException("Unsupported configuration source case")
-
-    if skipIfEmpty then task.setSkipIfEmpty(skipIfEmpty)
+      case InitModeEnum.runAtServer => TaskRunAtServerRegister(taskTemplate)
+      case _ => {
+        throw UnsupportedOperationException("Unsupported configuration source case")
+      }
 //    if cache != null then task.setCache(TransformationCache(cache),Context.getConnection(sourceName))
     return task
   }

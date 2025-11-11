@@ -1,7 +1,7 @@
 package pro.datawiki.sparkLoader.taskTemplate
 
 import org.apache.spark.sql.DataFrame
-import pro.datawiki.datawarehouse.{DataFrameLazyDatabase, DataFrameOriginal, DataFramePartition, DataFrameTrait}
+import pro.datawiki.datawarehouse.{DataFrameEmpty, DataFrameLazyDatabase, DataFrameOriginal, DataFramePartition, DataFrameTrait}
 import pro.datawiki.sparkLoader.configuration.yamlConfigSource.yamlConfigSourceDBTable.YamlConfigSourceDBTableColumn
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait, NoSQLDatabaseTrait}
 import pro.datawiki.sparkLoader.traits.LoggingTrait
@@ -13,7 +13,7 @@ class TaskTemplateTableFromDatabase(tableSchema: String,
                                     tableColumns: List[YamlConfigSourceDBTableColumn] = List.apply(),
                                     filter: String,
                                     limit: Int,
-                                    connection: ConnectionTrait) extends TaskTemplate with LoggingTrait {
+                                    connection: ConnectionTrait) extends TaskTemplate  with TaskTemplateRunAtServerRegister with LoggingTrait {
   private def getColumnNames: List[String] = {
     var lst: List[String] = List.empty
     tableColumns.foreach(i =>
@@ -40,20 +40,25 @@ class TaskTemplateTableFromDatabase(tableSchema: String,
       case _ => s"limit $limit"
   }
 
-  private def getTable(src: ConnectionTrait, parameters: Map[String, String]): DataFrame = {
+  private def getReadSql(parameters: Map[String, String]):String={
+    var sql=  s"""select ${getSQLColumnList}
+       |  from ${tableSchema}.${tableName}
+       |  $getSQLWhere
+       |  $getSQLLimit
+       |  """.stripMargin
+    parameters.foreach(i => {
+      sql = sql.replace(s"$${${i._1}}", i._2)
+    })
+    return sql
+  }
+
+  private def getTable(src: ConnectionTrait, parameters: Map[String, String]): DataFrameTrait = {
     var df: DataFrame = null
     src match
       case x: DatabaseTrait => {
-        var sql =
-          s"""select ${getSQLColumnList}
-             |  from ${tableSchema}.${tableName}
-             |  $getSQLWhere
-             |  $getSQLLimit
-             |  """.stripMargin
-        parameters.foreach(i => {
-          sql = sql.replace(s"$${${i._1}}", i._2)
-        })
-        return x.getDataFrameBySQL(sql)
+        val df=  x.getDataFrameBySQL(getReadSql(parameters)) 
+        if df.count() == 0 then return DataFrameEmpty()
+        return DataFrameOriginal(df)
       }
       case x: NoSQLDatabaseTrait =>
         return x.readDf(s"${tableName}")
@@ -68,10 +73,8 @@ class TaskTemplateTableFromDatabase(tableSchema: String,
       logConfigInfo("database table", s"columns: ${tableColumns.length}, filter: $filter, limit: $limit")
       
       val df = getTable(src = connection, parameters = parameters)
-//      logDataFrameInfo("database table", df.count(), df.columns.length, s"table: $tableName") //TODO монга не поддерживает count
-
       logOperationEnd("database table load", startTime, s"table: $tableName")
-      return List.apply(DataFrameOriginal(df))
+      return List.apply(df)
 
     } catch {
       case e: Exception =>
@@ -80,4 +83,14 @@ class TaskTemplateTableFromDatabase(tableSchema: String,
     }
   }
 
+  override def getAtServerCode(targetTable: String, parameters: Map[String, String], isSync: Boolean): Boolean = {
+    connection match {
+      case x: DatabaseTrait => {
+        return x.setTemporaryTable(tableName = targetTable, sql = getReadSql(parameters))
+      }
+      case fs => {
+        throw Exception()
+      }
+    }
+  }
 }

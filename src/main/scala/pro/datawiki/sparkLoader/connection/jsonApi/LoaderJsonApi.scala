@@ -9,13 +9,12 @@ import sttp.client4.*
 import java.net.URLEncoder
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.concurrent.Semaphore
 import scala.collection.mutable
 import scala.concurrent.duration.{Duration, SECONDS}
 
 case class LoaderJsonApi(in: YamlConfig, configLocation: String) extends ConnectionTrait {
   private val _configLocation: String = configLocation
-  
+
   logInfo("Creating JSON API connection")
   val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
@@ -52,25 +51,28 @@ case class LoaderJsonApi(in: YamlConfig, configLocation: String) extends Connect
   def retrySend(request2: Request[Either[String, String]], retryNumber: Int, url: String): String = {
     val backend = DefaultSyncBackend()
 
-    if retryNumber >= 4 then {
-      return      s"""{
-                  | "error": "Could not get data from remote server",
-                  | "url": "$url"
-                  |}""".stripMargin
-    }
-
     try {
       val response = request2.send(backend)
       response.body match {
         case Left(e) => {
-          throw DataProcessingException(s"Ошибка при получении ответа от API: $e")
+          println(request2)
+          throw DataProcessingException(s"Ошибка при получении ответа от API: $e. body: ${response.body.toString}")
         }
         case Right(r) => return r
       }
 
     } catch {
       case e: Exception => {
-        return retrySend(request2, retryNumber + 1,url)
+        if retryNumber >= 4 then {
+          return
+            s"""{
+               | "error": "Could not get data from remote server",
+               | "url": "$url",
+               | "error": ${e.toString}
+               |}""".stripMargin
+        }
+        Thread.sleep(1000)
+        return retrySend(request2, retryNumber + 1, url)
       }
     }
 
@@ -87,7 +89,7 @@ case class LoaderJsonApi(in: YamlConfig, configLocation: String) extends Connect
         case None => request = request.header(h.key, h.value)
       }
     })
-    
+
     // Добавляем стандартные заголовки браузера, если они не переопределены в конфигурации
     if (!in.headers.exists(_.key.toLowerCase == "user-agent")) {
       request = request.header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
@@ -102,23 +104,31 @@ case class LoaderJsonApi(in: YamlConfig, configLocation: String) extends Connect
       request = request.header("Referer", "https://kino.kz/")
     }
 
-//    in.cookies.foreach(i => request = request.cookie(i.key, variables(i.value)))
+    //    in.cookies.foreach(i => request = request.cookie(i.key, variables(i.value)))
 
     if in.authType != null then {
       if in.authType.BearerToken != null then request = request.auth.bearer(in.authType.BearerToken)
     }
     request = request.readTimeout(Duration(in.timeoutSeconds, SECONDS))
-    request = request.contentType("application/json")
+
 
     in.method match {
       case "Get" => {
+        request = request.contentType("application/json")
         val request2: Request[Either[String, String]] = request.get(uri = uri"${getValueUrl(in.url, variables)}")
         return retrySend(request2, 0, getValueUrl(in.url, variables))
       }
       case "Post" => {
-        request = request.body({
-          getValue(in.body, variables)
-        })
+        if in.formData.nonEmpty then {
+          val formMap = in.formData.map(i => i.key -> getValue(i.value, variables)).toMap
+          request = request.body(formMap)
+        }
+
+        if in.body != "" then {
+          request = request.contentType("application/json")
+          request = request.body(getValue(in.body, variables)
+          )
+        }
         val request2: Request[Either[String, String]] = request.post(uri = uri"${getValueUrl(in.url, variables)}")
         return retrySend(request2, 0, getValueUrl(in.url, variables))
       }

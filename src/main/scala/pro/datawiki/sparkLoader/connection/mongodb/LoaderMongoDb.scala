@@ -1,15 +1,15 @@
 package pro.datawiki.sparkLoader.connection.mongodb
 
+import com.mongodb.spark.sql.connector.exceptions.MongoSparkException
 import org.apache.spark.sql.DataFrame
+import pro.datawiki.datawarehouse.{DataFrameEmpty, DataFrameOriginal, DataFrameTrait}
 import pro.datawiki.exception.NotImplementedException
-import pro.datawiki.sparkLoader.connection.databaseTrait.{TableMetadata, TableMetadataType}
-import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait, NoSQLDatabaseTrait}
+import pro.datawiki.sparkLoader.connection.databaseTrait.TableMetadataType
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, NoSQLDatabaseTrait}
 import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, WriteMode}
 import pro.datawiki.sparkLoader.traits.LoggingTrait
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.yamlConfiguration.YamlClass
-
-import java.sql.Connection
 
 class LoaderMongoDb(configYaml: YamlConfig, configLocation: String) extends ConnectionTrait, NoSQLDatabaseTrait, LoggingTrait {
   private val _configLocation: String = configLocation
@@ -38,7 +38,22 @@ class LoaderMongoDb(configYaml: YamlConfig, configLocation: String) extends Conn
     }
   }
 
-  override def readDf(location: String): DataFrame = {
+  def isMongoEmptyCollectionError(exc: Throwable): Boolean = {
+    if (exc == null) {
+      false
+    } else {
+      val msg = exc.getMessage
+      // Ищем ключевые фразы из вашей ошибки
+      val isMatch = (msg != null) &&
+        (msg.contains("Location40243") ||
+          msg.contains("The $bucketAuto 'buckets' field must be greater than 0"))
+
+      // Проверяем либо текущее исключение, либо его "причину" (cause)
+      return isMatch || isMongoEmptyCollectionError(exc.getCause)
+    }
+  }
+
+  override def readDf(location: String): DataFrameTrait = {
     val startTime = logOperationStart("read DataFrame from MongoDB", s"collection: $location")
 
     try {
@@ -58,12 +73,20 @@ class LoaderMongoDb(configYaml: YamlConfig, configLocation: String) extends Conn
         .option("spark.mongodb.read.maxAwaitTimeMS", "30000") // 30 seconds max await time
         .option("spark.mongodb.read.partitionerOptions.partitionSizeMB", "32") // 32MB partition size
         .load()
-
+      try
+        if df.count() == 0 then return DataFrameEmpty()
+      catch {
+        case e: MongoSparkException if isMongoEmptyCollectionError(e) =>
+          return DataFrameEmpty()
+        case e:Exception => {
+          throw e
+        }
+      }
       df.write.mode("overwrite").json("/tmp/monga/")
       df = SparkObject.spark.read.json("/tmp/monga/")
       LogMode.debugDF(df)
       logOperationEnd("read DataFrame from MongoDB", startTime, s"collection: $location")
-      return df
+      return DataFrameOriginal(df)
 
     } catch {
       case e: Exception =>

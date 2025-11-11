@@ -20,29 +20,31 @@ case class YamlDataEtlToolTemplate(
                                     sources: List[YamlDataTemplateSource],
                                     transform: List[YamlDataTemplateTransformation],
                                     target: List[YamlDataTemplateTarget],
+                                    postEtlOperations: List[YamlConfigEltOnServerOperation],
                                     dependencies: List[String],
                                   ) extends YamlDataTaskToolTemplate {
 
   override def getCoreTask: List[CoreTask] = {
-
     return List.apply(
       CoreTaskEtlToolTemplate(
-        taskName = taskName.replace("-", "_").replace(" ", "_").replace(".", "_"),
+        taskName = taskName,
         yamlFile = yamlFile,
         preEtlOperations = preEtlOperations.map(col => col.getCorePreEtlOperations),
         connections = connections.map(col => col.getCoreConnection),
         sources = sources.map(col => col.getCoreSource),
         transform = transform.map(col => col.getCoreTransformation),
         target = target.map(col => col.getCoreTarget),
-        dependencies = dependencies.map(col => col.replace("-", "_").replace(" ", "_").replace(".", "_"))
+        postEtlOperations = postEtlOperations.map(col => col.getCorePreEtlOperations),
+        dependencies = dependencies.map(col => col)
       ),
 
     )
   }
+  override def isRunFromControlDag:Boolean = throw Exception()
 }
 
 object YamlDataEtlToolTemplate extends YamlClass {
-  def apply(inConfig: String, row: mutable.Map[String, String]): YamlDataEtlToolTemplate = {
+  def apply(inConfig: String, row: Map[String, String]): YamlDataEtlToolTemplate = {
     val configYaml: YamlDataEtlToolTemplate = mapper.readValue(getLines(inConfig, row), classOf[YamlDataEtlToolTemplate])
     return configYaml
   }

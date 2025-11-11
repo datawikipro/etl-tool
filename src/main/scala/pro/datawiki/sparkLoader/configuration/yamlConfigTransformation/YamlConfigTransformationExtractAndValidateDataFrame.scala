@@ -14,5 +14,5 @@ case class YamlConfigTransformationExtractAndValidateDataFrame(
   override def getTaskTemplate: TaskTemplate = TaskTemplateExtractAndValidateDataFrame(dataFrameIn, configLocation)
 
   @JsonIgnore
-  override def getTask(in: TaskTemplate): Task = TaskSimple(in)
+  override def getTask(in: TaskTemplate): Task = TaskSimple(in,false)
 }

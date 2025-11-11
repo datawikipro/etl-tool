@@ -4,4 +4,6 @@ case class CoreTaskTemplateTransformationIdMapBaseConfig(
                                                           systemCode: String,
                                                           columnNames: List[String],
                                                           domainName: String,
+                                                          timeColumn: String,
+                                                          secondForExpire: Int = -1,
                                                         )

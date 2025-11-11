@@ -9,7 +9,7 @@ import scala.jdk.CollectionConverters.*
 case class YamlConfigTemplateGetDomProperty(
                                              value: String,
                                              parameter: YamlConfigTemplateParameter
-                                           ) extends LogicClass, YamlConfigTemplateGetterTrait {
+                                           ) extends  YamlConfigTemplateGetterTrait {
   override def getResult(webElement: WebElement): Map[String, SeleniumType] = {
     val result: String = webElement.getDomProperty(value)
     return parameter.getResult(result)

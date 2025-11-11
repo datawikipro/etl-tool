@@ -9,7 +9,7 @@ trait FileStorageTrait extends ConnectionTrait {
 
   def readDf(location: String): DataFrame
 
-  def readDf(location: String, keyPartitions: List[String], valuePartitions: List[String]): DataFrame
+  def readDf(location: String, keyPartitions: List[String], valuePartitions: List[String], withPartitionOnDataframe:Boolean): DataFrame
 
   def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit
 
@@ -26,7 +26,7 @@ trait FileStorageTrait extends ConnectionTrait {
                            partitionName: List[String],
                            writeMode: WriteMode): Unit
 
-  def moveTablePartition(oldTableSchema: String, oldTable: String, newTableSchema: String, newTable: String, partitionName: List[String]): Boolean
+  def moveTablePartition(oldTable: String, newTable: String, partitionName: List[String]): Boolean
 
   def getMasterFolder: String
 

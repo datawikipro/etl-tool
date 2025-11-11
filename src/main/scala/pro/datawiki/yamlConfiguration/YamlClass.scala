@@ -39,7 +39,7 @@ class YamlClass {
   def getLines(inConfig: String): String = YamlClass.getLines(inConfig)
   def getLinesGlobalContext(inConfig: String): String = YamlClass.getLines(inConfig,ApplicationContext.getGlobalVariables)
 
-  def getLines(inConfig: String, row: mutable.Map[String, String]): String = YamlClass.getLines(inConfig, row)
+  def getLines(inConfig: String, row: Map[String, String]): String = YamlClass.getLines(inConfig, row)
 
 
   def toYaml(obj: Any): String = {
@@ -95,7 +95,7 @@ object YamlClass {
     }
   }
 
-  def getLines(inConfig: String, row: mutable.Map[String, String]): String = {
+  def getLines(inConfig: String, row: Map[String, String]): String = {
     try {
       val a = Files.readString(Paths.get(inConfig))
       return WorkWithText.replaceWithoutDecode(a, row)

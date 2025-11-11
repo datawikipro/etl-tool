@@ -9,7 +9,7 @@ import pro.datawiki.diMigration.{AttributeYamlSource, AttributeYamlTarget, Migra
 class LoadObjectService(fileSystemService: FileSystemService) extends LoggingTrait {
 
   def runMigration(loadObject: LoadObject, sourceConfig: AttributeYamlSource, targetConfig: AttributeYamlTarget): Unit = {
-    if (loadObject.isEmpty) {
+    if (loadObject.isEmpty) then {
       return
     }
 
@@ -24,7 +24,7 @@ class LoadObjectService(fileSystemService: FileSystemService) extends LoggingTra
                                 ): Unit = {
     val config = sourceConfig.getConfig
     MigrationProcess(config, fullFileLocation, targetConfig) match {
-      case (migrationProcess) => return migrationProcess.runMigration(fullFileLocation)
+      case migrationProcess => return migrationProcess.runMigration()
       case _ => throw Exception()
     }
 

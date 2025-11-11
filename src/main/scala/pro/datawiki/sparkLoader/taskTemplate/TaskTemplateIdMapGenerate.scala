@@ -9,15 +9,16 @@ import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import scala.collection.mutable
 
 class TaskTemplateIdMapGenerate(sourceName: String,
+                                dataAtServer: Boolean,
                                 connection: DatabaseTrait,
                                 template: TaskTemplateIdMapConfig
                                ) extends TaskTemplate {
   val cache: TransformationCacheDatabase = TransformationCacheDatabase()
 
-  override def run(parameters: Map[String, String], isSync: Boolean): List[DataFrameTrait] = {
+  private def getTableFromSpark:String = {
     val sql: String =
       s"""
-         |select ${template.columnNames.mkString("!@#")} as ccd 
+         |select ${template.columnNames.mkString("|| '!@#' ||")} as ccd
          |  from ${sourceName}
          | where nullif(coalesce(${template.columnNames.mkString(",")}),'') is not null
          | group by ccd
@@ -25,12 +26,21 @@ class TaskTemplateIdMapGenerate(sourceName: String,
 
     var df = SparkObject.spark.sql(sqlText = sql)
     LogMode.debugDF(df)
-    cache.saveTable(DataFrameOriginal(df), overwriteTable,connection)
+    cache.saveTable(DataFrameOriginal(df), overwriteTable, connection)
+    cache.getLocation
+  }
+
+  override def run(parameters: Map[String, String], isSync: Boolean): List[DataFrameTrait] = {
+
+
     connection match {
       case x: SupportIdMap =>
-
+        var tableName = dataAtServer match {
+          case true => x.createViewIdMapGenerate(sourceName,template.columnNames)
+          case false => getTableFromSpark
+        }
         x.generateIdMap(
-          inTable = cache.getLocation,
+          inTable = tableName,
           domain = template.domainName,
           systemCode = template.systemCode
         )

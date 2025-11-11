@@ -13,8 +13,6 @@ import scala.util.Random
 trait TransformationCache extends LoggingTrait {
   def readBaseTable(connect: ConnectionTrait): DataFrame
 
-  def readDirty (connection:ConnectionTrait): List[DataFrameTrait]
-
   def deleteTable(connection:ConnectionTrait): Unit
 
   def saveTable(in: DataFrameTrait, mode: WriteMode, connection:ConnectionTrait): Unit

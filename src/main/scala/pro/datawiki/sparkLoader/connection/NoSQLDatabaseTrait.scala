@@ -1,11 +1,12 @@
 package pro.datawiki.sparkLoader.connection
 
 import org.apache.spark.sql.DataFrame
+import pro.datawiki.datawarehouse.DataFrameTrait
 import pro.datawiki.exception.UnsupportedOperationException
 import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode
 
 trait NoSQLDatabaseTrait {
-  def readDf(location: String): DataFrame
+  def readDf(location: String): DataFrameTrait
   def writeDf(df: DataFrame, tableFullName: String, writeMode: WriteMode): Unit
 }
 

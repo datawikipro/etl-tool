@@ -91,7 +91,9 @@ class LoaderBigQuery(configYaml: YamlConfig, configLocation: String) extends Con
 
   override def readDfSchema(tableSchema: String, tableName: String): DataFrame = throw NotImplementedException("Method not implemented")
 
-  override def writeDf(df: DataFrame, tableSchema: String, tableName: String, writeMode: WriteMode, scdType: SCDType): Unit = throw NotImplementedException("Method not implemented")
+  override def writeDf(df: DataFrame, tableSchema: String, tableName: String, writeMode: WriteMode, scdType: SCDType, partitionBy: List[(String,String)]): Unit = throw NotImplementedException("Method not implemented")
+
+  override def setTemporaryTable(tableName: String, sql: String): Boolean = throw NotImplementedException("Method not implemented")
 }
 
 object LoaderBigQuery extends YamlClass {

@@ -1,6 +1,5 @@
 package pro.datawiki.sparkLoader.configuration.yamlConfigTransformation
 
-import pro.datawiki.exception.NotImplementedException
 import pro.datawiki.sparkLoader.configuration.YamlConfigTransformationTrait
 import pro.datawiki.sparkLoader.configuration.yamlConfigTransformation.yamlConfigTransformationIdmap.{YamlConfigTransformationIdMapConfig, YamlConfigTransformationIdMapMerge}
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait}
@@ -13,6 +12,7 @@ import scala.collection.mutable
 case class YamlConfigTransformationIdMap(
                                           sourceName: String = throw IllegalArgumentException("sourceName is required"),
                                           connection: String = throw IllegalArgumentException("connection is required"),
+                                          dataAtServer: Boolean,
                                           idMapGenerate: List[YamlConfigTransformationIdMapConfig] = List.apply(),
                                           idMapRestore: List[YamlConfigTransformationIdMapConfig] = List.apply(),
                                           idMapMerge: List[YamlConfigTransformationIdMapMerge] = List.apply()
@@ -46,7 +46,7 @@ case class YamlConfigTransformationIdMap(
     var listRestore: mutable.Map[String, TaskTemplateIdMapConfig] = mutable.Map()
 
     idMapGenerate.foreach(i => {
-      list = list.appended(TaskTemplateIdMapGenerate(sourceName = sourceName, connection = getConnection, i.getTaskTemplateIdMapConfig))
+      list = list.appended(TaskTemplateIdMapGenerate(sourceName = sourceName,dataAtServer = dataAtServer, connection = getConnection, template = i.getTaskTemplateIdMapConfig))
       listRestore += (i.getAlias -> i.getTaskTemplateIdMapConfig)
     })
 
@@ -58,6 +58,7 @@ case class YamlConfigTransformationIdMap(
       list = list.appended(TaskTemplateIdMapMerge(
         sourceName = sourceName,
         connection = getConnection,
+        dataAtServer = dataAtServer,
         in = i.getIn.getTaskTemplateIdMapConfig,
         out = i.getOut.getTaskTemplateIdMapConfig))
 
@@ -68,5 +69,5 @@ case class YamlConfigTransformationIdMap(
   }
 
 
-  override def getTask(in: TaskTemplate): Task = TaskSimple(in)
+  override def getTask(in: TaskTemplate): Task = TaskSimple(in, false)
 }

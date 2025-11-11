@@ -42,6 +42,7 @@ object Metadata {
           case "valid_from_dttm" => false
           case "valid_to_dttm" => false
           case "run_id" => false
+          case "is_deleted_row" => false
           case _ => true
         })
       }

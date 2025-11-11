@@ -5,7 +5,8 @@ import pro.datawiki.diMigration.core.dictionary.OutputSystem
 import pro.datawiki.diMigration.output.etlTool.{EtlToolMigration, OutputSql}
 
 trait TargetMigration {
-  def exportDag(in: CoreDag): Unit
+  def exportDag(in: CoreDag): TargetDag
+  def getTargetLocation:String
 }
 
 object TargetMigration {

@@ -13,8 +13,6 @@ case class CoreTaskTemplateTargetDatabase(
                                            targetTable: String,
                                            columns: List[CoreTaskTemplateTargetColumn],
                                            uniqueKey: List[String] = List.apply(),
-                                           deduplicationKey: List[String] = List.apply(),
-
                                            partitionBy: List[String] = List.apply(),
                                            scd:String,
                                          )

@@ -16,9 +16,9 @@ case class EltConfig(
                       preEtlOperations: List[YamlConfigEltOnServerOperation] = List.apply(),
                       source: List[YamlConfigSource] = List.apply(),
                       transformations: List[YamlConfigTransformation] = List.apply(),
-                      target: List[YamlConfigTarget] = List.apply()
+                      target: List[YamlConfigTarget] = List.apply(),
+                      postEtlOperations: List[YamlConfigEltOnServerOperation] = List.apply(),
                     ) extends LoggingTrait {
-
 
   @JsonIgnore
   def initConnections(): Unit = {
@@ -43,42 +43,29 @@ case class EltConfig(
   @JsonIgnore
   def initPreEtlOperations(): ProgressStatus = {
     val startTime = logOperationStart("initialize pre-ETL operations", s"count: ${preEtlOperations.length}")
+    preEtlOperations.foreach(i => {
+      i.run("", Map(), true) match {
+        case ProgressStatus.done =>
+        case ProgressStatus.skip => return ProgressStatus.skip
+        case _ => throw Exception()
+      }
+    })
+    logOperationEnd("initialize pre-ETL operations", startTime, s"count: ${preEtlOperations.length}")
+    return ProgressStatus.done
+  }
 
-    try {
-      logInfo(s"Initializing ${preEtlOperations.length} pre-ETL operations")
-      var sourceIsValid: Boolean = true
-      var sourceIsEmpty: Boolean = false
-
-      preEtlOperations.foreach(i => {
-        try {
-          logInfo(s"Executing pre-ETL operation: ${i.eltOnServerOperationName}")
-          val task: Task = i.createTask()
-          task.run("", Map(), true) match {
-            case ProgressStatus.done =>
-              logInfo(s"Pre-ETL operation completed: ${i.eltOnServerOperationName}")
-            case ProgressStatus.skip => {
-              logInfo(s"Pre-ETL operation skipped: ${i.eltOnServerOperationName}")
-              return ProgressStatus.skip
-            }
-            case _ => {
-              logError("pre-ETL operation", DataProcessingException(s"PreEtlOperations task failed for object: ${i.eltOnServerOperationName}"))
-              throw DataProcessingException(s"PreEtlOperations task failed for object: ${i.eltOnServerOperationName}")
-            }
-          }
-        } catch {
-          case e: Exception =>
-            logError("pre-ETL operation", e, s"operation: ${i.eltOnServerOperationName}")
-            throw DataProcessingException(s"Failed to initialize PreEtlOperations: ${i.eltOnServerOperationName}", e)
-        }
-      })
-      logOperationEnd("initialize pre-ETL operations", startTime, s"count: ${preEtlOperations.length}")
-      return ProgressStatus.done
-
-    } catch {
-      case e: Exception =>
-        logError("initialize pre-ETL operations", e, s"count: ${preEtlOperations.length}")
-        throw e
-    }
+  @JsonIgnore
+  def initPostEtlOperations(): ProgressStatus = {
+    val startTime = logOperationStart("initialize post-ETL operations", s"count: ${preEtlOperations.length}")
+    postEtlOperations.foreach(i => {
+      i.run("", Map(), true) match {
+        case ProgressStatus.done =>
+        case ProgressStatus.skip => return ProgressStatus.skip
+        case _ => throw Exception()
+      }
+    })
+    logOperationEnd("initialize pre-ETL operations", startTime, s"count: ${preEtlOperations.length}")
+    return ProgressStatus.done
   }
 
   @JsonIgnore
@@ -91,9 +78,7 @@ case class EltConfig(
         val task: Task = i.createTask()
         task.run(i.objectName, Map(), true) match {
           case ProgressStatus.done =>
-          case ProgressStatus.skip => {
-            return ProgressStatus.skip
-          }
+          case ProgressStatus.skip =>  return ProgressStatus.skip
           case _ => {
             throw DataProcessingException(s"Source task failed for object: ${i.objectName}")
           }
@@ -146,72 +131,36 @@ case class EltConfig(
 
 object EltConfig extends YamlClass {
   def apply(inConfig: String): ProgressStatus = {
-    try {
-      val result = mapper.readValue(getLinesGlobalContext(inConfig), classOf[EltConfig])
-      result.initConnections()
+    val result = mapper.readValue(getLinesGlobalContext(inConfig), classOf[EltConfig])
+    result.initConnections()
 
-      var status: ProgressStatus = ProgressStatus.process
-      try {
-        result.initPreEtlOperations() match {
-          case ProgressStatus.error => return ProgressStatus.error
-          case ProgressStatus.skip => return ProgressStatus.skip
-          case ProgressStatus.done =>
-          case _ => {
-            throw DataProcessingException("Unexpected status from initPreEtlOperations")
-          }
-        }
-      } catch {
-        case e: Exception => {
-          throw e
-        }
-      }
-      try {
-        result.initSources() match {
-          case ProgressStatus.error => return ProgressStatus.error
-          case ProgressStatus.skip => return ProgressStatus.skip
-          case ProgressStatus.done =>
-          case _ => {
-            throw DataProcessingException("Unexpected status from initSources")
-          }
-        }
-      } catch {
-        case e: Exception => {
-          throw e
-        }
-      }
-      try {
-        result.initTransformation() match {
-          case ProgressStatus.error => return ProgressStatus.error
-          case ProgressStatus.skip => return ProgressStatus.skip
-          case ProgressStatus.done =>
-          case _ => {
-            throw DataProcessingException("Unexpected status from initTransformation")
-          }
-        }
-      }
+    result.initPreEtlOperations() match {
+      case ProgressStatus.error => return ProgressStatus.error
+      case ProgressStatus.skip => return ProgressStatus.skip
+      case ProgressStatus.done =>
+    }
+    result.initSources() match {
+      case ProgressStatus.error => return ProgressStatus.error
+      case ProgressStatus.skip => return ProgressStatus.skip
+      case ProgressStatus.done =>
+    }
+    result.initTransformation() match {
+      case ProgressStatus.error => return ProgressStatus.error
+      case ProgressStatus.skip => return ProgressStatus.skip
+      case ProgressStatus.done =>
+    }
+    result.runTarget() match {
+      case ProgressStatus.error => return ProgressStatus.error
+      case ProgressStatus.skip => return ProgressStatus.skip
+      case ProgressStatus.done =>
+    }
 
-      catch {
-        case e: Exception => {
-          throw e
-        }
-      }
-      try {
-        result.runTarget() match {
-          case ProgressStatus.error => return ProgressStatus.error
-          case ProgressStatus.skip => return ProgressStatus.skip
-          case ProgressStatus.done => return ProgressStatus.done
-          case _ => {
-            throw DataProcessingException("Unexpected status from runTarget")
-          }
-        }
-      }      catch {
-        case e: Exception => {
-          throw e
-        }
-      }
-    } catch {
-      case e: Exception => {
-        throw e
+    result.initPostEtlOperations() match {
+      case ProgressStatus.error => return ProgressStatus.error
+      case ProgressStatus.skip => return ProgressStatus.skip
+      case ProgressStatus.done => return ProgressStatus.done
+      case _ => {
+        throw DataProcessingException("Unexpected status from runTarget")
       }
     }
   }
