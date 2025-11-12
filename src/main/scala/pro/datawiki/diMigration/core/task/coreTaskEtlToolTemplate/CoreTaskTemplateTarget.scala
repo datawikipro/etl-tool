@@ -41,6 +41,7 @@ case class CoreTaskTemplateTarget(
         YamlConfigTargetFileSystem(
           connection = fs.connection,
           source = fs.source,
+          tableName= fs.tableName,
           mode = fs.mode.getExportString,
           targetFile = fs.targetFile,
           partitionBy = fs.partitionBy

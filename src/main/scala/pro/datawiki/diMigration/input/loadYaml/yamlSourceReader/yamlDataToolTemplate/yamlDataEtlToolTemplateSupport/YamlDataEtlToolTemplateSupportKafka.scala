@@ -11,7 +11,8 @@ class YamlDataEtlToolTemplateSupportKafka(
                                            kafkaTopic:String,
                                            yamlFileCoreLocation: String,
                                            yamlFileLocation: String,
-                                           sourceCode: String
+                                           sourceCode: String,
+                                           sourceLogicTableSchema:String
                                          ) extends YamlDataEtlToolTemplateSupportBase() {
 
   def getKafkaTaskName: String = s"kafka__${taskName}"
@@ -24,8 +25,8 @@ class YamlDataEtlToolTemplateSupportKafka(
     configLocation = "/opt/etl-tool/configConnection/kafka.yaml"
   )
 
-  def getSource: YamlDataTemplateSource =YamlDataTemplateSource(
-    sourceName = "kafkaUnico",
+  def getSource(in:YamlDataTemplateConnect): YamlDataTemplateSource =YamlDataTemplateSource(
+    sourceName = in,
     objectName = "source",
     sourceKafka = YamlDataTemplateSourceKafka(
       topics = YamlDataTemplateSourceKafkaTopic(
@@ -37,21 +38,23 @@ class YamlDataEtlToolTemplateSupportKafka(
     initMode = InitModeEnum.instantly.toString
   )
 
-  def getTarget(inConnection:String): YamlDataTemplateTarget = YamlDataTemplateTarget(
+  def getTarget(inConnection:YamlDataTemplateConnect,partitionBy:List[String],inSource:String = "source",
+               ): YamlDataTemplateTarget = YamlDataTemplateTarget(
     database = null,
     fileSystem = YamlDataTemplateTargetFileSystem(
       connection = inConnection,
-      source = "source",
+      source = inSource,
+      tableName = s"kafka__${sourceLogicTableSchema}.\"${kafkaTopic}\"",
       mode = WriteMode.streamByRunId,
       targetFile = s"kafka/$kafkaTopic",
-      partitionBy = List.empty,
+      partitionBy =partitionBy,
     ),
     messageBroker = null,
     dummy = null,
     ignoreError = false
   )
 
-  def getReadTarget(inSourceName:String):YamlDataTemplateSource = YamlDataTemplateSource(
+  def getReadTarget(inSourceName:YamlDataTemplateConnect):YamlDataTemplateSource = YamlDataTemplateSource(
     sourceName = inSourceName,
     objectName = "source",
     sourceFileSystem = YamlDataTemplateSourceFileSystem(
@@ -64,5 +67,20 @@ class YamlDataEtlToolTemplateSupportKafka(
     initMode = InitModeEnum.instantly.toString,
     skipIfEmpty = true
   )
+
+  def getKafkaSource(in:YamlDataTemplateConnect): YamlDataTemplateSource = YamlDataTemplateSource(
+    sourceName = in,
+    objectName = "source",
+    sourceKafka = YamlDataTemplateSourceKafka(
+      topics = YamlDataTemplateSourceKafkaTopic(
+        topicList = List(kafkaTopic),
+      ),
+      listTopics = null,
+      topicsByRegexp = null
+    ),
+    initMode = InitModeEnum.instantly.toString
+  )
+  
+  
 
 }

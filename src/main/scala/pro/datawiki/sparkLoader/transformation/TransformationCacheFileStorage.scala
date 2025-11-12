@@ -5,7 +5,6 @@ import pro.datawiki.datawarehouse.{DataFrameDirty, DataFrameOriginal, DataFrameT
 import pro.datawiki.exception.DataProcessingException
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, FileStorageTrait}
 import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode
-import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode.overwriteTable
 
 import scala.util.Random
 
@@ -18,22 +17,21 @@ class TransformationCacheFileStorage() extends TransformationCache {
   private val locRaw = s"$loc/raw"
 
   @Override
-  def saveTable(
-                 in: DataFrameTrait,
-                 mode: WriteMode,
-                 inConnection: ConnectionTrait
+  def saveTable(in: DataFrameTrait,
+                mode: WriteMode,
+                inConnection: ConnectionTrait
                ): Unit = {
     val connect = inConnection match {
       case x: FileStorageTrait => x
       case _ => throw UnsupportedOperationException("Unsupported connection type for TransformationCacheFileStorage")
     }
     in match
-      case x: DataFrameOriginal => connect.writeDf(x.getDataFrame, locTable, mode)
-      case x: DataFrameDirty => connect.writeDf(x.getDataFrame, s"${locTable}/${x.getPartitionName}", mode)
+      case x: DataFrameOriginal => connect.writeDf(x.getDataFrame, "", locTable, mode)
+      case x: DataFrameDirty => connect.writeDf(x.getDataFrame, "", s"${locTable}/${x.getPartitionName}", mode)
       case _ => throw UnsupportedOperationException("Unsupported DataFrame type")
     initedTables = initedTables.appended(connect)
   }
-  
+
   override def readBaseTable(inConnection: ConnectionTrait): DataFrame = {
 
     val connect = inConnection match {

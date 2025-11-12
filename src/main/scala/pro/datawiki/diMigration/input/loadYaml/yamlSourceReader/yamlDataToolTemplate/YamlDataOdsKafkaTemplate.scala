@@ -2,12 +2,10 @@ package pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTem
 
 import pro.datawiki.diMigration.core.task.CoreTask
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.*
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTarget.{YamlDataTemplateTargetDummy, YamlDataTemplateTargetFileSystem}
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTarget.YamlDataTemplateTargetFileSystem
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTransformation.{YamlDataTemplateTransformationExtractSchema, YamlDataTemplateTransformationSparkSql}
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplateSupport.{YamlDataEtlToolTemplateSupportKafka, YamlDataEtlToolTemplateSupportOds, YamlDataEtlToolTemplateSupportStg}
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.{Metadata, YamlDataTaskToolTemplate}
-import pro.datawiki.sparkLoader.configuration.yamlConfigEltOnServerOperation.YamlConfigEltOnServerSQL
-import pro.datawiki.sparkLoader.connection.clickhouse.LoaderClickHouse
 import pro.datawiki.sparkLoader.connection.postgres.LoaderPostgres
 import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode
 import pro.datawiki.yamlConfiguration.YamlClass
@@ -23,7 +21,8 @@ case class YamlDataOdsKafkaTemplate(
                                      tableName: String,
                                      dwhConfigLocation: String,
                                      business_date: String,
-                                     extra_code: String
+                                     extra_code: String,
+                                     stgSchemaPath: String // Added this field
                                    ) extends YamlDataTaskToolTemplate {
 
   override def isRunFromControlDag: Boolean = false
@@ -34,7 +33,8 @@ case class YamlDataOdsKafkaTemplate(
       kafkaTopic = kafkaTopic,
       yamlFileCoreLocation = yamlFileCoreLocation,
       yamlFileLocation = yamlFileLocation,
-      sourceCode = "kafka")
+      sourceCode = "kafka",
+      sourceLogicTableSchema = tableSchema)
 
     val stgSupport = new YamlDataEtlToolTemplateSupportStg(
       taskName = taskName,
@@ -51,8 +51,7 @@ case class YamlDataOdsKafkaTemplate(
       tableName = tableName,
       metadata = metadata,
       yamlFileCoreLocation = yamlFileCoreLocation,
-      yamlFileLocation = yamlFileLocation,
-      sourceCode = "kafka")
+      yamlFileLocation = yamlFileLocation)
 
     val support = new YamlDataEtlToolTemplateSupport(
       taskName = taskName,
@@ -68,7 +67,7 @@ case class YamlDataOdsKafkaTemplate(
       yamlFileLocation = yamlFileLocation
     )
 
-    if (dwhConfigLocation == null) {
+    if dwhConfigLocation == null then {
       throw new IllegalArgumentException("dwhConfigLocation cannot be null")
     }
     val dwhLoader = LoaderPostgres(dwhConfigLocation)
@@ -78,10 +77,9 @@ case class YamlDataOdsKafkaTemplate(
       taskName = kafkaSupport.getKafkaTaskName,
       yamlFile = kafkaSupport.getKafkaYamlFile,
       preEtlOperations = List.empty,
-      connections = List(kafkaSupport.getConnect, support.getJsonStreamDataWarehouse),
-      sources = List.apply(kafkaSupport.getSource),
+      sources = List.apply(kafkaSupport.getSource(kafkaSupport.getConnect)),
       transform = List.empty,
-      target = List(kafkaSupport.getTarget(support.getJsonStreamDataWarehouse.getSourceName)),
+      target = List(kafkaSupport.getTarget(support.getJsonStreamDataWarehouse, List.empty)),
       postEtlOperations = List.empty,
       dependencies = List.empty
     )
@@ -89,160 +87,70 @@ case class YamlDataOdsKafkaTemplate(
     val stg = new YamlDataEtlToolTemplate(
       taskName = stgSupport.getStgTaskName,
       yamlFile = stgSupport.getStgYamlFile,
-      connections = List(
-        support.getJsonDataWarehouse,
-        support.getParquetDataWarehouse,
-      ),
       preEtlOperations = List.empty,
-      sources = List(kafkaSupport.getReadTarget(support.getJsonDataWarehouse.getSourceName)),
+      sources = List(kafkaSupport.getReadTarget(support.getJsonDataWarehouse)),
       transform = List(
-        YamlDataTemplateTransformation(
-          objectName = "level1",
-          cache = null,
-          idMap = null,
-          sparkSql = null,
-          sparkSqlLazy = null,
-          extractSchema = YamlDataTemplateTransformationExtractSchema(
-            tableName = "source",
-            jsonColumn = "value",
-            jsonResultColumn = "parsed_value",
-            baseSchema = s"/opt/etl-tool/configMigrationSchemas/stg__$kafkaTopic.yaml",
-            mergeSchema = false,
-          ),
-          extractAndValidateDataFrame = null,
-          adHoc = null,
-          deduplicate = null
-        ),
-        YamlDataTemplateTransformation(
-          objectName = "level2",
-          cache = null,
-          idMap = null,
-          sparkSql = YamlDataTemplateTransformationSparkSql(
-            sql =
-              s"""select offset,
-                 |       partition,
-                 |       timestamp,
-                 |       timestampType,
-                 |       topic,
-                 |       ${business_date} as business_date,
-                 |       parsed_value as value
-                 |  from level1""".stripMargin
-          ),
-          sparkSqlLazy = null,
-          extractSchema = null,
-          extractAndValidateDataFrame = null,
-          adHoc = null,
-          deduplicate = null
-        ),
-        YamlDataTemplateTransformation(
-          objectName = "level4",
-          cache = null,
-          idMap = null,
-          sparkSql = YamlDataTemplateTransformationSparkSql(
-            sql =
-              s"""select *
-                 |  from level2""".stripMargin
-          ),
-          sparkSqlLazy = null,
-          extractSchema = null,
-          extractAndValidateDataFrame = null,
-          adHoc = null,
-          deduplicate = null
-        ),
+        stgSupport.getExtractSchema("level1", "source", "value", "parsed_value", kafkaTopic),
+        support.getSparkSqlTransformation("level2",
+          s"""select offset,
+             |       partition,
+             |       timestamp,
+             |       timestampType,
+             |       topic,
+             |       ${business_date} as business_date,
+             |       parsed_value as value
+             |  from level1""".stripMargin),
+        support.getSparkSqlTransformation("level4",
+          s"""select *
+             |  from level2""".stripMargin),
       ),
       target = List(
-        YamlDataTemplateTarget(
-          database = null,
-          fileSystem = YamlDataTemplateTargetFileSystem(
-            connection = support.getParquetDataWarehouse.getSourceName,
-            source = "level4",
-            mode = WriteMode.autoOverwrite,
-            targetFile = stgSupport.getStgFolder,
-            partitionBy = List("business_date"),
-          ),
-          messageBroker = null,
-          dummy = null,
-
-          ignoreError = false
-        )
+        stgSupport.writeStg(WriteMode.autoOverwrite, "level4", support.getParquetDataWarehouse)
       ),
       postEtlOperations = List.empty,
-      dependencies = List(kafka.taskName)
+      dependencies = List(kafka.getTaskName)
     )
 
     val ods = new YamlDataEtlToolTemplate(
       taskName = support.getOdsTaskName,
       yamlFile = support.getOdsYamlFile,
-      connections = List.apply(support.getParquetDataWarehouse, support.getPostgres),
       preEtlOperations = List.empty,
-      sources = List.apply(stgSupport.getOdsYamlDataTemplateSourceYamlDataTemplateSource(support.getParquetDataWarehouse.getSourceName)),
+      sources = List.apply(stgSupport.getOdsYamlDataTemplateSource(support.getParquetDataWarehouse)),
       transform = List.apply(
-        YamlDataTemplateTransformation(
-          objectName = "level1",
-          cache = null,
-          idMap = null,
-          sparkSql = YamlDataTemplateTransformationSparkSql(
-            sql =
-              s"""select `offset` as offset_id,
-                 |       value.*,
-                 |       timestamp as ts_ms ${extra_code}
-                 |  from src""".stripMargin,
-          ),
-          sparkSqlLazy = null,
-          extractSchema = null,
-          extractAndValidateDataFrame = null,
-          adHoc = null,
-          deduplicate = null
-        ),
-        YamlDataTemplateTransformation(
-          objectName = "level2",
-          cache = null,
-          idMap = null,
-          sparkSql = YamlDataTemplateTransformationSparkSql(
-            sql =
-              s"""select ${metadata.columns.map(col => col.column_name).mkString(",\n      ")}, ts_ms
-                 |  from level1""".stripMargin,
-          ),
-          sparkSqlLazy = null,
-          extractSchema = null,
-          extractAndValidateDataFrame = null,
-          adHoc = null,
-          deduplicate = null
-        ),
+        support.getSparkSqlTransformation("level1",
+          s"""select `offset` as offset_id,
+             |       value.*,
+             |       timestamp as ts_ms ${extra_code}
+             |  from src""".stripMargin),
+        support.getSparkSqlTransformation("level2",
+          s"""select ${metadata.columns.map(col => col.column_name).mkString(",\n      ")}, ts_ms
+             |  from level1""".stripMargin)
       ),
-      target = List.apply(odsSupport.writeOds(WriteMode.append, "level2")),
+      target = List.apply(odsSupport.writeOds(support.getPostgres,WriteMode.append, "level2")),
       postEtlOperations = List.empty,
-      dependencies = List.apply(stg.taskName)
+      dependencies = List.apply(stg.getTaskName)
     )
-    val password = "H76q3kng6tsfdpoi90$&97oj013"
+
     val clickhouse = new YamlDataEtlToolTemplate(
       taskName = support.getClickhouseTaskName,
       yamlFile = support.getClickhouseYamlFile,
-      connections = List.apply(
-        support.getPostgres,
-        support.getClickhouseConfig,
-      ),
       preEtlOperations = List.apply(support.getClickhouseYamlConfigEltOnServerOperation(metadata)),
-      sources =List.apply(support.getDataForDM),
-      transform = List.apply(),
-      target = List.apply(support.getClickhouseTarget("clickhouseUnico", "src", metadata)      ),
-      postEtlOperations =List.apply(support.getClickhouseYamlConfigEltOnServerOperationPost(metadata)),
-      dependencies = List.apply(ods.taskName)
+      sources = List.apply(support.getDataForDM(support.getPostgres)),
+      transform = List.empty,
+      target = List.apply(support.getClickhouseTarget(support.getClickhouseConfig, "src", metadata)),
+      postEtlOperations = List.apply(support.getClickhouseYamlConfigEltOnServerOperationPost(metadata)),
+      dependencies = List.apply(ods.getTaskName)
     )
 
     val snowflake = new YamlDataEtlToolTemplate(
       taskName = support.getSnowflakeTaskName,
       yamlFile = support.getSnowflakeYamlFile,
-      connections = List.apply(
-        support.getPostgres,
-        support.getAmazonS3,
-      ),
       preEtlOperations = List.empty,
-      sources = List.apply(support.getDataForDM),
-      transform = List.apply(),
-      target = List.apply(support.getSnowflakeTarget("datewarehouse", "src")),
+      sources = List.apply(support.getDataForDM(support.getPostgres)),
+      transform = List.empty,
+      target = List.apply(support.getSnowflakeTarget(support.getAmazonS3, "src")),
       postEtlOperations = List.empty,
-      dependencies = List.apply(ods.taskName)
+      dependencies = List.apply(ods.getTaskName)
     )
 
     return kafka.getCoreTask ++ stg.getCoreTask ++ ods.getCoreTask ++ clickhouse.getCoreTask ++ snowflake.getCoreTask
@@ -252,6 +160,10 @@ case class YamlDataOdsKafkaTemplate(
 
 
 object YamlDataOdsKafkaTemplate extends YamlClass {
+  /**
+   * This apply method reads a YAML configuration and maps it to a YamlDataOdsKafkaTemplate case class.
+   * Ensure that the YAML configuration includes the 'stgSchemaPath' field, as it is now a required parameter.
+   */
   def apply(inConfig: String, row: Map[String, String]): YamlDataOdsKafkaTemplate = {
     val text: String = getLines(inConfig, row)
     val configYaml: YamlDataOdsKafkaTemplate = mapper.readValue(text, classOf[YamlDataOdsKafkaTemplate])

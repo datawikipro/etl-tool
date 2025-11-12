@@ -1,15 +1,12 @@
 package pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate
 
 import pro.datawiki.diMigration.core.task.CoreTask
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigSource.{YamlDataTemplateSourceDBTable, YamlDataTemplateSourceFileSystem}
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTarget.YamlDataTemplateTargetDummy
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTransformation.{YamlDataTemplateTransformationExtractAndValidateDataFrame, YamlDataTemplateTransformationSparkSql}
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.*
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTransformation.YamlDataTemplateTransformationExtractAndValidateDataFrame
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplateSupport.{YamlDataEtlToolTemplateSupportOds, YamlDataEtlToolTemplateSupportStg}
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.{Metadata, YamlDataTaskToolTemplate}
 import pro.datawiki.sparkLoader.connection.NoSQLDatabaseTrait
 import pro.datawiki.sparkLoader.connection.postgres.LoaderPostgres
-import pro.datawiki.sparkLoader.dictionaryEnum.{InitModeEnum, WriteMode}
 import pro.datawiki.yamlConfiguration.YamlClass
 
 case class YamlDataOdsMongoDBMirrorTemplate(
@@ -64,139 +61,57 @@ case class YamlDataOdsMongoDBMirrorTemplate(
       tableName = tableName,
       metadata = metadata,
       yamlFileCoreLocation = yamlFileCoreLocation,
-      yamlFileLocation = yamlFileLocation,
-      sourceCode = "monga")
+      yamlFileLocation = yamlFileLocation)
 
     val stg = new YamlDataEtlToolTemplate(
       taskName = stgSupport.getStgBatchTaskName,
       yamlFile = stgSupport.getStgYamlFile,
-      connections = List.apply(
-        YamlDataTemplateConnect(
-          sourceName = "mongodb",
-          connection = "mongodb",
-          configLocation = configLocation
-        ),
-        YamlDataTemplateConnect(
-          sourceName = "datewarehouse",
-          connection = "minioJson",
-          configLocation = "/opt/etl-tool/configConnection/minio.yaml" //TODO
-        ),
-      ),
       preEtlOperations = List.empty,
-      sources = List.apply(
-        YamlDataTemplateSource(
-          sourceName = "mongodb",
-          objectName = "src",
-          sourceDb = YamlDataTemplateSourceDBTable(
-            tableSchema = sourceSchema,
-            tableName = sourceTable,
-            tableColumns = List.apply(), //metadata.columns.map(col => YamlConfigSourceDBTableColumn(columnName = col.column_name)),
-          ),
-          initMode = InitModeEnum.instantly.toString
-        )
-      ),
+      sources = List.apply(stgSupport.getSrcFromRemote(stgSupport.getMonga(configLocation),sourceSchema, sourceTable)),
       transform = List.apply(
-        YamlDataTemplateTransformation(
-          objectName = "schema",
-          cache = null,
-          idMap = null,
-          sparkSql = null,
-          sparkSqlLazy = null,
-          extractSchema = null,
-          extractAndValidateDataFrame = YamlDataTemplateTransformationExtractAndValidateDataFrame(
-            dataFrameIn = "src",
-            configLocation = s"/opt/etl-tool/configMigrationSchemas/mongodb__${sourceSchema}__$sourceTable.yaml"
-          ),
-          adHoc = null,
-          deduplicate = null
-        ),
+        stgSupport.getExtractAndValidate("schema","src"),
       ),
-      target = List.apply(stgSupport.getStgYamlDataTemplateTarget("datewarehouse")),
+      target = List.apply(stgSupport.getStgYamlDataTemplateTarget(support.getJsonDataWarehouse, "src", List.empty)),
       postEtlOperations = List.empty,
       dependencies = List.empty
     )
 
     val ods = new YamlDataEtlToolTemplate(
-      taskName = s"ods__batch__${taskName.replace("-", "_")}",
-      yamlFile = s"${yamlFileCoreLocation}/ods__${yamlFileLocation}__monga/ods/$sourceTable.yaml",
-      connections = List.apply(
-        YamlDataTemplateConnect(
-          sourceName = "datewarehouse",
-          connection = "minioJson",
-          configLocation = "/opt/etl-tool/configConnection/minio.yaml" //TODO
-        ),
-        support.getPostgres,
-      ),
+      taskName = support.getOdsBatchTaskName,
+      yamlFile = support.getOdsYamlFile,
       preEtlOperations = List.empty,
-      sources = List.apply(stgSupport.getOdsYamlDataTemplateSourceYamlDataTemplateSource("datewarehouse")),
+      sources = List.apply(stgSupport.getOdsYamlDataTemplateSource(support.getJsonDataWarehouse)),
       transform = List.apply(
-        YamlDataTemplateTransformation(
-          objectName = "level1",
-          cache = null,
-          idMap = null,
-          sparkSql = YamlDataTemplateTransformationSparkSql(
-            sql = s"select * $extra_code from src",
-          ),
-          sparkSqlLazy = null,
-          extractSchema = null,
-          extractAndValidateDataFrame = null,
-          adHoc = null,
-          deduplicate = null
-        ),
-        YamlDataTemplateTransformation(
-          objectName = "level2",
-          cache = null,
-          idMap = null,
-          sparkSql = YamlDataTemplateTransformationSparkSql(
-            sql = s"select ${
-              metadata.columns.map(col => {
-                if col.column_name == "id" then s"_id as id" else s"${col.column_name} as ${col.column_name}"
-              }).mkString(",")
-            } from level1",
-          ),
-          sparkSqlLazy = null,
-          extractSchema = null,
-          extractAndValidateDataFrame = null,
-          adHoc = null,
-          deduplicate = null
-        ),
+        support.getSparkSqlTransformation("level1", s"""select * $extra_code from src"""),
+        support.getSparkSqlTransformation("level2",
+          s"""select ${metadata.columns.map(col => if col.column_name == "id" then s"_id as id" else s"${col.column_name} as ${col.column_name}").mkString(",")}
+             |  from level1""".stripMargin)
       ),
-      target = List.apply(
-        odsSupport.writeOds(metadata.columns.isEmpty match {
-          case true => WriteMode.overwritePartition
-          case false => WriteMode.mergeFull
-        }, "level2")
-      ),
-      postEtlOperations =List.apply(support.getClickhouseYamlConfigEltOnServerOperationPost(metadata)),
+      target = List.apply(odsSupport.writeOds(support.getPostgres,metadata.getWriteMode, "level2")),
+      postEtlOperations = List.apply(support.getClickhouseYamlConfigEltOnServerOperationPost(metadata)),
       dependencies = List.apply(s"stg__batch__${taskName}")
     )
 
     val clickhouse = new YamlDataEtlToolTemplate(
       taskName = support.getClickhouseBatchTaskName,
       yamlFile = support.getClickhouseYamlFile,
-      connections = List.apply(
-        support.getPostgres,support.getClickhouseConfig),
       preEtlOperations = List.apply(support.getClickhouseYamlConfigEltOnServerOperation(metadata)),
-      sources = List.apply(support.getDataForDM),
+      sources = List.apply(support.getDataForDM(support.getPostgres)),
       transform = List.apply(),
-      target = List.apply(support.getClickhouseTarget("clickhouseUnico", "src", metadata)      ),
+      target = List.apply(support.getClickhouseTarget(support.getClickhouseConfig, "src", metadata)),
       postEtlOperations = List.empty,
-      dependencies = List.apply(ods.taskName)
+      dependencies = List.apply(ods.getTaskName)
     )
 
     val snowflake = new YamlDataEtlToolTemplate(
       taskName = support.getSnowflakeBatchTaskName,
       yamlFile = support.getSnowflakeYamlFile,
-      connections = List.apply(
-        support.getPostgres,
-        support.getAmazonS3,
-      ),
       preEtlOperations = List.empty,
-      sources = List.apply(support.getDataForDM),
+      sources = List.apply(support.getDataForDM(support.getPostgres)),
       transform = List.apply(),
-      target = List.apply(support.getSnowflakeTarget("datewarehouse", "src")),
+      target = List.apply(support.getSnowflakeTarget(support.getAmazonS3, "src")),
       postEtlOperations = List.empty,
-      dependencies = List.apply(ods.taskName)
+      dependencies = List.apply(ods.getTaskName)
     )
     return stg.getCoreTask ++ ods.getCoreTask ++ snowflake.getCoreTask ++ clickhouse.getCoreTask
   }

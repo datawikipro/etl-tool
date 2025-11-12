@@ -6,23 +6,21 @@ import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.YamlDataTaskTool
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.*
 import pro.datawiki.sparkLoader.connection.kafka.kafkaSaslSSL.LoaderKafkaSaslSSL
 import pro.datawiki.sparkLoader.connection.kafka.kafkaSaslSSL.LoaderKafkaSaslSSL.{getLines, mapper}
-import pro.datawiki.sparkLoader.dictionaryEnum.ConnectionEnum
 import pro.datawiki.yamlConfiguration.YamlClass
 
-import scala.collection.mutable
-
 @JsonInclude(JsonInclude.Include.NON_ABSENT)
-case class YamlDataEtlToolTemplate(
-                                    taskName: String,
-                                    yamlFile: String,
-                                    preEtlOperations: List[YamlConfigEltOnServerOperation],
-                                    connections: List[YamlDataTemplateConnect],
-                                    sources: List[YamlDataTemplateSource],
-                                    transform: List[YamlDataTemplateTransformation],
-                                    target: List[YamlDataTemplateTarget],
-                                    postEtlOperations: List[YamlConfigEltOnServerOperation],
-                                    dependencies: List[String],
-                                  ) extends YamlDataTaskToolTemplate {
+class YamlDataEtlToolTemplate(
+                               taskName: String,
+                               yamlFile: String,
+                               preEtlOperations: List[YamlConfigEltOnServerOperation],
+                               sources: List[YamlDataTemplateSource],
+                               transform: List[YamlDataTemplateTransformation],
+                               target: List[YamlDataTemplateTarget],
+                               postEtlOperations: List[YamlConfigEltOnServerOperation],
+                               dependencies: List[String],
+                             ) extends YamlDataTaskToolTemplate {
+
+  def getTaskName: String = taskName
 
   override def getCoreTask: List[CoreTask] = {
     return List.apply(
@@ -30,7 +28,7 @@ case class YamlDataEtlToolTemplate(
         taskName = taskName,
         yamlFile = yamlFile,
         preEtlOperations = preEtlOperations.map(col => col.getCorePreEtlOperations),
-        connections = connections.map(col => col.getCoreConnection),
+        connections =(sources.map(col => col.sourceName.getCoreConnection) ::: target.map(col => col.getCoreConnection)).distinct,
         sources = sources.map(col => col.getCoreSource),
         transform = transform.map(col => col.getCoreTransformation),
         target = target.map(col => col.getCoreTarget),
@@ -40,7 +38,8 @@ case class YamlDataEtlToolTemplate(
 
     )
   }
-  override def isRunFromControlDag:Boolean = throw Exception()
+
+  override def isRunFromControlDag: Boolean = throw Exception()
 }
 
 object YamlDataEtlToolTemplate extends YamlClass {

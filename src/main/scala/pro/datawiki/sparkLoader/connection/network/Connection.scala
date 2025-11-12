@@ -12,7 +12,6 @@ class Connection(host: String, port: Int) {
       return true
     } catch {
       case e: Exception =>
-        println(s"host:$host part:$port error: ${e.toString}")
         return false
     } finally {
       if (socket != null) socket.close()

@@ -3,7 +3,6 @@ package pro.datawiki.sparkLoader.configuration.yamlConfigTarget
 import com.fasterxml.jackson.annotation.{JsonIgnore, JsonInclude}
 import org.apache.spark.sql.functions.lit
 import pro.datawiki.datawarehouse.DataFrameTrait
-import pro.datawiki.sparkLoader.LogMode
 import pro.datawiki.sparkLoader.configuration.YamlConfigTargetTrait
 import pro.datawiki.sparkLoader.connection.FileStorageTrait
 import pro.datawiki.sparkLoader.context.ApplicationContext
@@ -14,6 +13,7 @@ import pro.datawiki.sparkLoader.traits.LoggingTrait
 case class YamlConfigTargetFileSystem(
                                        connection: String,
                                        source: String,
+                                       tableName:String,
                                        mode: String = "append",
                                        targetFile: String,
                                        partitionBy: List[String] = List.apply(),
@@ -27,20 +27,20 @@ case class YamlConfigTargetFileSystem(
   }
 
   def writeAutoPartition(df: DataFrameTrait, mode: WriteMode): Boolean = {
-    if partitionBy.isEmpty then  throw IllegalArgumentException("partitionBy cannot be empty for auto partition mode")
-  
-    loader.writeDfPartitionAuto(df.getDataFrame, targetFile, partitionBy, mode)
+    if partitionBy.isEmpty then throw IllegalArgumentException("partitionBy cannot be empty for auto partition mode")
+
+    loader.writeDfPartitionAuto(df.getDataFrame, tableName, targetFile, partitionBy, mode)
     return true
 
   }
 
   def writeDirectPartition(df: DataFrameTrait): Boolean = {
-    loader.writeDfPartitionDirect(df.getDataFrame, targetFile, partitionBy, ApplicationContext.getPartitions(partitionBy *), loadMode)
+    loader.writeDfPartitionDirect(df.getDataFrame, tableName, targetFile, partitionBy, ApplicationContext.getPartitions(partitionBy *), loadMode, false)
     return true
   }
 
   def writeStream(df: DataFrameTrait): Boolean = {
-    loader.writeDf(df.getDataFrame, targetFile, loadMode)
+    loader.writeDf(df.getDataFrame, tableName, targetFile, loadMode)
     return true
   }
 
@@ -53,13 +53,13 @@ case class YamlConfigTargetFileSystem(
       dfWithExtraColumn = dfWithExtraColumn.withColumn(col._1, lit(col._2))
     })
 
-    loader.writeDfPartitionAuto(dfWithExtraColumn, targetFile, listPartition, loadMode)
+    loader.writeDfPartitionAuto(dfWithExtraColumn, tableName, targetFile, listPartition, loadMode)
 
     return true
   }
 
   def writeFullTable(df: DataFrameTrait): Boolean = {
-    loader.writeDf(df.getDataFrame, targetFile, loadMode)
+    loader.writeDf(df.getDataFrame, tableName, targetFile, loadMode)
     return true
   }
 
@@ -68,14 +68,14 @@ case class YamlConfigTargetFileSystem(
     val df: DataFrameTrait = getSourceDf
 
     WriteMode(mode) match {
-      case WriteMode.autoOverwrite => writeAutoPartition(df,WriteMode.overwriteTable)
-      case WriteMode.autoAppend=> writeAutoPartition(df,WriteMode.append)
-//      case WriteMode.direct => writeDirectPartition(df)
+      case WriteMode.autoOverwrite => writeAutoPartition(df, WriteMode.overwriteTable)
+      case WriteMode.autoAppend => writeAutoPartition(df, WriteMode.append)
+      //      case WriteMode.direct => writeDirectPartition(df)
       case WriteMode.stream => writeStream(df)
       case WriteMode.streamByRunId => writeStreamByRunId(df)
       case WriteMode.overwriteTable => writeDirectPartition(df)
       case WriteMode.overwritePartition => writeDirectPartition(df)
-//      case WriteMode.none => writeFullTable(df)
+      //      case WriteMode.none => writeFullTable(df)
 
       case fs => {
         throw UnsupportedOperationException(s"Unsupported partition mode: $fs")

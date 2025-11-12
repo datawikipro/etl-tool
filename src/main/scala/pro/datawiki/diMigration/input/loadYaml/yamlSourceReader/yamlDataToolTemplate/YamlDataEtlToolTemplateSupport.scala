@@ -1,9 +1,9 @@
 package pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate
 
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.*
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigSource.YamlDataTemplateSourceDBTable
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigSource.{YamlDataTemplateSourceDBTable, YamlDataTemplateSourceFileSystem}
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTarget.{YamlDataTemplateTargetColumn, YamlDataTemplateTargetDatabase, YamlDataTemplateTargetFileSystem}
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTransformation.YamlDataTemplateTransformationExtractAndValidateDataFrame
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTransformation.{YamlDataTemplateTransformationDeduplicate, YamlDataTemplateTransformationExtractAndValidateDataFrame, YamlDataTemplateTransformationSparkSql}
 import pro.datawiki.sparkLoader.configuration.yamlConfigEltOnServerOperation.YamlConfigEltOnServerSQL
 import pro.datawiki.sparkLoader.connection.clickhouse.LoaderClickHouse
 import pro.datawiki.sparkLoader.connection.databaseTrait.TableMetadata
@@ -59,6 +59,7 @@ class YamlDataEtlToolTemplateSupport(
     configLocation = "/opt/etl-tool/configConnection/minio.yaml" //TODO
   )
 
+
   def getParquetDataWarehouse: YamlDataTemplateConnect = YamlDataTemplateConnect(
     sourceName = "datewarehouseParquet",
     connection = ConnectionEnum.minioParquet.toString,
@@ -71,16 +72,20 @@ class YamlDataEtlToolTemplateSupport(
     configLocation = "/opt/etl-tool/configConnection/postgres.yaml"
   )
 
+  def getBigQuery(configLocation:String): YamlDataTemplateConnect = YamlDataTemplateConnect(
+    sourceName = "src",
+    connection = ConnectionEnum.bigQuery.toString,
+    configLocation = configLocation
+  )
+
   def getAmazonS3: YamlDataTemplateConnect = YamlDataTemplateConnect(
     sourceName = "datewarehouse",
     connection = ConnectionEnum.minioParquet.toString,
     configLocation = "/opt/etl-tool/configConnection/s3.yaml" //TODO
   )
 
-  def getMainDataWarehouseName: String = "datewarehouseMain"
-
   def getMainDataWarehouse: YamlDataTemplateConnect = YamlDataTemplateConnect(
-    sourceName = getMainDataWarehouseName,
+    sourceName = "datewarehouseMain",
     connection = ConnectionEnum.postgres.toString,
     configLocation = dwhConfigLocation
   )
@@ -91,31 +96,12 @@ class YamlDataEtlToolTemplateSupport(
     configLocation = "/opt/etl-tool/configConnection/clickhouse.yaml"
   )
 
-  def getYamlDataTemplateTransformation: YamlDataTemplateTransformation =
-    YamlDataTemplateTransformation(
-      objectName = "schema",
-      cache = null,
-      idMap = null,
-      sparkSql = null,
-      sparkSqlLazy = null,
-      extractSchema = null,
-      extractAndValidateDataFrame = YamlDataTemplateTransformationExtractAndValidateDataFrame(
-        dataFrameIn = "src",
-        configLocation = s"/opt/etl-tool/configMigrationSchemas/${connection}__${sourceLogicTableSchema}__$sourceLogicTableName.yaml"
-      ),
-      adHoc = null,
-      deduplicate = null
-    )
-
-  def getOdsYamlDataTemplateTarget(metadata: TableMetadata): YamlDataTemplateTarget =
+  def getOdsYamlDataTemplateTarget(metadata: TableMetadata, in:YamlDataTemplateConnect): YamlDataTemplateTarget =
     YamlDataTemplateTarget(
       database = YamlDataTemplateTargetDatabase(
-        connection = getMainDataWarehouseName,
+        connection = in,
         source = "src",
-        mode = metadata.columns.isEmpty match {
-          case true => WriteMode.overwritePartition
-          case false => WriteMode.mergeDelta
-        },
+        mode = metadata.getWriteMode,
         partitionMode = null, //TODO
         targetSchema = s"ods__${targetTableSchema}",
         targetTable = s"${targetTableName}",
@@ -129,7 +115,6 @@ class YamlDataEtlToolTemplateSupport(
         uniqueKey = metadata.primaryKey,
         partitionBy = null,
         scd = "SCD_3"
-
       ),
       fileSystem = null,
       messageBroker = null,
@@ -163,7 +148,7 @@ class YamlDataEtlToolTemplateSupport(
       ignoreError = false
     )
 
-  def getClickhouseTarget(inConnectionName: String, inSourceName: String, metadata: TableMetadata): YamlDataTemplateTarget = YamlDataTemplateTarget(
+  def getClickhouseTarget(inConnectionName: YamlDataTemplateConnect, inSourceName: String, metadata: TableMetadata): YamlDataTemplateTarget = YamlDataTemplateTarget(
     database = YamlDataTemplateTargetDatabase(
       connection = inConnectionName,
       source = inSourceName,
@@ -188,13 +173,14 @@ class YamlDataEtlToolTemplateSupport(
     ignoreError = false
   )
 
-  def getSnowflakeTarget(inConnectionName: String, inSourceName: String): YamlDataTemplateTarget = YamlDataTemplateTarget(
+  def getSnowflakeTarget(inConnectionName: YamlDataTemplateConnect, inSourceName: String): YamlDataTemplateTarget = YamlDataTemplateTarget(
     database = null,
     messageBroker = null,
     dummy = null,
     fileSystem = YamlDataTemplateTargetFileSystem(
       connection = inConnectionName,
       source = inSourceName,
+      tableName = "",
       mode = WriteMode.overwritePartition,
       targetFile = s"dwh-backups/ods__${targetTableSchema}/${targetTableName}",
       partitionBy = List.apply("run_id"),
@@ -209,8 +195,8 @@ class YamlDataEtlToolTemplateSupport(
     configLocation = "/opt/etl-tool/configConnection/clickhouse.yaml"
   )
 
-  def getDataForDM: YamlDataTemplateSource = YamlDataTemplateSource(
-    getPostgres.getSourceName,
+  def getDataForDM(connection:YamlDataTemplateConnect): YamlDataTemplateSource = YamlDataTemplateSource(
+    sourceName=connection,
     objectName = "src",
     sourceDb = YamlDataTemplateSourceDBTable(
       tableSchema = s"ods__$targetTableSchema",
@@ -221,4 +207,46 @@ class YamlDataEtlToolTemplateSupport(
     initMode = InitModeEnum.instantly.toString
   )
 
+
+  def getSparkSqlTransformation(inObjectName: String, inSql: String): YamlDataTemplateTransformation = YamlDataTemplateTransformation(
+    objectName = inObjectName,
+    cache = null,
+    idMap = null,
+    sparkSql = YamlDataTemplateTransformationSparkSql(sql = inSql),
+    sparkSqlLazy = null,
+    extractSchema = null,
+    extractAndValidateDataFrame = null,
+    adHoc = null,
+    deduplicate = null
+  )
+
+  def getDeduplicate(inObjectName: String, inSourceTable: String, primaryKey: List[String], deduplicationKey: List[String]): YamlDataTemplateTransformation = YamlDataTemplateTransformation(
+    objectName = inObjectName,
+    cache = null,
+    idMap = null,
+    sparkSql = null,
+    sparkSqlLazy = null,
+    extractSchema = null,
+    extractAndValidateDataFrame = null,
+    adHoc = null,
+    deduplicate = YamlDataTemplateTransformationDeduplicate(
+      sourceTable = inSourceTable,
+      uniqueKey = primaryKey,
+      deduplicationKey = deduplicationKey
+    )
+  )
+
+  def getSrcFromS3(inSource: YamlDataTemplateConnect,objectName:String, inS3Folder: String): YamlDataTemplateSource = YamlDataTemplateSource(
+    sourceName = inSource,
+    objectName = objectName,
+    sourceFileSystem = YamlDataTemplateSourceFileSystem(
+      tableName = inS3Folder,
+      tableColumns = List.empty,
+      partitionBy = List.apply("locationBasedOnRunId"),
+      where = null,
+      limit = 0
+    ),
+    initMode = InitModeEnum.instantly.toString,
+    skipIfEmpty = true
+  )
 }

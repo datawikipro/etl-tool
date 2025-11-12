@@ -11,17 +11,20 @@ trait FileStorageTrait extends ConnectionTrait {
 
   def readDf(location: String, keyPartitions: List[String], valuePartitions: List[String], withPartitionOnDataframe:Boolean): DataFrame
 
-  def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit
+  def writeDf(df: DataFrame, tableName:String,location: String, writeMode: WriteMode): Unit
 
   def readDfSchema(location: String): DataFrame
   
   def writeDfPartitionDirect(df: DataFrame,
+                             tableName:String,
                              location: String,
                              partitionName: List[String],
                              partitionValue: List[String],
-                             writeMode: WriteMode): Unit
+                             writeMode: WriteMode,
+                             useCache:Boolean): Unit
 
   def writeDfPartitionAuto(df: DataFrame,
+                           tableName:String,
                            location: String,
                            partitionName: List[String],
                            writeMode: WriteMode): Unit

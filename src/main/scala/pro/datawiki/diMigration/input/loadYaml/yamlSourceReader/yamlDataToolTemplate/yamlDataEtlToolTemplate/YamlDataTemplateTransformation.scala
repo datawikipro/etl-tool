@@ -15,7 +15,6 @@ class YamlDataTemplateTransformation(
                                       extractAndValidateDataFrame: YamlDataTemplateTransformationExtractAndValidateDataFrame,
                                       adHoc: YamlDataTemplateTransformationAdHoc,
                                       deduplicate: YamlDataTemplateTransformationDeduplicate,
-
                                     ) {
   def getCoreTransformation: CoreTaskTemplateTransformation = {
     CoreTaskTemplateTransformation(

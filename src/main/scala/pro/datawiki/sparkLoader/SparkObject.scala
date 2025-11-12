@@ -70,8 +70,8 @@ object SparkObject extends LoggingTrait {
     localSpark = SparkSession.builder().
       appName("etl-tool").
       config(conf).
-      master("local[*]").
-      //      master("spark://192.168.31.81:7077").
+//      master("local[*]").
+      master("spark://localhost:7077").
       getOrCreate()
     localSpark.sparkContext.setLogLevel("ERROR")
 

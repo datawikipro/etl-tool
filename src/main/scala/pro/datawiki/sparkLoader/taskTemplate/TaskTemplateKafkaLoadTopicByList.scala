@@ -20,8 +20,6 @@ class TaskTemplateKafkaLoadTopicByList(topicList: List[String], source: Connecti
           logInfo("Using QueryTrait connection for Kafka")
           val dfStream = x.getDataFrameBatchFromTopic(topicList.mkString(","))
           logInfo(s"Created DataFrameStream from Kafka topics: ${topicList.mkString(",")}")
-
-          logOperationEnd("Kafka topic load by list", startTime, s"topics: ${topicList.mkString(",")}")
           return List.apply(DataFrameStream(dfStream))
         }
         case _ =>

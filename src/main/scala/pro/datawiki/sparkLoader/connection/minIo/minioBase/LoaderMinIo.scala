@@ -73,12 +73,11 @@ case class LoaderMinIo(format: FileBaseFormat,
   }
 
 
-  def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = {
+  def writeDf(df: DataFrame, tableName: String, location: String, writeMode: WriteMode): Unit = {
     throw NotImplementedException("writeDf method not implemented for MinIO")
   }
 
-
-  def writeDfPartitionDirect(df: DataFrame, location: String, partitionName: List[String], partitionValue: List[String], writeMode: WriteMode): Unit = {
+  override def writeDfPartitionDirect(df: DataFrame, tableName: String, location: String, partitionName: List[String], partitionValue: List[String], writeMode: WriteMode, useCache: Boolean): Unit = {
     throw NotImplementedException("writeDfPartitionDirect method not implemented for MinIO")
   }
 
@@ -155,9 +154,10 @@ case class LoaderMinIo(format: FileBaseFormat,
     partitionName.foreach(col => {
       val list: List[String] = getListElementsInFolder(s"$oldTable/$col")
 
-      list.foreach(fileFullLocation =>
+      list.foreach(fileFullLocation => {
         copyFile(configYaml.bucket, fileFullLocation, configYaml.bucket, newTable + fileFullLocation.stripPrefix(oldTable))
         removeFile(fileFullLocation)
+      }
       )
     }
     )
@@ -265,9 +265,8 @@ case class LoaderMinIo(format: FileBaseFormat,
     throw NotImplementedException("readDfSchema method not implemented for MinIO")
   }
 
-  override def writeDfPartitionAuto(df: DataFrame, location: String, partitionName: List[String], writeMode: WriteMode): Unit = {
+  override def writeDfPartitionAuto(df: DataFrame,tableName:String, location: String, partitionName: List[String], writeMode: WriteMode): Unit = {
     throw NotImplementedException("writeDfPartitionAuto method not implemented for MinIO")
   }
-
 
 }

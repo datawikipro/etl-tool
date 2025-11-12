@@ -19,7 +19,7 @@ class TaskTemplateColdFileBasedTableHugeTable(source: YamlConfigEltOnServerColdD
         list.foreach(i => {
           var df = x.readDf(source.targetFile, source.partitionBy, List.apply(i), false)
           extraColumn.foreach(i => df = df.withColumn(i.columnName, expr(i.columnTransform)))
-          x.writeDfPartitionAuto(df, target.targetFile, target.partitionBy, WriteMode.autoAppend)
+          x.writeDfPartitionAuto(df,tableName = target.tableName, target.targetFile, target.partitionBy, WriteMode.autoAppend)
           withBackUp match {
             case true=>x.moveTablePartition(source.targetFile,s"backup2/${target.targetFile}",List.apply(s"${source.partitionBy.head}=$i"))
             case false =>x.deleteFolder(s"${source.targetFile}/${source.partitionBy.head}=$i") 

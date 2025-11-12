@@ -4,6 +4,7 @@ import pro.datawiki.sparkLoader.connection.FileStorageTrait
 
 case class YamlConfigEltOnServerColdDataFileBasedFolder(
                                                          targetFile: String,
+                                                         tableName:String,
                                                          partitionBy: List[String] = List.apply(),
                                                        ) {
 

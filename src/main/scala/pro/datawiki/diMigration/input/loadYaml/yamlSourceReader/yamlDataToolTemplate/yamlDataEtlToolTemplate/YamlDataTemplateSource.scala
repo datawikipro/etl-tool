@@ -10,30 +10,21 @@ import pro.datawiki.exception.NotImplementedException
 import pro.datawiki.sparkLoader.configuration.yamlConfigSource.yamlConfigSourceDBTable.YamlConfigSourceDBTableColumn
 
 case class YamlDataTemplateSource(
-                                   sourceName: String,
+                                   sourceName: YamlDataTemplateConnect,
                                    objectName: String,
-                                   @JsonIgnore
-                                   segmentation: String = null,
-                                   @JsonIgnore
+                                   segmentation: String= null,
                                    sourceDb: YamlDataTemplateSourceDBTable = null,
-                                   @JsonIgnore
                                    sourceSQL: YamlDataTemplateSourceDBSQL = null,
-                                   @JsonIgnore
                                    sourceFileSystem: YamlDataTemplateSourceFileSystem = null,
-                                   @JsonIgnore
                                    sourceKafka: YamlDataTemplateSourceKafka = null,
-                                   @JsonIgnore
                                    sourceWeb: YamlDataTemplateSourceWeb = null,
-                                   @JsonIgnore
                                    sourceMail: YamlDataTemplateSourceMail = null,
-                                   @JsonIgnore
                                    bigQuery: YamlDataTemplateSourceBigQuery = null,
-                                   @JsonIgnore
                                    initMode: String,
                                    skipIfEmpty: Boolean = false
                                  ) {
   def getCoreSource: CoreTaskTemplateSource = CoreTaskTemplateSource(
-    sourceName = sourceName,
+    sourceName = sourceName.getSourceName,
     objectName = objectName,
     segmentation = segmentation match {
       case null => null

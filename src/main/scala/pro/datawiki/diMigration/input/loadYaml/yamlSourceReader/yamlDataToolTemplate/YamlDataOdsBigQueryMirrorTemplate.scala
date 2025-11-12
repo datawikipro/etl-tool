@@ -58,26 +58,17 @@ case class YamlDataOdsBigQueryMirrorTemplate(
     tableName = targetTableName,
     metadata = metadata,
     yamlFileCoreLocation = yamlFileCoreLocation,
-    yamlFileLocation = yamlFileLocation,
-    sourceCode = "kafka")
+    yamlFileLocation = yamlFileLocation)
 
   override def getCoreTask: List[CoreTask] = {
 
     val stg = new YamlDataEtlToolTemplate(
       taskName = stgSupport.getStgTaskName,
       yamlFile = stgSupport.getStgYamlFile,
-      connections = List.apply(
-        YamlDataTemplateConnect(
-          sourceName = "src",
-          connection = ConnectionEnum.bigQuery.toString,
-          configLocation = configLocation
-        ),
-        support.getParquetDataWarehouse
-      ),
       preEtlOperations = List.empty,
       sources = List.apply(
         YamlDataTemplateSource(
-          sourceName = "src",
+          sourceName = support.getBigQuery(configLocation),
           objectName = "src",
           bigQuery = YamlDataTemplateSourceBigQuery(
             projectId = projectId,
@@ -87,8 +78,8 @@ case class YamlDataOdsBigQueryMirrorTemplate(
           initMode = InitModeEnum.instantly.toString
         )
       ),
-      transform = List.apply(support.getYamlDataTemplateTransformation),
-      target = List.apply(stgSupport.getStgYamlDataTemplateTarget("src")),
+      transform = List.apply(stgSupport.getExtractAndValidate("schema", "src")),
+      target = List.apply(stgSupport.getStgYamlDataTemplateTarget(support.getParquetDataWarehouse, "src", List.apply("run_id"))),
       postEtlOperations = List.empty,
       dependencies = List.empty
     )
@@ -96,29 +87,23 @@ case class YamlDataOdsBigQueryMirrorTemplate(
     val ods = new YamlDataEtlToolTemplate(
       taskName = support.getOdsTaskName,
       yamlFile = support.getOdsYamlFile,
-      connections = List.apply(
-        support.getParquetDataWarehouse,
-        support.getMainDataWarehouse,
-      ),
       preEtlOperations = List.empty,
-      sources = List.apply(stgSupport.getOdsYamlDataTemplateSourceYamlDataTemplateSource(support.getParquetDataWarehouse.getSourceName)),
-      transform = List.apply(),
-      target = List.apply(support.getOdsYamlDataTemplateTarget(metadata)),
+      sources = List.apply(stgSupport.getOdsYamlDataTemplateSource(support.getParquetDataWarehouse)),
+      transform = List.empty,
+      target = List.apply(support.getOdsYamlDataTemplateTarget(metadata,support.getMainDataWarehouse)),
       postEtlOperations = List.empty,
-      dependencies = List.apply(stg.taskName)
+      dependencies = List.apply(stg.getTaskName)
     )
 
     val clickhouse = new YamlDataEtlToolTemplate(
       taskName = support.getClickhouseTaskName,
       yamlFile = support.getClickhouseYamlFile,
-      connections = List.apply(
-        support.getPostgres,support.getClickhouseDataWarehouse),
       preEtlOperations = List.apply(support.getClickhouseYamlConfigEltOnServerOperation(metadata)),
-      sources = List.apply(support.getDataForDM),
-      transform = List.apply(),
-      target = List.apply(support.getClickhouseTarget("clickhouseUnico", "src", metadata)),
-      postEtlOperations =List.apply(support.getClickhouseYamlConfigEltOnServerOperationPost(metadata)),
-      dependencies = List.apply(ods.taskName)
+      sources = List.apply(support.getDataForDM(support.getPostgres)),
+      transform = List.empty,
+      target = List.apply(support.getClickhouseTarget(support.getClickhouseDataWarehouse, "src", metadata)),
+      postEtlOperations = List.apply(support.getClickhouseYamlConfigEltOnServerOperationPost(metadata)),
+      dependencies = List.apply(ods.getTaskName)
     )
 
     return stg.getCoreTask ++ ods.getCoreTask ++ clickhouse.getCoreTask

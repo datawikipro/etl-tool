@@ -16,7 +16,7 @@
     <logger name="httpclient" level="ERROR" />
 
     <!-- Логгер для модуля diMigration -->
-    <logger name="pro.datawiki.diMigration" level="INFO"/>
-    <logger name="pro.datawiki.sparkLoader" level="INFO"/>
-    <logger name="pro.datawiki.schemaValidator" level="INfO"/>
+    <logger name="pro.datawiki.diMigration" level="WARN"/>
+    <logger name="pro.datawiki.sparkLoader" level="WARN"/>
+    <logger name="pro.datawiki.schemaValidator" level="WARN"/>
 </configuration>

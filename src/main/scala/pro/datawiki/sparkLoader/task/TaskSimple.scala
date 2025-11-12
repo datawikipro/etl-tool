@@ -15,7 +15,7 @@ class TaskSimple(inTaskTemplate: TaskTemplate, skipIfEmpty: Boolean) extends Tas
     var df: List[DataFrameTrait] = List.apply()
     try {
       df = inTaskTemplate.run(parameters = parameters, true)
-      if df.length == 0 then return ProgressStatus.done
+      if df.isEmpty then return ProgressStatus.done
       if df.forall(col => col.isEmpty) then return skip
     } catch {
       case e: TableNotExistException => {

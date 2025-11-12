@@ -8,13 +8,12 @@ import pro.datawiki.sparkLoader.connection.minIo.minioBase.{LoaderMinIo, YamlCon
 import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, WriteMode}
 
 class LoaderMinIoStream(format: FileBaseFormat, configYaml: YamlConfig, configLocation: String) extends LoaderMinIo(format, configYaml, configLocation) with FileStorageTrait {
-  
+
   override def getConnectionEnum(): ConnectionEnum = {
     ConnectionEnum.minioJsonStream
   }
 
-  @Override
-  override def writeDf(df: DataFrame, location: String, writeMode: WriteMode): Unit = {
+  override def writeDf(df: DataFrame, tableName: String, /**/ location: String, writeMode: WriteMode): Unit = {
     val target = s"${configYaml.bucket}/$location/"
     val query = df.writeStream
       .format(format.toString)
@@ -27,7 +26,7 @@ class LoaderMinIoStream(format: FileBaseFormat, configYaml: YamlConfig, configLo
   }
 
   @Override
-  override def writeDfPartitionDirect(df: DataFrame, location: String, partitionName: List[String], partitionValue: List[String], writeMode: WriteMode): Unit = {
+  override def writeDfPartitionDirect(df: DataFrame, tableName: String, location: String, partitionName: List[String], partitionValue: List[String], writeMode: WriteMode, useCache: Boolean): Unit = {
     val zipped = partitionName.zip(partitionValue)
     var partition = ""
     zipped.foreach { case (num, char) =>
@@ -45,7 +44,7 @@ class LoaderMinIoStream(format: FileBaseFormat, configYaml: YamlConfig, configLo
   }
 
   @Override
-  override def writeDfPartitionAuto(df: DataFrame, location: String, partitionName: List[String], writeMode: WriteMode): Unit = {
+  override def writeDfPartitionAuto(df: DataFrame, tableName: String, location: String, partitionName: List[String], writeMode: WriteMode): Unit = {
     val target = s"${configYaml.bucket}/$location/"
     val query = df.writeStream
       .format(format.toString)
@@ -60,5 +59,6 @@ class LoaderMinIoStream(format: FileBaseFormat, configYaml: YamlConfig, configLo
 
   override def close(): Unit = {
   }
+
 
 }

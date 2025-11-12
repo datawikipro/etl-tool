@@ -1,6 +1,6 @@
 package pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplateSupport
 
-import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.YamlDataTemplateTarget
+import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.{YamlDataTemplateConnect, YamlDataTemplateTarget}
 import pro.datawiki.diMigration.input.loadYaml.yamlSourceReader.yamlDataToolTemplate.yamlDataEtlToolTemplate.yamlConfigTarget.{YamlDataTemplateTargetColumn, YamlDataTemplateTargetDatabase}
 import pro.datawiki.sparkLoader.connection.databaseTrait.{TableMetadata, TableMetadataType}
 import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode
@@ -10,16 +10,15 @@ class YamlDataEtlToolTemplateSupportOds(taskName: String,
                                         tableName: String,
                                         metadata: TableMetadata,
                                         yamlFileCoreLocation: String,
-                                        yamlFileLocation: String,
-                                        sourceCode: String) {
+                                        yamlFileLocation: String) {
 
-  def writeOds(mode:WriteMode,inSource:String): YamlDataTemplateTarget =
+  def writeOds(connection:YamlDataTemplateConnect, mode:WriteMode, inSource:String): YamlDataTemplateTarget =
     YamlDataTemplateTarget(
       fileSystem = null,
       messageBroker = null,
       dummy = null,
       database = YamlDataTemplateTargetDatabase(
-        connection = "postgres",
+        connection = connection,
         source = inSource,
         mode = mode,
         partitionMode = null, //TODO
@@ -41,5 +40,5 @@ class YamlDataEtlToolTemplateSupportOds(taskName: String,
       ),
       ignoreError = false
     )
-
+  
 }
