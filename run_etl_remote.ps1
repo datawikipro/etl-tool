@@ -123,11 +123,12 @@ foreach ($cfg in $selectedPipelines) {
     $runCmd = @"
 docker rm -f $containerName 2>/dev/null || true
 docker run -d --name $containerName --restart=no \
+  --entrypoint bash \
   -e SPARK_LOCAL_HOSTNAME=localhost \
   -e SPARK_LOCAL_IP=127.0.0.1 \
   -e 'JAVA_TOOL_OPTIONS=-Xmx6g -Xms2g -Dfile.encoding=UTF-8' \
   $ImageName \
-  bash /app/run_all_partitions.sh $cfg $parts
+  /app/run_all_partitions.sh $cfg $parts
 "@
     ssh $RemoteHost $runCmd | Out-Null
     Write-Host "  Started: $containerName" -ForegroundColor Green
