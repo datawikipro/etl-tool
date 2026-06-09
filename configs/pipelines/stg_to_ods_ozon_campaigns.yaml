@@ -22,8 +22,8 @@ source:
 
 target:
   - fileSystem:
-    connection: "ods_iceberg"
-    source: "stg_campaigns"
-    tableName: "ods__ozon.campaigns"
-    targetFile: "ods__ozon.campaigns"
-    mode: "overwriteTable"
+      connection: "ods_iceberg"
+      source: "stg_campaigns"
+      tableName: "ods__ozon.campaigns"
+      targetFile: "ods__ozon.campaigns"
+      mode: "overwriteTable"
