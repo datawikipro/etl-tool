@@ -1,0 +1,140 @@
+# ─────────────────────────────────────────────────────────────
+#  Local Docker dev environment for etl-tool
+#
+#  Default profile  →  single-container, Spark runs in local mode
+#  "cluster" profile →  adds spark-master + spark-worker
+#
+#  Quick-start (local mode):
+#    docker compose build
+#    docker compose run --rm etl-tool --config /opt/etl-tool/config/myTask.yaml
+#
+#  Cluster mode:
+#    docker compose --profile cluster up -d
+#    docker compose run --rm etl-tool \
+#      --config /opt/etl-tool/config/myTask.yaml \
+#      --master spark://spark-master:7077
+# ─────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Main service: build fat JAR and run ETL tasks ──────────
+  etl-tool:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: datawiki/etl-tool:local
+    container_name: etl-tool
+    hostname: etl-tool
+    volumes:
+      # Mount your ETL config YAMLs from the Windows host:
+      #   Windows path: .\config\  →  container: /opt/etl-tool/config/
+      - ./config:/opt/etl-tool/config:ro
+      # Spark config (shuffle partitions, serialiser, etc.)
+      - ./spark-conf:/opt/spark/conf:ro
+      # Persistent scratch/output data
+      - etl-data:/opt/etl-tool/data
+    environment:
+      - SPARK_LOCAL_HOSTNAME=localhost
+      - SPARK_LOCAL_IP=127.0.0.1
+      # Tune heap per your machine; 4 g is safe for 16 GB RAM
+      - JAVA_TOOL_OPTIONS=-Xmx4g -Xms1g -Dcom.amazonaws.sdk.disableCertChecking=true
+    networks:
+      - etl_net
+    # The image ENTRYPOINT already sets java flags + classpath.
+    # Pass only sparkRun arguments here:
+    #   docker compose run --rm etl-tool \
+    #     --config /opt/etl-tool/config/myTask.yaml \
+    #     --run_id test --partition 2024-01-01
+    command: []
+
+  # ── Dev service: mounts host directory for lightweight compilation/testing ──
+  etl-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: datawiki/etl-tool-dev:local
+    container_name: etl-dev
+    volumes:
+      # Mount host repository directory for live incremental compilation
+      - .:/build/etl-tool
+      # Mount Spark config
+      - ./spark-conf:/opt/spark/conf:ro
+      # Persist caches by mounting host directories to avoid network downloads
+      - c:/Users/chernousov_a/.sbt:/root/.sbt
+      - c:/Users/chernousov_a/AppData/Local/Coursier/Cache:/root/.cache/coursier
+      - c:/Users/chernousov_a/.ivy2:/root/.ivy2
+      # Persistent data volume
+      - etl-data:/opt/etl-tool/data
+    environment:
+      - SPARK_LOCAL_HOSTNAME=localhost
+      - SPARK_LOCAL_IP=127.0.0.1
+      - JAVA_TOOL_OPTIONS=-Xmx4g -Xms1g -Dcom.amazonaws.sdk.disableCertChecking=true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - etl_net
+
+
+  # ── Optional Spark Master (profile: cluster) ───────────────
+  spark-master:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    profiles: ["cluster"]
+    image: datawiki/spark:local
+    container_name: spark-master
+    hostname: spark-master
+    ports:
+      - "8080:8080"   # Spark Master UI
+      - "7077:7077"   # Spark submit endpoint
+    volumes:
+      - ./spark-conf:/opt/spark/conf:ro
+      - spark-logs:/opt/spark/work
+    environment:
+      - SPARK_MASTER_HOST=spark-master
+      - SPARK_PUBLIC_DNS=spark-master
+    command: ["/opt/spark/sbin/start-master.sh", "-h", "0.0.0.0"]
+    networks:
+      spark_net:
+        ipv4_address: 172.20.1.1
+
+  # ── Optional Spark Worker (profile: cluster) ───────────────
+  spark-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    profiles: ["cluster"]
+    image: datawiki/spark:local
+    container_name: spark-worker
+    hostname: spark-worker
+    depends_on:
+      - spark-master
+    ports:
+      - "4040:4040"   # Worker / Application UI
+    volumes:
+      - ./spark-conf:/opt/spark/conf:ro
+      - spark-logs:/opt/spark/work
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=4g
+      - SPARK_PUBLIC_DNS=spark-worker
+    command: ["/opt/spark/sbin/start-worker.sh", "spark://spark-master:7077"]
+    networks:
+      - spark_net
+
+# ── Networks ───────────────────────────────────────────────────
+networks:
+  etl_net:
+    driver: bridge
+  spark_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.20.0.0/16"
+          gateway: "172.20.0.1"
+
+# ── Volumes ────────────────────────────────────────────────────
+volumes:
+  etl-data:
+  spark-logs:

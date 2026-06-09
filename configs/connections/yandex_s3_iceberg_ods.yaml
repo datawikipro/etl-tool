@@ -1,0 +1,24 @@
+# Connection config для записи в Iceberg ODS-слой
+# Использует Yandex S3 (nss1s3-enc.s3.ru) + Hive Metastore из airflow на igaming кластере
+# Hive Metastore forwarded to localhost:9083
+
+minioHost:
+  - hostUrl: null
+    hostName: "nss1s3-enc.s3.ru"
+    hostPort: 443
+
+accessKey: "VXS717151INAVRCUAO02"
+secretKey: "LzP7z4z3AW7vSfi09ukFmH69s_qO47_z723aA1Ar"
+bucket: "bi-dev"
+
+# Iceberg catalog settings
+warehouse: "s3a://bi-dev/warehouse"
+hiveMetastoreUri: "thrift://hive-metastore-svc.airflow.svc.cluster.local:9083"
+catalog: "iceberg"
+catalogType: "hive"
+region: "us-east-1"
+
+pathStyleAccess: true
+establishTimeout: "15000"
+connectionTimeout: "60000"
+sslEnabled: true

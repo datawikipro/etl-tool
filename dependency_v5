@@ -1,0 +1,2 @@
+-cp
+/opt/etl-tool/tmp/bufer/*:/opt/etl-tool/target/scala-3.4.2/etl-tool_3-0.2.5-SNAPSHOT.jar:/opt/spark/jars/*

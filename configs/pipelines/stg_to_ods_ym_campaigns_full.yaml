@@ -1,0 +1,28 @@
+# Pipeline: STG -> ODS (Avro -> Iceberg)
+# Source: s3://bi-dev/warehouse/stg__ym.db/campaigns/ (Avro)
+# Target: s3://bi-dev/warehouse/ods__ym/campaigns/ (Iceberg, Hive Metastore)
+
+connections:
+  - sourceName: "stg_avro"
+    connection: "minioAvro"
+    configLocation: "configs/connections/local_stg_avro.yaml"
+  - sourceName: "ods_iceberg"
+    connection: "minioIceberg"
+    configLocation: "configs/connections/yandex_s3_iceberg_ods_hadoop.yaml"
+
+source:
+  - sourceName: "stg_avro"
+    objectName: "stg_campaigns"
+    initMode: "instantly"
+    sourceFileSystem:
+      tableName: "warehouse/stg__ym.db/campaigns"
+      partitionBy:
+        - "partition"
+
+target:
+  - fileSystem:
+      connection: "ods_iceberg"
+      source: "stg_campaigns"
+      tableName: "ods__ym.campaigns"
+      targetFile: "ods__ym.campaigns"
+      mode: "overwriteTable"

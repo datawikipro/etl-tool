@@ -1,0 +1,17 @@
+FROM amazonlinux:2023
+
+# Install JDK 17, wget, tar, curl, and gzip
+RUN yum install -y --allowerasing wget tar java-17-amazon-corretto curl gzip && \
+    yum clean all
+
+# Set Java env
+ENV JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto
+ENV PATH=${PATH}:${JAVA_HOME}/bin
+
+# Install SBT
+RUN curl -L https://www.scala-sbt.org/sbt-rpm.repo > /etc/yum.repos.d/sbt-rpm.repo && \
+    yum -y install sbt && \
+    yum clean all
+
+# Create workspace
+WORKDIR /build/etl-tool

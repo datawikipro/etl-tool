@@ -1,0 +1,33 @@
+<configuration>
+    <!-- Suppress logback status messages -->
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
+    
+    <!-- Конфигурация appender для вывода в консоль -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- Root level OFF - errors throw exceptions, not log -->
+    <root level="OFF">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+    <logger name="com.amazonaws" level="ERROR"/>
+    <logger name="org.apache" level="ERROR" />
+    <logger name="httpclient" level="ERROR" />
+
+    <logger name="pro.datawiki.diMigration" level="ERROR"/>
+    <logger name="pro.datawiki.sparkLoader" level="ERROR"/>
+    <logger name="pro.datawiki.schemaValidator" level="ERROR"/>
+    <logger name="org.apache.spark" level="ERROR"/>
+    <logger name="org.apache.hadoop" level="ERROR"/>
+    <logger name="com.clickhouse" level="ERROR"/>
+    <logger name="io.netty" level="ERROR"/>
+    <logger name="org.eclipse.jetty" level="ERROR"/>
+    <logger name="akka" level="ERROR"/>
+    <logger name="com.amazonaws" level="ERROR"/>
+    <logger name="org.mongodb" level="ERROR"/>
+    <logger name="com.mongodb" level="ERROR"/>
+</configuration>

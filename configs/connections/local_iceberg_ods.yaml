@@ -1,0 +1,19 @@
+# Local Iceberg connection via forwarded Hive Metastore and MinIO
+minioHost:
+  - hostUrl: null
+    hostName: "127.0.0.1"
+    hostPort: 9000
+
+accessKey: "airflow"
+secretKey: "airflow_minio_CHANGE_ME"
+bucket: "bi-dev"
+
+# Iceberg catalog settings
+warehouse: "s3a://bi-dev/warehouse"
+hiveMetastoreUri: "thrift://127.0.0.1:9083"
+catalog: "iceberg"
+
+pathStyleAccess: true
+establishTimeout: "15000"
+connectionTimeout: "60000"
+sslEnabled: false

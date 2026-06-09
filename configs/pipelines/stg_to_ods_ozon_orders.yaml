@@ -1,0 +1,30 @@
+# ETL-пайплайн: stg → ods (Avro → Iceberg)
+# Пример: копирование таблицы ozon.orders из STG в ODS
+
+connections:
+  - sourceName: "stg_avro"
+    connection: "minioAvro"
+    configLocation: "/configs/connections/minio_stg_avro.yaml"
+  - sourceName: "ods_iceberg"
+    connection: "minioIceberg"
+    configLocation: "/configs/connections/iceberg_ods.yaml"
+
+source:
+  - sourceName: "stg_avro"
+    objectName: "stg_orders"
+    initMode: "instantly"
+    sourceFileSystem:
+      tableName: "stg_orders"
+      partitionBy:
+        - "load_date"
+      where: "load_date = '{{load_date}}'"
+
+target:
+  - fileSystem:
+      connection: "ods_iceberg"
+      source: "stg_orders"
+      # tableName используется для логирования/метаданных
+      tableName: "ods__ozon.orders"
+      # targetFile = schema.table — Iceberg-референс (без catalog-префикса)
+      targetFile: "ods__ozon.orders"
+      mode: "overwriteTable"

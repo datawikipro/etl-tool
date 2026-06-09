@@ -1,0 +1,19 @@
+# ── Git / IDE ──────────────────────────────────────────────
+.git
+.github
+.idea
+*.iml
+
+# ── SBT build artefacts (re-created inside Docker) ─────────
+target/
+project/target/
+project/project/
+libs/*/target/
+
+# ── Local test / scratch data ───────────────────────────────
+spark-data/
+spark-logs/
+
+# ── Windows-specific junk ───────────────────────────────────
+Thumbs.db
+desktop.ini

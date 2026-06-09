@@ -1,0 +1,155 @@
+package pro.datawiki.sparkLoader.connection
+
+import pro.datawiki.exception.ConfigurationException
+import pro.datawiki.sparkLoader.connection.bigquery.LoaderBigQuery
+import pro.datawiki.sparkLoader.connection.clickhouse.LoaderClickHouse
+import pro.datawiki.sparkLoader.connection.googleAds.LoaderGoogleAds
+import pro.datawiki.sparkLoader.connection.jsonApi.LoaderJsonApi
+import pro.datawiki.sparkLoader.connection.kafka.kafkaBase.{LoaderKafka,LoaderKafkaStream}
+import pro.datawiki.sparkLoader.connection.kafka.kafkaMSK.{LoaderKafkaMSK,LoaderKafkaMSKStream}
+import pro.datawiki.sparkLoader.connection.kafka.kafkaSaslSSL.{LoaderKafkaSaslSSL,LoaderKafkaSaslSSLStream}
+import pro.datawiki.sparkLoader.connection.local.localBatch.LoaderLocalBatch
+import pro.datawiki.sparkLoader.connection.fileBased.FileBaseFormat
+import pro.datawiki.sparkLoader.connection.mail.LoaderMail
+import pro.datawiki.sparkLoader.connection.minIo.{LoaderMinIo, LoaderMinIoStream}
+import pro.datawiki.sparkLoader.connection.minIo.minioIceberg.LoaderMinIoIceberg
+import pro.datawiki.sparkLoader.connection.mongodb.LoaderMongoDb
+import pro.datawiki.sparkLoader.connection.mysql.LoaderMySql
+import pro.datawiki.sparkLoader.connection.postgres.LoaderPostgres
+import pro.datawiki.sparkLoader.connection.qdrant.LoaderQdrant
+import pro.datawiki.sparkLoader.connection.selenium.LoaderSelenium
+import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, FileStorageType}
+import pro.datawiki.sparkLoader.traits.LoggingTrait
+
+import java.util.concurrent.ConcurrentHashMap
+import scala.collection.mutable
+
+trait ConnectionTrait {
+  def close(): Unit
+  
+  def getConnectionEnum(): ConnectionEnum
+  
+  def getCacheKey(): String = {
+    ConnectionTrait.generateCacheKey(getConnectionEnum().toString, getConfigLocation())
+  }
+  
+  def getConfigLocation(): String
+}
+
+object ConnectionTrait extends LoggingTrait {
+  // Connection cache using ConcurrentHashMap for thread safety
+  private val connectionCache: ConcurrentHashMap[String, ConnectionTrait] = new ConcurrentHashMap[String, ConnectionTrait]()
+
+  def generateCacheKey(connection: String, configLocation: String): String = {
+    s"${connection}:${configLocation}"
+  }
+
+  private def getCachedConnection(cacheKey: String): Option[ConnectionTrait] = {
+    Option(connectionCache.get(cacheKey))
+  }
+
+  private def cacheConnection(cacheKey: String, connection: ConnectionTrait): Unit = {
+    connectionCache.put(cacheKey, connection)
+  }
+
+  def removeFromCache(cacheKey: String): Unit = {
+    connectionCache.remove(cacheKey)
+  }
+
+  def clearCache(): Unit = {
+    connectionCache.clear()
+  }
+
+  def getCacheSize(): Int = {
+    connectionCache.size()
+  }
+
+  def getCachedKeys(): java.util.Set[String] = {
+    connectionCache.keySet()
+  }
+
+  def closeAndRemoveFromCache(connection: ConnectionTrait): Unit = {
+    try {
+      connection.close()
+    } finally {
+      removeFromCache(connection.getCacheKey())
+    }
+  }
+
+  def apply(sourceName: String, connection: ConnectionEnum, configLocation: String): ConnectionTrait = {
+    val startTime = logOperationStart("create connection", s"source: $sourceName, type: $connection, config: $configLocation")
+    val cacheKey = generateCacheKey(connection.toString, configLocation)
+
+    try {
+      getCachedConnection(cacheKey) match {
+        case Some(cachedConnection) => {
+          logInfo(s"Using cached connection of type: $connection for source: $sourceName")
+          logOperationEnd("create connection (cached)", startTime, s"type: $connection, source: $sourceName")
+          return cachedConnection
+        }
+        case None => // Continue with creating new connection
+      }
+
+      logInfo(s"Creating new connection of type: $connection for source: $sourceName")
+
+      val locConnection = createConnection(sourceName, connection, configLocation)
+
+      // Cache the newly created connection
+      cacheConnection(cacheKey, locConnection)
+      logInfo(s"Cached connection of type: $connection for source: $sourceName")
+
+      logOperationEnd("create connection", startTime, s"type: $locConnection, source: $sourceName")
+      return locConnection
+
+    } catch {
+      case e: Exception =>
+        logError("connection creation", e, s"type: $connection, source: $sourceName")
+        throw e
+    }
+  }
+
+  private def createConnection(sourceName: String, connection: ConnectionEnum, configLocation: String): ConnectionTrait = {
+    connection match
+      // Databases
+      case ConnectionEnum.mysql => LoaderMySql(configLocation)
+      case ConnectionEnum.postgres => LoaderPostgres(configLocation)
+      case ConnectionEnum.mongodb => LoaderMongoDb(configLocation)
+      case ConnectionEnum.clickhouse => LoaderClickHouse(sourceName, configLocation)
+      case ConnectionEnum.bigQuery => LoaderBigQuery(configLocation)
+
+      // Messaging
+      case ConnectionEnum.kafkaBatch => LoaderKafka(configLocation)
+      case ConnectionEnum.kafkaStream => LoaderKafkaStream(configLocation)
+      case ConnectionEnum.kafkaSaslSSLBatch => LoaderKafkaSaslSSL(configLocation)
+      case ConnectionEnum.kafkaSaslSSLStream => LoaderKafkaSaslSSLStream(configLocation)
+      case ConnectionEnum.kafkaAmazonBatch => LoaderKafkaMSK(configLocation)
+      case ConnectionEnum.kafkaAmazonStream => LoaderKafkaMSKStream(configLocation)
+      case ConnectionEnum.minioParquet => LoaderMinIo(configLocation, FileStorageType.parquet)
+      case ConnectionEnum.minioJson => LoaderMinIo(configLocation, FileStorageType.json)
+      case ConnectionEnum.minioJsonStream => LoaderMinIoStream(configLocation, FileStorageType.json)
+      case ConnectionEnum.minioText => LoaderMinIo(configLocation, FileStorageType.text)
+      case ConnectionEnum.minioAvro => LoaderMinIo(configLocation, FileStorageType.avro)
+      case ConnectionEnum.minioIceberg => LoaderMinIoIceberg(configLocation)
+      case ConnectionEnum.localText => LoaderLocalBatch(configLocation, FileBaseFormat.text, ConnectionEnum.localText)
+      case ConnectionEnum.localJson => LoaderLocalBatch(configLocation, FileBaseFormat.json, ConnectionEnum.localJson)
+      case ConnectionEnum.localParquet => LoaderLocalBatch(configLocation, FileBaseFormat.parquet, ConnectionEnum.localParquet)
+
+      // Other
+      case ConnectionEnum.selenium => LoaderSelenium(configLocation)
+      case ConnectionEnum.jsonApi => LoaderJsonApi(configLocation)
+      case ConnectionEnum.googleAds => LoaderGoogleAds(configLocation)
+      case ConnectionEnum.mail => LoaderMail(configLocation)
+      case ConnectionEnum.qdrant => LoaderQdrant(configLocation)
+  }
+
+  def apply(sourceName: String, connection: String, configLocation: String): ConnectionTrait = {
+    try {
+      val connectionEnum = ConnectionEnum.fromString(connection)
+      apply(sourceName, connectionEnum, configLocation)
+    } catch {
+      case e: IllegalArgumentException =>
+        logError("connection creation", ConfigurationException(s"Неизвестный тип соединения: '$connection'. Пожалуйста, проверьте конфигурацию."))
+        throw ConfigurationException(s"Неизвестный тип соединения: '$connection'. Пожалуйста, проверьте конфигурацию.")
+    }
+  }
+}
