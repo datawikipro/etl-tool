@@ -1,7 +1,6 @@
 # Pipeline to convert Ozon campaigns from Avro STG to Iceberg ODS
 # Source: Yandex S3 s3://bi-dev/warehouse/stg__ozon.db/campaigns/ (Avro)
 # Target: Yandex S3 s3://bi-dev/warehouse/ods__ozon.db/campaigns/ (Iceberg)
-# Metastore: airflow hive-metastore-svc (forwarded to localhost:9083)
 
 connections:
   - sourceName: "stg_avro"
@@ -9,7 +8,7 @@ connections:
     configLocation: "configs/connections/local_stg_avro.yaml"
   - sourceName: "ods_iceberg"
     connection: "minioIceberg"
-    configLocation: "configs/connections/yandex_s3_iceberg_ods.yaml"
+    configLocation: "configs/connections/yandex_s3_iceberg_ods_hadoop.yaml"
 
 source:
   - sourceName: "stg_avro"
@@ -23,8 +22,8 @@ source:
 
 target:
   - fileSystem:
-      connection: "ods_iceberg"
-      source: "stg_campaigns"
-      tableName: "ods__ozon.campaigns"
-      targetFile: "ods__ozon.campaigns"
-      mode: "overwriteTable"
+    connection: "ods_iceberg"
+    source: "stg_campaigns"
+    tableName: "ods__ozon.campaigns"
+    targetFile: "ods__ozon.campaigns"
+    mode: "overwriteTable"
