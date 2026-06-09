@@ -13,6 +13,9 @@ RUN apt-get update && \
 
 WORKDIR /build
 
+# Disable sbt inotify file watcher (causes 'inotify instances reached' inside Docker)
+ENV SBT_OPTS="-Dsbt.watch.mode=polling -Dsbt.global.base=/root/.sbt -Xmx3g -Xms512m"
+
 # Copy project descriptor first to cache dependencies
 COPY project/ project/
 COPY build.sbt .
