@@ -46,21 +46,34 @@ $partitions = @{
 if (-not $RunOnly) {
     Write-Host "`n[Phase 1] Cloning/updating etl-tool repo on remote server..." -ForegroundColor Cyan
 
+    # Get GitHub token from local gh CLI
+    $ghToken = (& gh auth token 2>$null)
+    if (-not $ghToken) {
+        Write-Host "  WARNING: gh auth token not found, trying env var GITHUB_TOKEN" -ForegroundColor Yellow
+        $ghToken = $env:GITHUB_TOKEN
+    }
+    if (-not $ghToken) {
+        Write-Host "FATAL: No GitHub token. Run 'gh auth login' or set GITHUB_TOKEN env var." -ForegroundColor Red
+        exit 1
+    }
+    $httpsUrl = "https://datawikipro:${ghToken}@github.com/datawikipro/etl-tool.git"
+
     $cloneCmd = @"
 set -e
 if [ -d $RemotePath/.git ]; then
     echo 'Updating existing repo...'
     cd $RemotePath
+    git remote set-url origin $httpsUrl
     git fetch origin
     git reset --hard origin/$Branch
 else
     echo 'Cloning repo...'
     mkdir -p ~/build
-    git clone $RepoUrl $RemotePath
+    git clone $httpsUrl $RemotePath
     cd $RemotePath
     git checkout $Branch
 fi
-echo "HEAD: $(git log --oneline -1)"
+echo "HEAD: `$(git log --oneline -1)"
 "@
     ssh -o ServerAliveInterval=30 $RemoteHost $cloneCmd
     if ($LASTEXITCODE -ne 0) { Write-Host "FATAL: git clone/pull failed" -ForegroundColor Red; exit 1 }

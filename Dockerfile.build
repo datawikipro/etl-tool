@@ -26,6 +26,7 @@ RUN sbt update
 # Copy source
 COPY src/ src/
 COPY src/main/resources/ src/main/resources/
+COPY libs/ libs/
 
 # Build fat JAR
 RUN sbt 'set assembly / assemblyOutputPath := new File("etl-tool.jar")' assembly
