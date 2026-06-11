@@ -58,13 +58,6 @@ COPY --from=builder /build/etl-tool/target/scala-3.4.2/etl-tool.jar /app/etl-too
 # Copy logback config
 COPY logback.xml /app/logback.xml
 
-# Import S3 certificate to Java truststore
-COPY yandex_s3.crt /app/yandex_s3.crt
-RUN keytool -import -noprompt -trustcacerts \
-    -alias yandex_s3 \
-    -file /app/yandex_s3.crt \
-    -cacerts -storepass changeit || true
-
 # Default entrypoint: java with Spark jars + etl-tool jar
 ENTRYPOINT ["java", \
   "--add-exports", "java.base/sun.nio.ch=ALL-UNNAMED", \
