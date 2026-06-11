@@ -115,8 +115,6 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
         case WriteMode.overwritePartition =>
           logInfo(s"Writing to Iceberg table: $ref (overwritePartitions - dynamic partition overwrite)")
           df.writeTo(ref)
-            .tableProperty("format-version", "2")
-            .tableProperty("write.format.default", "parquet")
             .overwritePartitions()
         case _ =>
           logInfo(s"Writing to Iceberg table: $ref (createOrReplace - full table overwrite)")
