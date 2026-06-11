@@ -101,7 +101,7 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   // ─── Write ────────────────────────────────────────────────────────────────
 
   /**
-   * Writes DataFrame to an Iceberg table using createOrReplace (overwrite).
+   * Writes DataFrame to an Iceberg table using createOrReplace (full table overwrite).
    * `location` is expected in format "schema.table"
    * e.g. "ods__ozon.my_table"
    */
@@ -111,11 +111,20 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
     val startTime = logOperationStart("write Iceberg table", s"ref: $ref, mode: $writeMode")
     try {
       createSchemaIfNotExists(location)
-      logInfo(s"Writing to Iceberg table: $ref (createOrReplace)")
-      df.writeTo(ref)
-        .tableProperty("format-version", "2")
-        .tableProperty("write.format.default", "parquet")
-        .createOrReplace()
+      writeMode match {
+        case WriteMode.overwritePartition =>
+          logInfo(s"Writing to Iceberg table: $ref (overwritePartitions - dynamic partition overwrite)")
+          df.writeTo(ref)
+            .tableProperty("format-version", "2")
+            .tableProperty("write.format.default", "parquet")
+            .overwritePartitions()
+        case _ =>
+          logInfo(s"Writing to Iceberg table: $ref (createOrReplace - full table overwrite)")
+          df.writeTo(ref)
+            .tableProperty("format-version", "2")
+            .tableProperty("write.format.default", "parquet")
+            .createOrReplace()
+      }
       logOperationEnd("write Iceberg table", startTime, s"ref: $ref")
     } catch {
       case e: Exception =>
