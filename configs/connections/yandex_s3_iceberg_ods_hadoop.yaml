@@ -3,21 +3,21 @@
 
 minioHost:
   - hostUrl: null
-    hostName: "nss1s3-enc.s3.ru"
-    hostPort: 443
+    hostName: "${S3_HOST:nss1s3-enc.s3.ru}"
+    hostPort: ${S3_PORT:443}
 
-accessKey: "VXS717151INAVRCUAO02"
-secretKey: "LzP7z4z3AW7vSfi09ukFmH69s_qO47_z723aA1Ar"
-bucket: "bi-dev"
+accessKey: "${S3_ACCESS_KEY:VXS717151INAVRCUAO02}"
+secretKey: "${S3_SECRET_KEY:LzP7z4z3AW7vSfi09ukFmH69s_qO47_z723aA1Ar}"
+bucket: "${S3_BUCKET:bi-dev}"
 
 # Iceberg catalog settings — Hadoop catalog (no HMS required)
-warehouse: "s3a://bi-dev/warehouse"
-hiveMetastoreUri: ""
-catalog: "iceberg"
-catalogType: "hadoop"
-region: "us-east-1"
+warehouse: "${S3_WAREHOUSE:s3a://bi-dev/warehouse}"
+hiveMetastoreUri: "${HIVE_METASTORE_URI:}"
+catalog: "${ICEBERG_CATALOG:iceberg}"
+catalogType: "${ICEBERG_CATALOG_TYPE:hadoop}"
+region: "${S3_REGION:us-east-1}"
 
-pathStyleAccess: true
-establishTimeout: "15000"
-connectionTimeout: "60000"
-sslEnabled: true
+pathStyleAccess: ${S3_PATH_STYLE_ACCESS:true}
+establishTimeout: "${S3_ESTABLISH_TIMEOUT:15000}"
+connectionTimeout: "${S3_CONNECTION_TIMEOUT:60000}"
+sslEnabled: ${S3_SSL_ENABLED:true}

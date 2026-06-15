@@ -91,7 +91,7 @@ object YamlClass {
   def getLines(inConfig: String): String = {
     try {
       val a = Files.readString(Paths.get(inConfig))
-      return a
+      return WorkWithText.replaceWithoutDecode(a, Map.empty)
     } catch {
       case e: java.nio.file.NoSuchFileException =>
         throw ConfigurationException(s"Файл конфигурации не найден: $inConfig", e)
