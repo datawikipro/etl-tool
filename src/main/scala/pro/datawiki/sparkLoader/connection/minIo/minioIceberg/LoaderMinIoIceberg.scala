@@ -105,23 +105,39 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
    * `location` is expected in format "schema.table"
    * e.g. "ods__ozon.my_table"
    */
-  override def writeDf(df: DataFrame, tableName: String, location: String, writeMode: WriteMode): Unit = {
+  def writeDf(df: DataFrame, tableName: String, location: String, writeMode: WriteMode, partitionName: List[String]): Unit = {
     modifySpark()
     val ref = fullRef(location)
     val startTime = logOperationStart("write Iceberg table", s"ref: $ref, mode: $writeMode")
     try {
       createSchemaIfNotExists(location)
-      writeMode match {
-        case WriteMode.overwritePartition =>
-          logInfo(s"Writing to Iceberg table: $ref (overwritePartitions - dynamic partition overwrite)")
-          df.writeTo(ref)
-            .overwritePartitions()
-        case _ =>
-          logInfo(s"Writing to Iceberg table: $ref (createOrReplace - full table overwrite)")
-          df.writeTo(ref)
-            .tableProperty("format-version", "2")
-            .tableProperty("write.format.default", "parquet")
-            .createOrReplace()
+
+      val exists = SparkObject.spark.catalog.tableExists(ref)
+
+      if (!exists) {
+        logInfo(s"Table $ref does not exist. Creating and initializing it.")
+        var writer = df.writeTo(ref)
+          .tableProperty("format-version", "2")
+          .tableProperty("write.format.default", "parquet")
+
+        if (partitionName.nonEmpty) {
+          import org.apache.spark.sql.functions.col
+          writer = writer.partitionedBy(col(partitionName.head), partitionName.tail.map(col): _*)
+        }
+        writer.create()
+      } else {
+        writeMode match {
+          case WriteMode.overwritePartition =>
+            logInfo(s"Writing to Iceberg table: $ref (overwritePartitions - dynamic partition overwrite)")
+            df.writeTo(ref)
+              .overwritePartitions()
+          case _ =>
+            logInfo(s"Writing to Iceberg table: $ref (createOrReplace - full table overwrite)")
+            df.writeTo(ref)
+              .tableProperty("format-version", "2")
+              .tableProperty("write.format.default", "parquet")
+              .createOrReplace()
+        }
       }
       logOperationEnd("write Iceberg table", startTime, s"ref: $ref")
     } catch {
@@ -131,15 +147,19 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
     }
   }
 
+  override def writeDf(df: DataFrame, tableName: String, location: String, writeMode: WriteMode): Unit = {
+    writeDf(df, tableName, location, writeMode, List.empty)
+  }
+
   override def writeDfPartitionAuto(df: DataFrame, tableName: String, location: String,
                                     partitionName: List[String], writeMode: WriteMode): Unit = {
-    writeDf(df, tableName, location, writeMode)
+    writeDf(df, tableName, location, writeMode, partitionName)
   }
 
   override def writeDfPartitionDirect(df: DataFrame, tableName: String, location: String,
                                       partitionName: List[String], partitionValue: List[String],
                                       writeMode: WriteMode, useCache: Boolean): Unit = {
-    writeDf(df, tableName, location, writeMode)
+    writeDf(df, tableName, location, writeMode, partitionName)
   }
 
   // ─── Read ─────────────────────────────────────────────────────────────────
