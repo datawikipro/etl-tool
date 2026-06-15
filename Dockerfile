@@ -27,9 +27,9 @@ WORKDIR /build/etl-tool
 # Copy everything (schema-validator is in libs/schema-validator)
 COPY . /build/etl-tool/
 
-# Build fat JAR (schema-validator is a subproject, built automatically)
+# Stage application with dependencies (avoid assembly fat JAR)
 ENV SBT_OPTS="-Xmx2G -Xss4M"
-RUN sbt assembly
+RUN sbt stageApp
 
 # ============================================================
 # Stage 2: Runtime image — lean image with only what's needed
@@ -51,14 +51,13 @@ ENV JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto
 ENV PATH=${PATH}:${JAVA_HOME}/bin
 ENV SPARK_LOCAL_HOSTNAME=localhost
 
-# Copy the assembled fat JAR from builder stage
-RUN mkdir -p /app
-COPY --from=builder /build/etl-tool/target/scala-3.4.2/etl-tool.jar /app/etl-tool.jar
+# Copy the staged application files (jars + libs folder)
+COPY --from=builder /build/etl-tool/target/stage/ /app/
 
 # Copy logback config
 COPY logback.xml /app/logback.xml
 
-# Default entrypoint: java with Spark jars + etl-tool jar
+# Default entrypoint: java with Spark jars + staged libraries
 ENTRYPOINT ["java", \
   "--add-exports", "java.base/sun.nio.ch=ALL-UNNAMED", \
   "--add-exports", "java.base/java.nio=ALL-UNNAMED", \
@@ -66,7 +65,7 @@ ENTRYPOINT ["java", \
   "--add-opens", "java.base/java.nio=ALL-UNNAMED", \
   "-Dlogback.configurationFile=file:/app/logback.xml", \
   "-Dfile.encoding=UTF-8", \
-  "-cp", "/app/etl-tool.jar:/opt/spark/jars/*", \
+  "-cp", "/app/etl-tool.jar:/app/schema-validator.jar:/app/libs/*:/opt/spark/jars/*", \
   "pro.datawiki.sparkLoader.sparkRun"]
 
 CMD []

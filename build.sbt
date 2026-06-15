@@ -166,3 +166,27 @@ run / javaOptions ++= Seq(
   "-Dhadoop.user.group.static.mapping.overrides=chernousov_a=;"
 )
 
+
+val stageApp = taskKey[Unit]("Stage the application files")
+stageApp := {
+  val stageDir = target.value / "stage"
+  val libsDir = stageDir / "libs"
+
+  // 1. Clean and create directories
+  IO.delete(stageDir)
+  IO.createDirectory(libsDir)
+
+  // 2. Copy compile-time external dependencies
+  val updateReport = update.value
+  updateReport.select(configurationFilter("compile")).foreach { file =>
+    IO.copyFile(file, libsDir / file.name)
+  }
+
+  // 3. Package and copy main project JAR
+  val rootJar = (Compile / packageBin).value
+  IO.copyFile(rootJar, stageDir / "etl-tool.jar")
+
+  // 4. Package and copy subproject schema-validator JAR
+  val svJar = (schemaValidator / Compile / packageBin).value
+  IO.copyFile(svJar, stageDir / "schema-validator.jar")
+}
