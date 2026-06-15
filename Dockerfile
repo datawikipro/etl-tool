@@ -1,5 +1,40 @@
 # ============================================================
-# Runtime image — lean image with only what's needed
+# Stage 1: Builder — compile schema-validator + etl-tool
+# ============================================================
+FROM docker.io/library/amazonlinux:2023 AS builder
+
+RUN yum install -y --allowerasing wget tar java-17-amazon-corretto curl gzip && \
+    yum clean all
+
+# Spark (needed at compile time by schema-validator)
+RUN wget -q https://dlcdn.apache.org/spark/spark-3.5.8/spark-3.5.8-bin-hadoop3-scala2.13.tgz && \
+    tar -xzf spark-3.5.8-bin-hadoop3-scala2.13.tgz && \
+    rm spark-3.5.8-bin-hadoop3-scala2.13.tgz && \
+    mv spark-3.5.8-bin-hadoop3-scala2.13 /opt/spark
+
+ENV SPARK_HOME=/opt/spark
+ENV PATH=${PATH}:${SPARK_HOME}/bin
+ENV JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto
+ENV PATH=${PATH}:${JAVA_HOME}/bin
+
+# SBT
+RUN curl -L https://www.scala-sbt.org/sbt-rpm.repo > /etc/yum.repos.d/sbt-rpm.repo && \
+    yum -y install sbt && \
+    yum clean all
+
+WORKDIR /build/etl-tool
+
+# Copy everything
+COPY . /build/etl-tool/
+
+# Stage application with dependencies using cache mount
+ENV SBT_OPTS="-Xmx2G -Xss4M"
+RUN --mount=type=cache,target=/root/.cache/coursier \
+    --mount=type=cache,target=/root/.ivy2/cache \
+    sbt stageApp
+
+# ============================================================
+# Stage 2: Runtime image — lean image with only what's needed
 # ============================================================
 FROM docker.io/library/amazonlinux:2023
 
@@ -19,7 +54,7 @@ ENV PATH=${PATH}:${JAVA_HOME}/bin
 ENV SPARK_LOCAL_HOSTNAME=localhost
 
 # Copy the staged application files (jars + libs folder)
-COPY target/stage/ /app/
+COPY --from=builder /build/etl-tool/target/stage/ /app/
 
 # Copy logback config
 COPY logback.xml /app/logback.xml
