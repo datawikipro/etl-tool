@@ -22,8 +22,8 @@ source:
 
 target:
   - fileSystem:
-    connection: "ods_iceberg"
-    source: "stg_transactions"
-    tableName: "ods__ozon.transactions"
-    targetFile: "ods__ozon.transactions"
-    mode: "overwriteTable"
+      connection: "ods_iceberg"
+      source: "stg_transactions"
+      tableName: "ods__ozon.transactions"
+      targetFile: "ods__ozon.transactions"
+      mode: "overwriteTable"
