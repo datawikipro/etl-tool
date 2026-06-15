@@ -1,6 +1,6 @@
 # Pipeline: STG -> ODS (Avro -> Iceberg)
-# Source: s3://bi-dev/warehouse/stg__ym.db/banners/ (Avro)
-# Target: s3://bi-dev/warehouse/ods__ym/banners/ (Iceberg, Hive Metastore)
+# Source: s3://bi-dev/warehouse/stg__wb.db/banners/ (Avro)
+# Target: s3://bi-dev/warehouse/ods__wb/banners/ (Iceberg, Hive Metastore)
 
 connections:
   - sourceName: "stg_avro"
@@ -15,28 +15,15 @@ source:
     objectName: "stg_banners"
     initMode: "instantly"
     sourceFileSystem:
-      tableName: "warehouse/stg__ym.db/banners"
+      tableName: "warehouse/stg__wb.db/banners"
       partitionBy:
         - "partition"
       where: "partition = '${partition}'"
 
-transformations:
-  - objectName: "banners_transformed"
-    sparkSql:
-      sql: |
-        SELECT 
-          campaignId as campaignid,
-          warehouseId as warehouseid,
-          offerId as offerid,
-          stockType as stocktype,
-          count,
-          partition
-        FROM stg_banners
-
 target:
   - fileSystem:
       connection: "ods_iceberg"
-      source: "banners_transformed"
-      tableName: "ods__ym.banners"
-      targetFile: "ods__ym.banners"
+      source: "stg_banners"
+      tableName: "ods__wb.banners"
+      targetFile: "ods__wb.banners"
       mode: "overwriteTable"

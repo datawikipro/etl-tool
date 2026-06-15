@@ -1,7 +1,7 @@
 # ============================================================
 # Stage 1: Builder — compile schema-validator + etl-tool
 # ============================================================
-FROM amazonlinux:2023 AS builder
+FROM docker.io/library/amazonlinux:2023 AS builder
 
 RUN yum install -y --allowerasing wget tar java-17-amazon-corretto curl gzip && \
     yum clean all
@@ -28,13 +28,13 @@ WORKDIR /build/etl-tool
 COPY . /build/etl-tool/
 
 # Build fat JAR (schema-validator is a subproject, built automatically)
-ENV SBT_OPTS="-Xmx4G -Xss4M"
+ENV SBT_OPTS="-Xmx2G -Xss4M"
 RUN sbt assembly
 
 # ============================================================
 # Stage 2: Runtime image — lean image with only what's needed
 # ============================================================
-FROM amazonlinux:2023
+FROM docker.io/library/amazonlinux:2023
 
 RUN yum install -y --allowerasing java-17-amazon-corretto wget tar gzip && \
     yum clean all

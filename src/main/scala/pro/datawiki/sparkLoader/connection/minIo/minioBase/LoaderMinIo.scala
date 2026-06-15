@@ -156,7 +156,7 @@ case class LoaderMinIo(format: FileBaseFormat,
   }
 
   def getFolder(location: String): List[String] = {
-    val listArgs = ListObjectsArgs.builder().bucket(configYaml.bucket).prefix(location).delimiter("/").recursive(true).build()
+    val listArgs = ListObjectsArgs.builder().bucket(configYaml.bucket).prefix(normalizeLocation(location)).delimiter("/").recursive(true).build()
     val objects = minioClient.listObjects(listArgs).asScala
     val list: List[String] = objects.map(col => col.get().objectName()).
       filterNot(col => col.contains("_spark_metadata")).
@@ -266,12 +266,17 @@ case class LoaderMinIo(format: FileBaseFormat,
     throw NotImplementedException("Connection check not implemented for MinIO")
   }
 
+  private def normalizeLocation(location: String): String = {
+    val bucketPrefix = configYaml.bucket + "/"
+    if (location.startsWith(bucketPrefix)) location.substring(bucketPrefix.length) else location
+  }
+
   def getLocation(location: String): String = {
-    return s"s3a://${configYaml.bucket}/$location"
+    return s"s3a://${configYaml.bucket}/${normalizeLocation(location)}"
   }
 
   private def getLocationWithPostfix(location: String, keyPartitions: List[String], valuePartitions: List[String]): String =
-    FileStorageCommon.buildPartitionedLocation(location, keyPartitions, valuePartitions)
+    FileStorageCommon.buildPartitionedLocation(normalizeLocation(location), keyPartitions, valuePartitions)
 
   def getLocation(location: String, keyPartitions: List[String], valuePartitions: List[String]): String =
     FileStorageCommon.s3aUri(configYaml.bucket, getLocationWithPostfix(location, keyPartitions, valuePartitions))

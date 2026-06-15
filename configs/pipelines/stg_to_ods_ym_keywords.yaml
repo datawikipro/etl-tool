@@ -20,10 +20,26 @@ source:
         - "partition"
       where: "partition = '${partition}'"
 
+transformations:
+  - objectName: "keywords_transformed"
+    sparkSql:
+      sql: |
+        SELECT 
+          campaignId as campaignid,
+          orderId as orderid,
+          status,
+          substatus,
+          creationDate as creationdate,
+          offerId as offerid,
+          count,
+          price,
+          partition
+        FROM stg_keywords
+
 target:
   - fileSystem:
       connection: "ods_iceberg"
-      source: "stg_keywords"
+      source: "keywords_transformed"
       tableName: "ods__ym.keywords"
       targetFile: "ods__ym.keywords"
       mode: "overwriteTable"

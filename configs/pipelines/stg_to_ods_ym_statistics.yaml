@@ -20,10 +20,25 @@ source:
         - "partition"
       where: "partition = '${partition}'"
 
+transformations:
+  - objectName: "statistics_transformed"
+    sparkSql:
+      sql: |
+        SELECT 
+          campaignId as campaignid,
+          orderId as orderid,
+          creationDate as creationdate,
+          status,
+          offerId as offerid,
+          count,
+          price,
+          partition
+        FROM stg_statistics
+
 target:
   - fileSystem:
       connection: "ods_iceberg"
-      source: "stg_statistics"
+      source: "statistics_transformed"
       tableName: "ods__ym.statistics"
       targetFile: "ods__ym.statistics"
       mode: "overwriteTable"
