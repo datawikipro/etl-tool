@@ -29,7 +29,7 @@ COPY src/main/resources/ src/main/resources/
 COPY libs/ libs/
 
 # Build fat JAR
-RUN sbt 'set assembly / assemblyOutputPath := new File("etl-tool.jar")' assembly
+RUN sbt ";set assembly / assemblyOutputPath := new File(\"etl-tool.jar\"); assembly"
 
 # ── Stage 2: Runtime image with Spark ────────────────────────────────────────
 FROM docker.io/library/eclipse-temurin:17-jre-jammy AS runtime
