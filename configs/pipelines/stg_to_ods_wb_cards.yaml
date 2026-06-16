@@ -1,6 +1,6 @@
 # Pipeline: STG -> ODS (Avro -> Iceberg)
 # Source: s3://bi-dev/warehouse/stg__wb.db/cards/ (Avro)
-# Target: s3://bi-dev/warehouse/ods__wb/cards/ (Iceberg, Hive Metastore)
+# Target: s3://bi-dev/warehouse/ods__wb.db/cards/ (Iceberg, Hive Metastore)
 
 connections:
   - sourceName: "stg_avro"

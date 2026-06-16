@@ -464,6 +464,9 @@ dds.fct_orders               (rk_product, rk_warehouse, source_code, order_id, o
 dds.fct_sales                (rk_product, rk_warehouse, source_code, sale_id, sale_dt, quantity,
                                revenue, commission, payout)
 dds.fct_marketing_statistics (date, campaign_rk, source_code, impressions, clicks, cost, orders, revenue)
+dds.report_detail            (rrd_id, report_id, product_id, date_from, date_to, doc_type_name,
+                               quantity, retail_price, retail_amount, commission_percent,
+                               delivery_amount, return_amount)
 `
 
 | Файл | Что делает |

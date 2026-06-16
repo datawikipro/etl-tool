@@ -1,6 +1,6 @@
 # Pipeline: STG -> ODS (Avro -> Iceberg)
 # Source: s3://bi-dev/warehouse/stg__ym.db/payouts/ (Avro)
-# Target: s3://bi-dev/warehouse/ods__ym/payouts/ (Iceberg, Hadoop Catalog)
+# Target: s3://bi-dev/warehouse/ods__ym.db/payouts/ (Iceberg, Hadoop Catalog)
 # Schema fields: campaignId, id, date, amount, status
 # Transformation: camelCase -> lowercase (Yandex Market convention)
 

@@ -70,10 +70,10 @@ case class YamlConfigTargetFileSystem(
   def writeMerge(df: DataFrameTrait): Boolean = {
     if (mergeKeys.isEmpty) throw IllegalArgumentException("mergeKeys cannot be empty for merge mode")
     
-    val parts = tableName.split("\\.", 2)
-    if (parts.length != 2) throw IllegalArgumentException(s"tableName must be in format schema.table, got: $tableName")
-    val schemaName = parts(0)
-    val targetTable = parts(1)
+    val lastDotIdx = tableName.lastIndexOf('.')
+    if (lastDotIdx == -1) throw IllegalArgumentException(s"tableName must be in format schema.table, got: $tableName")
+    val schemaName = tableName.substring(0, lastDotIdx)
+    val targetTable = tableName.substring(lastDotIdx + 1)
     val tempTable = s"${targetTable}_tmp"
     val tempTableName = s"$schemaName.$tempTable"
     

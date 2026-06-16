@@ -1,6 +1,6 @@
 # Pipeline: STG -> ODS (Avro -> Iceberg)
 # Source: s3://bi-dev/warehouse/stg__ozon.db/stocks/ (Avro)
-# Target: s3://bi-dev/warehouse/ods__ozon/stocks/ (Iceberg, Hive Metastore)
+# Target: s3://bi-dev/warehouse/ods__ozon.db/stocks/ (Iceberg, Hive Metastore)
 
 connections:
   - sourceName: "stg_avro"

@@ -8,6 +8,7 @@ import java.net.InetAddress
 object SparkObject extends LoggingTrait {
   var localSpark: SparkSession = null
   private val preInitConfigs = scala.collection.mutable.Map[String, String]()
+  private val preInitHadoopConfigs = scala.collection.mutable.Map[String, String]()
 
   def setConf(key: String, value: String): Unit = {
     if (localSpark == null) {
@@ -113,6 +114,9 @@ object SparkObject extends LoggingTrait {
       getOrCreate()
     localSpark.sparkContext.setLogLevel("ERROR")
 
+    // Apply pre-init Hadoop configurations
+    preInitHadoopConfigs.foreach { case (k, v) => localSpark.sparkContext.hadoopConfiguration.set(k, v) }
+
     if (LogMode.isDebug) {
       logInfo("------------------------Start end session--------------------------------")
     }
@@ -125,7 +129,11 @@ object SparkObject extends LoggingTrait {
   }
 
   def setHadoopConfiguration(key: String, value: String): Unit = {
-    spark.sparkContext.hadoopConfiguration.set(key, value)
+    if (localSpark == null) {
+      preInitHadoopConfigs.put(key, value)
+    } else {
+      localSpark.sparkContext.hadoopConfiguration.set(key, value)
+    }
   }
 
 }

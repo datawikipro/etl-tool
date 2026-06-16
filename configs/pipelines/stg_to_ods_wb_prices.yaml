@@ -1,6 +1,6 @@
 # Pipeline: STG -> ODS (Avro -> Iceberg)
 # Source: s3://bi-dev/warehouse/stg__wb.db/prices/ (Avro)
-# Target: s3://bi-dev/warehouse/ods__wb/prices/ (Iceberg, Hadoop Catalog)
+# Target: s3://bi-dev/warehouse/ods__wb.db/prices/ (Iceberg, Hadoop Catalog)
 # Schema fields: nmId, price, discount, promoCode
 # Note: prices.avsc does not declare a 'partition' field — partition is appended
 #       dynamically by the loader at write time (same pattern as stocks).

@@ -1,6 +1,6 @@
 # Pipeline: STG -> ODS (Avro -> Iceberg)
 # Source: s3://bi-dev/warehouse/stg__wb.db/incomes/ (Avro)
-# Target: s3://bi-dev/warehouse/ods__wb/incomes/ (Iceberg, Hadoop Catalog)
+# Target: s3://bi-dev/warehouse/ods__wb.db/incomes/ (Iceberg, Hadoop Catalog)
 # Schema fields: incomeId, number, date, lastChangeDate, supplierArticle, techSize,
 #                barcode, quantity, totalPrice, dateClose, warehouseName, nmId, status
 

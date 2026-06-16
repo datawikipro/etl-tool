@@ -82,16 +82,29 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   }
 
   /** Full Iceberg table reference: catalog.schema.table */
-  private def fullRef(location: String): String = s"${configYaml.catalog}.$location"
+  private def fullRef(location: String): String = {
+    val lastDotIdx = location.lastIndexOf('.')
+    if (lastDotIdx != -1) {
+      val schemaName = location.substring(0, lastDotIdx)
+      val tableName = location.substring(lastDotIdx + 1)
+      s"${configYaml.catalog}.`$schemaName`.$tableName"
+    } else {
+      s"${configYaml.catalog}.$location"
+    }
+  }
 
-  /** Ensures the Iceberg schema (Hive database) exists. */
+  /** Ensures the Iceberg schema (Hive database) exists, with S3 location at {schema}.db/. */
   private def createSchemaIfNotExists(tableRef: String): Unit = {
     // tableRef format: "schema.table"  →  create "catalog.schema" database
-    val parts = tableRef.split("\\.", 2)
-    if (parts.length >= 1) {
-      val schemaRef = s"${configYaml.catalog}.${parts(0)}"
-      logInfo(s"Ensuring Iceberg schema exists: $schemaRef")
-      SparkObject.spark.sql(s"CREATE DATABASE IF NOT EXISTS $schemaRef")
+    val lastDotIdx = tableRef.lastIndexOf('.')
+    if (lastDotIdx != -1) {
+      val schemaName = tableRef.substring(0, lastDotIdx)
+      val schemaRef = s"${configYaml.catalog}.`$schemaName`"
+      // Physical S3 location always uses the .db suffix convention
+      val s3SchemaFolder = if (schemaName.endsWith(".db")) schemaName else schemaName + ".db"
+      val schemaLocation = s"${configYaml.warehouse}/$s3SchemaFolder"
+      logInfo(s"Ensuring Iceberg schema exists: $schemaRef LOCATION '$schemaLocation'")
+      SparkObject.spark.sql(s"CREATE DATABASE IF NOT EXISTS $schemaRef LOCATION '$schemaLocation'")
     }
   }
 
@@ -139,10 +152,14 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
       logOperationEnd("write Iceberg table", startTime, s"ref: $ref")
 
       pro.datawiki.sparkLoader.register.TableRegister(configYaml.register).foreach { registry =>
-        val parts = location.split("\\.", 2)
-        if (parts.length == 2) {
-          val tableLocation = s"${configYaml.warehouse}/${parts(0)}/${parts(1)}"
-          registry.registerTable(configYaml.catalog, parts(0), parts(1), tableLocation)
+        val lastDotIdx = location.lastIndexOf('.')
+        if (lastDotIdx != -1) {
+          val schemaName = location.substring(0, lastDotIdx)
+          val tableName = location.substring(lastDotIdx + 1)
+          // Physical S3 path always uses .db suffix, Trino schema name stays plain
+          val s3SchemaFolder = if (schemaName.endsWith(".db")) schemaName else schemaName + ".db"
+          val tableLocation = s"${configYaml.warehouse}/$s3SchemaFolder/$tableName"
+          registry.registerTable(configYaml.catalog, schemaName, tableName, tableLocation)
         }
       }
     } catch {
