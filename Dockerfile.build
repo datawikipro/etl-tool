@@ -1,5 +1,5 @@
 # ── Stage 1: Build fat JAR via sbt assembly ──────────────────────────────────
-FROM eclipse-temurin:17-jdk-jammy AS builder
+FROM docker.io/library/eclipse-temurin:17-jdk-jammy AS builder
 
 # Install sbt
 RUN apt-get update && \
@@ -32,7 +32,7 @@ COPY libs/ libs/
 RUN sbt 'set assembly / assemblyOutputPath := new File("etl-tool.jar")' assembly
 
 # ── Stage 2: Runtime image with Spark ────────────────────────────────────────
-FROM eclipse-temurin:17-jre-jammy AS runtime
+FROM docker.io/library/eclipse-temurin:17-jre-jammy AS runtime
 
 ARG SPARK_VERSION=3.5.8
 
