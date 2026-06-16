@@ -87,7 +87,7 @@ echo "HEAD: `$(git log --oneline -1)"
 set -e
 cd $RemotePath
 echo '=== Building Docker image (sbt assembly + Spark runtime) ==='
-docker build --provenance=false -f Dockerfile.build -t $ImageName . 2>&1
+docker build -f Dockerfile.build -t $ImageName . 2>&1
 echo '=== Build complete ==='
 docker images $ImageName
 "@
