@@ -21,8 +21,30 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
 
   def modifySpark(): Unit = {
     val endpoint = getMinIoHost
+    val cat = configYaml.catalog
 
-    // S3A credentials and endpoint (for Spark file I/O)
+    // 1. Set Iceberg catalog Spark configs BEFORE calling setHadoopConfiguration (which triggers SparkSession creation)
+    SparkObject.setConf(s"spark.sql.catalog.$cat", "org.apache.iceberg.spark.SparkCatalog")
+    val catType = configYaml.catalogType.getOrElse(
+      if (configYaml.hiveMetastoreUri == null || configYaml.hiveMetastoreUri.trim.isEmpty || configYaml.hiveMetastoreUri == "hadoop") "hadoop" else "hive"
+    )
+    SparkObject.setConf(s"spark.sql.catalog.$cat.type", catType)
+    if (catType == "hive") {
+      SparkObject.setConf(s"spark.sql.catalog.$cat.uri", configYaml.hiveMetastoreUri)
+    }
+    SparkObject.setConf(s"spark.sql.catalog.$cat.warehouse", configYaml.warehouse)
+
+    // Iceberg S3 FileIO configs
+    SparkObject.setConf(s"spark.sql.catalog.$cat.io-impl", "org.apache.iceberg.hadoop.HadoopFileIO")
+    SparkObject.setConf(s"spark.sql.catalog.$cat.s3.endpoint", endpoint)
+    SparkObject.setConf(s"spark.sql.catalog.$cat.s3.access-key-id", configYaml.accessKey)
+    SparkObject.setConf(s"spark.sql.catalog.$cat.s3.secret-access-key", configYaml.secretKey)
+    SparkObject.setConf(s"spark.sql.catalog.$cat.s3.path-style-access",
+      configYaml.pathStyleAccess.getOrElse(true).toString)
+    SparkObject.setConf(s"spark.sql.catalog.$cat.client.region",
+      configYaml.region.getOrElse("us-east-1"))
+
+    // 2. Set S3A credentials and endpoint (this will trigger SparkSession initialization if not already done)
     SparkObject.setHadoopConfiguration("fs.s3a.endpoint", endpoint)
     SparkObject.setHadoopConfiguration("fs.s3a.access.key", configYaml.accessKey)
     SparkObject.setHadoopConfiguration("fs.s3a.secret.key", configYaml.secretKey)
@@ -37,32 +59,7 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
       "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
     SparkObject.setHadoopConfiguration("fs.s3a.change.detection.mode", "none")
 
-    val cat = configYaml.catalog
-
-    // Iceberg catalog: Hive Metastore
-    SparkObject.spark.conf.set(s"spark.sql.catalog.$cat",
-      "org.apache.iceberg.spark.SparkCatalog")
-    val catType = configYaml.catalogType.getOrElse(
-      if (configYaml.hiveMetastoreUri == null || configYaml.hiveMetastoreUri.trim.isEmpty || configYaml.hiveMetastoreUri == "hadoop") "hadoop" else "hive"
-    )
-    SparkObject.spark.conf.set(s"spark.sql.catalog.$cat.type", catType)
-    if (catType == "hive") {
-      SparkObject.spark.conf.set(s"spark.sql.catalog.$cat.uri", configYaml.hiveMetastoreUri)
-    }
-    SparkObject.spark.conf.set(s"spark.sql.catalog.$cat.warehouse", configYaml.warehouse)
-
-    // Iceberg S3 FileIO (changed to HadoopFileIO to respect custom cert trusts / disableCertChecking)
-    SparkObject.spark.conf.set(s"spark.sql.catalog.$cat.io-impl",
-      "org.apache.iceberg.hadoop.HadoopFileIO")
-    SparkObject.spark.conf.set(s"spark.sql.catalog.$cat.s3.endpoint", endpoint)
-    SparkObject.spark.conf.set(s"spark.sql.catalog.$cat.s3.access-key-id", configYaml.accessKey)
-    SparkObject.spark.conf.set(s"spark.sql.catalog.$cat.s3.secret-access-key", configYaml.secretKey)
-    SparkObject.spark.conf.set(s"spark.sql.catalog.$cat.s3.path-style-access",
-      configYaml.pathStyleAccess.getOrElse(true).toString)
-    SparkObject.spark.conf.set(s"spark.sql.catalog.$cat.client.region",
-      configYaml.region.getOrElse("us-east-1"))
-
-    logInfo(s"Iceberg catalog '$cat' configured with Hive metastore: ${configYaml.hiveMetastoreUri}")
+    logInfo(s"Iceberg catalog '$cat' configured with type '$catType' and metastore URI '${configYaml.hiveMetastoreUri}'")
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -140,6 +137,14 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
         }
       }
       logOperationEnd("write Iceberg table", startTime, s"ref: $ref")
+
+      pro.datawiki.sparkLoader.register.TableRegister(configYaml.register).foreach { registry =>
+        val parts = location.split("\\.", 2)
+        if (parts.length == 2) {
+          val tableLocation = s"${configYaml.warehouse}/${parts(0)}/${parts(1)}"
+          registry.registerTable(configYaml.catalog, parts(0), parts(1), tableLocation)
+        }
+      }
     } catch {
       case e: Exception =>
         logError("write Iceberg table", e, s"ref: $ref")
@@ -216,6 +221,8 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   override def getConnectionEnum(): ConnectionEnum = ConnectionEnum.minioIceberg
 
   override def getConfigLocation(): String = _configLocation
+
+  // Registration logic is handled via pro.datawiki.sparkLoader.register.TableRegister
 }
 
 object LoaderMinIoIceberg extends pro.datawiki.yamlConfiguration.YamlClass {

@@ -8,6 +8,9 @@ import pro.datawiki.sparkLoader.connection.FileStorageTrait
 import pro.datawiki.sparkLoader.context.ApplicationContext
 import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode
 import pro.datawiki.sparkLoader.traits.LoggingTrait
+import pro.datawiki.sparkLoader.register.TrinoJdbcTableRegister
+import pro.datawiki.sparkLoader.connection.minIo.minioIceberg.LoaderMinIoIceberg
+import pro.datawiki.sparkLoader.SparkObject
 
 @JsonInclude(JsonInclude.Include.NON_ABSENT)
 case class YamlConfigTargetFileSystem(
@@ -17,6 +20,7 @@ case class YamlConfigTargetFileSystem(
                                        mode: String = "append",
                                        targetFile: String,
                                        partitionBy: List[String] = List.apply(),
+                                       mergeKeys: List[String] = List.apply(),
                                      ) extends YamlConfigTargetBase(connection = connection, mode = mode, source = source) with YamlConfigTargetTrait with LoggingTrait {
 
   @JsonIgnore
@@ -63,6 +67,60 @@ case class YamlConfigTargetFileSystem(
     return true
   }
 
+  def writeMerge(df: DataFrameTrait): Boolean = {
+    if (mergeKeys.isEmpty) throw IllegalArgumentException("mergeKeys cannot be empty for merge mode")
+    
+    val parts = tableName.split("\\.", 2)
+    if (parts.length != 2) throw IllegalArgumentException(s"tableName must be in format schema.table, got: $tableName")
+    val schemaName = parts(0)
+    val targetTable = parts(1)
+    val tempTable = s"${targetTable}_tmp"
+    val tempTableName = s"$schemaName.$tempTable"
+    
+    logInfo(s"Starting merge write for $tableName with temp table $tempTableName")
+
+    loader match {
+      case icebergLoader: LoaderMinIoIceberg =>
+        val catalog = icebergLoader.configYaml.catalog
+        val warehouse = icebergLoader.configYaml.warehouse
+        
+        logInfo(s"Step A: Writing DataFrame to temp table $tempTableName in Spark catalog $catalog")
+        icebergLoader.writeDf(df.getDataFrame, tempTable, tempTableName, WriteMode.overwriteTable, partitionBy)
+        
+        val tableLocation = s"$warehouse/$schemaName/$tempTable"
+        
+        pro.datawiki.sparkLoader.register.TableRegister(icebergLoader.configYaml.register) match {
+          case Some(trinoRegistry: TrinoJdbcTableRegister) =>
+            logInfo(s"Step B: Registering temp table $tempTableName in Trino")
+            trinoRegistry.registerTable(catalog, schemaName, tempTable, tableLocation)
+            
+            try {
+              logInfo(s"Step C: Executing MERGE in Trino")
+              trinoRegistry.executeMerge(catalog, schemaName, targetTable, tempTable, mergeKeys, df.getDataFrame.columns.toList)
+            } finally {
+              logInfo(s"Step D: Dropping temp table $tempTableName in Trino")
+              trinoRegistry.dropTable(catalog, schemaName, tempTable)
+              
+              logInfo(s"Step E: Dropping temp table $tempTableName in Spark")
+              try {
+                SparkObject.spark.sql(s"DROP TABLE IF EXISTS $catalog.$tempTableName")
+              } catch {
+                case e: Exception =>
+                  logWarning(s"Failed to drop temp table $tempTableName in Spark: ${e.getMessage}")
+              }
+            }
+            
+          case _ =>
+            throw IllegalArgumentException("Trino JDBC registry is required for merge mode")
+        }
+        
+      case _ =>
+        throw UnsupportedOperationException("Merge mode is only supported for minioIceberg loader")
+    }
+    
+    return true
+  }
+
   @JsonIgnore
   override def writeTarget(): Boolean = {
     val df: DataFrameTrait = getSourceDf
@@ -75,6 +133,8 @@ case class YamlConfigTargetFileSystem(
       case WriteMode.streamByRunId => writeStreamByRunId(df)
       case WriteMode.overwriteTable => writeDirectPartition(df)
       case WriteMode.overwritePartition => writeDirectPartition(df)
+      case WriteMode.mergeDelta => writeMerge(df)
+      case WriteMode.mergeFull => writeMerge(df)
       //      case WriteMode.none => writeFullTable(df)
 
       case fs => {

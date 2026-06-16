@@ -124,6 +124,7 @@ libraryDependencies ++= Seq(
   "io.minio" % "minio" % ioMinioVersion,
   "com.sun.mail" % "javax.mail" % mailVersion,
   "javax.mail" % "javax.mail-api" % mailVersion,
+  "io.trino" % "trino-jdbc" % "443"
 )
 libraryDependencies ++= Seq(
   "org.seleniumhq.selenium" % "selenium-java" % "4.28.0",

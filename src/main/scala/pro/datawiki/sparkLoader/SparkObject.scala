@@ -7,10 +7,22 @@ import java.net.InetAddress
 
 object SparkObject extends LoggingTrait {
   var localSpark: SparkSession = null
+  private val preInitConfigs = scala.collection.mutable.Map[String, String]()
+
+  def setConf(key: String, value: String): Unit = {
+    if (localSpark == null) {
+      preInitConfigs.put(key, value)
+    } else {
+      localSpark.conf.set(key, value)
+    }
+  }
 
   def initSpark(): Unit = {
 
     val conf = new SparkConf()
+    // Apply pre-init configs
+    preInitConfigs.foreach { case (k, v) => conf.set(k, v) }
+
     conf.set("spark.driver.memory", "32g") // Оставляем 8 ГБ для драйвера
     conf.set("spark.driver.cores", "16")
     conf.set("spark.cores.max", "16")

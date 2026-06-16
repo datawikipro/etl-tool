@@ -21,3 +21,8 @@ pathStyleAccess: ${S3_PATH_STYLE_ACCESS:true}
 establishTimeout: "${S3_ESTABLISH_TIMEOUT:15000}"
 connectionTimeout: "${S3_CONNECTION_TIMEOUT:60000}"
 sslEnabled: ${S3_SSL_ENABLED:true}
+
+register:
+  type: "trino-jdbc"
+  url: "${TRINO_URL:jdbc:trino://trino.dev-kube.terminal.lft:443/iceberg?SSL=true&SSLVerification=NONE}"
+  user: "${TRINO_USER:chernousov_a}"
