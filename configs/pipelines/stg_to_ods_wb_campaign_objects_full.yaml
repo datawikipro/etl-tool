@@ -25,5 +25,5 @@ target:
       connection: "ods_iceberg"
       source: "stg_campaign_objects"
       tableName: "ods__wb.campaign_objects"
-      targetFile: "ods__wb.campaign_objects"
+      targetFile: "ods__wb.db/campaign_objects"
       mode: "overwriteTable"

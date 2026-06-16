@@ -25,5 +25,5 @@ target:
       connection: "ods_iceberg"
       source: "stg_cards"
       tableName: "ods__wb.cards"
-      targetFile: "ods__wb.cards"
+      targetFile: "ods__wb.db/cards"
       mode: "overwriteTable"

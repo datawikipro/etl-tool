@@ -25,5 +25,5 @@ target:
       connection: "ods_iceberg"
       source: "stg_orders"
       tableName: "ods__wb.orders"
-      targetFile: "ods__wb.orders"
+      targetFile: "ods__wb.db/orders"
       mode: "overwriteTable"

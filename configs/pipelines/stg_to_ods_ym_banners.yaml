@@ -38,5 +38,5 @@ target:
       connection: "ods_iceberg"
       source: "banners_transformed"
       tableName: "ods__ym.banners"
-      targetFile: "ods__ym.banners"
+      targetFile: "ods__ym.db/banners"
       mode: "overwriteTable"

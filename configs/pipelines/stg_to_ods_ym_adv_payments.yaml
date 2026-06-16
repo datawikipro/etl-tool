@@ -40,5 +40,5 @@ target:
       connection: "ods_iceberg"
       source: "adv_payments_transformed"
       tableName: "ods__ym.adv_payments"
-      targetFile: "ods__ym.adv_payments"
+      targetFile: "ods__ym.db/adv_payments"
       mode: "overwriteTable"

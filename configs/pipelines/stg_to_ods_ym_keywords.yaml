@@ -41,5 +41,5 @@ target:
       connection: "ods_iceberg"
       source: "keywords_transformed"
       tableName: "ods__ym.keywords"
-      targetFile: "ods__ym.keywords"
+      targetFile: "ods__ym.db/keywords"
       mode: "overwriteTable"

@@ -81,12 +81,33 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
     throw NotImplementedException("No reachable MinIO host found in Iceberg config")
   }
 
+  private def parseLocation(location: String): (String, String) = {
+    if (location.contains('/')) {
+      val lastSlashIdx = location.lastIndexOf('/')
+      val pathBefore = location.substring(0, lastSlashIdx)
+      val tableName = location.substring(lastSlashIdx + 1)
+      val schemaName = if (pathBefore.contains('/')) {
+        pathBefore.substring(pathBefore.lastIndexOf('/') + 1)
+      } else {
+        pathBefore
+      }
+      (schemaName, tableName)
+    } else {
+      val lastDotIdx = location.lastIndexOf('.')
+      if (lastDotIdx != -1) {
+        val schemaName = location.substring(0, lastDotIdx)
+        val tableName = location.substring(lastDotIdx + 1)
+        (schemaName, tableName)
+      } else {
+        ("default", location)
+      }
+    }
+  }
+
   /** Full Iceberg table reference: catalog.schema.table */
   private def fullRef(location: String): String = {
-    val lastDotIdx = location.lastIndexOf('.')
-    if (lastDotIdx != -1) {
-      val schemaName = location.substring(0, lastDotIdx)
-      val tableName = location.substring(lastDotIdx + 1)
+    val (schemaName, tableName) = parseLocation(location)
+    if (schemaName != "default") {
       s"${configYaml.catalog}.`$schemaName`.$tableName"
     } else {
       s"${configYaml.catalog}.$location"
@@ -95,10 +116,8 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
 
   /** Ensures the Iceberg schema (Hive database) exists, with S3 location at {schema}.db/. */
   private def createSchemaIfNotExists(tableRef: String): Unit = {
-    // tableRef format: "schema.table"  →  create "catalog.schema" database
-    val lastDotIdx = tableRef.lastIndexOf('.')
-    if (lastDotIdx != -1) {
-      val schemaName = tableRef.substring(0, lastDotIdx)
+    val (schemaName, _) = parseLocation(tableRef)
+    if (schemaName != "default") {
       val schemaRef = s"${configYaml.catalog}.`$schemaName`"
       // Physical S3 location always uses the .db suffix convention
       val s3SchemaFolder = if (schemaName.endsWith(".db")) schemaName else schemaName + ".db"
@@ -163,14 +182,21 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
       logOperationEnd("write Iceberg table", startTime, s"ref: $ref")
 
       pro.datawiki.sparkLoader.register.TableRegister(configYaml.register).foreach { registry =>
-        val lastDotIdx = location.lastIndexOf('.')
-        if (lastDotIdx != -1) {
-          val schemaName = location.substring(0, lastDotIdx)
-          val tableName = location.substring(lastDotIdx + 1)
-          // Physical S3 path always uses .db suffix, Trino schema name stays plain
-          val s3SchemaFolder = if (schemaName.endsWith(".db")) schemaName else schemaName + ".db"
-          val tableLocation = s"${configYaml.warehouse}/$s3SchemaFolder/$tableName"
-          registry.registerTable(configYaml.catalog, schemaName, tableName, tableLocation)
+        val (locSchemaName, locTableName) = parseLocation(location)
+        if (locSchemaName != "default") {
+          // Physical S3 path uses .db suffix from locSchemaName
+          val s3SchemaFolder = if (locSchemaName.endsWith(".db")) locSchemaName else locSchemaName + ".db"
+          val tableLocation = s"${configYaml.warehouse}/$s3SchemaFolder/$locTableName"
+          
+          // Parse Trino/logical table from tableName parameter (tableName in YAML)
+          val logicalLastDotIdx = tableName.lastIndexOf('.')
+          val (trinoSchema, trinoTable) = if (logicalLastDotIdx != -1) {
+            (tableName.substring(0, logicalLastDotIdx), tableName.substring(logicalLastDotIdx + 1))
+          } else {
+            (locSchemaName, locTableName)
+          }
+          
+          registry.registerTable(configYaml.catalog, trinoSchema, trinoTable, tableLocation)
         }
       }
     } catch {

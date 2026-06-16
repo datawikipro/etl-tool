@@ -27,5 +27,5 @@ target:
       connection: "ods_iceberg"
       source: "stg_incomes"
       tableName: "ods__wb.incomes"
-      targetFile: "ods__wb.incomes"
+      targetFile: "ods__wb.db/incomes"
       mode: "overwriteTable"

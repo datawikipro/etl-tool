@@ -26,5 +26,5 @@ target:
       # tableName используется для логирования/метаданных
       tableName: "ods__ozon.orders"
       # targetFile = schema.table — Iceberg-референс (без catalog-префикса)
-      targetFile: "ods__ozon.orders"
+      targetFile: "ods__ozon.db/orders"
       mode: "overwriteTable"

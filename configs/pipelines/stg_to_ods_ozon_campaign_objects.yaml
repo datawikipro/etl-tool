@@ -25,5 +25,5 @@ target:
       connection: "ods_iceberg"
       source: "stg_campaign_objects"
       tableName: "ods__ozon.campaign_objects"
-      targetFile: "ods__ozon.campaign_objects"
+      targetFile: "ods__ozon.db/campaign_objects"
       mode: "overwritePartition"

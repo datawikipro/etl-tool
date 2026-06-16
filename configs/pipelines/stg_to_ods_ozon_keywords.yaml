@@ -25,5 +25,5 @@ target:
       connection: "ods_iceberg"
       source: "stg_keywords"
       tableName: "ods__ozon.keywords"
-      targetFile: "ods__ozon.keywords"
+      targetFile: "ods__ozon.db/keywords"
       mode: "overwriteTable"

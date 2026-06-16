@@ -25,5 +25,5 @@ target:
       connection: "ods_iceberg"
       source: "stg_banners"
       tableName: "ods__wb.banners"
-      targetFile: "ods__wb.banners"
+      targetFile: "ods__wb.db/banners"
       mode: "overwriteTable"

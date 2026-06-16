@@ -25,5 +25,5 @@ target:
       connection: "ods_iceberg"
       source: "stg_returns"
       tableName: "ods__ozon.returns"
-      targetFile: "ods__ozon.returns"
+      targetFile: "ods__ozon.db/returns"
       mode: "overwriteTable"
