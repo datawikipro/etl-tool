@@ -23,7 +23,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$RemoteHost  = "chernousov_a@100.86.137.112"
+$RemoteHost  = "chernousov_a@100.89.122.84"
 $RemotePath  = "~/build/etl-tool"
 $RepoUrl     = "git@github.com:datawikipro/etl-tool.git"
 $ImageName   = "datawiki/etl-tool:latest"
