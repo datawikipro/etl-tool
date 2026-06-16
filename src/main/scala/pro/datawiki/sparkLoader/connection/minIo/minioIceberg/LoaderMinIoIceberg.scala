@@ -104,7 +104,18 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
       val s3SchemaFolder = if (schemaName.endsWith(".db")) schemaName else schemaName + ".db"
       val schemaLocation = s"${configYaml.warehouse}/$s3SchemaFolder"
       logInfo(s"Ensuring Iceberg schema exists: $schemaRef LOCATION '$schemaLocation'")
-      SparkObject.spark.sql(s"CREATE DATABASE IF NOT EXISTS $schemaRef LOCATION '$schemaLocation'")
+      try {
+        SparkObject.spark.sql(s"CREATE DATABASE IF NOT EXISTS $schemaRef LOCATION '$schemaLocation'")
+      } catch {
+        case e: Exception =>
+          logWarning(s"Could not create database $schemaRef with LOCATION: ${e.getMessage}. Retrying without LOCATION...")
+          try {
+            SparkObject.spark.sql(s"CREATE DATABASE IF NOT EXISTS $schemaRef")
+          } catch {
+            case ex: Exception =>
+              logWarning(s"Could not create database $schemaRef without LOCATION: ${ex.getMessage}. Proceeding anyway...")
+          }
+      }
     }
   }
 
