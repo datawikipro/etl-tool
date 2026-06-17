@@ -1,0 +1,33 @@
+# Pipeline: STG -> ODS (Avro -> Iceberg)
+# Source: s3://bi-dev/warehouse/stg__mdm.db/excel_mp_manual_data/ (Avro)
+# Target: s3://bi-dev/warehouse/ods__mdm.db/excel_mp_manual_data/ (Iceberg, Hive Metastore)
+#
+# Источник данных: Excel файл 'Понедельно МП.xlsm', лист '3 МП', столбцы A-AX
+# Загрузка STG: python stg_excel_mp_manual_data.py --date ${partition}
+# Запуск pipeline: передать параметр --partition YYYY-MM-DD
+
+connections:
+  - sourceName: "stg_avro"
+    connection: "minioAvro"
+    configLocation: "configs/connections/minio_stg_avro.yaml"
+  - sourceName: "ods_iceberg"
+    connection: "minioIceberg"
+    configLocation: "configs/connections/yandex_s3_iceberg_ods_hadoop.yaml"
+
+source:
+  - sourceName: "stg_avro"
+    objectName: "stg_excel_mp_manual_data"
+    initMode: "instantly"
+    sourceFileSystem:
+      tableName: "warehouse/stg__mdm.db/excel_mp_manual_data"
+      partitionBy:
+        - "partition"
+      where: "partition = '${partition}'"
+
+target:
+  - fileSystem:
+      connection: "ods_iceberg"
+      source: "stg_excel_mp_manual_data"
+      tableName: "ods__mdm.excel_mp_manual_data"
+      targetFile: "ods__mdm.db/excel_mp_manual_data"
+      mode: "overwriteTable"
