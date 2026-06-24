@@ -62,7 +62,7 @@ class TrinoJdbcTableRegister(url: String, user: String) extends TableRegisterTra
     val nonKeyColumns = columns.filterNot(c => mergeKeys.contains(c))
     
     val updateClause = if (nonKeyColumns.nonEmpty) {
-      val updateAssignments = nonKeyColumns.map(c => s"t.$c = s.$c").mkString(", ")
+      val updateAssignments = nonKeyColumns.map(c => s"$c = s.$c").mkString(", ")
       s"WHEN MATCHED THEN UPDATE SET $updateAssignments"
     } else {
       ""

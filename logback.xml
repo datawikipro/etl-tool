@@ -9,25 +9,24 @@
         </encoder>
     </appender>
     
-    <!-- Root level OFF - errors throw exceptions, not log -->
-    <root level="OFF">
+    <!-- Root level WARN to capture any library warnings/errors, but keep it clean -->
+    <root level="WARN">
         <appender-ref ref="STDOUT"/>
     </root>
 
-    <logger name="com.amazonaws" level="ERROR"/>
-    <logger name="org.apache" level="ERROR" />
-    <logger name="httpclient" level="ERROR" />
+    <!-- Application code: log progress at INFO level -->
+    <logger name="pro.datawiki" level="INFO"/>
 
-    <logger name="pro.datawiki.diMigration" level="ERROR"/>
-    <logger name="pro.datawiki.sparkLoader" level="ERROR"/>
-    <logger name="pro.datawiki.schemaValidator" level="ERROR"/>
-    <logger name="org.apache.spark" level="ERROR"/>
-    <logger name="org.apache.hadoop" level="ERROR"/>
-    <logger name="com.clickhouse" level="ERROR"/>
-    <logger name="io.netty" level="ERROR"/>
-    <logger name="org.eclipse.jetty" level="ERROR"/>
-    <logger name="akka" level="ERROR"/>
-    <logger name="com.amazonaws" level="ERROR"/>
-    <logger name="org.mongodb" level="ERROR"/>
-    <logger name="com.mongodb" level="ERROR"/>
+    <!-- Quiet down third-party libraries (WARN or ERROR) -->
+    <logger name="com.amazonaws" level="WARN"/>
+    <logger name="org.apache" level="WARN"/>
+    <logger name="org.apache.spark" level="WARN"/>
+    <logger name="org.apache.hadoop" level="WARN"/>
+    <logger name="httpclient" level="WARN"/>
+    <logger name="com.clickhouse" level="WARN"/>
+    <logger name="io.netty" level="WARN"/>
+    <logger name="org.eclipse.jetty" level="WARN"/>
+    <logger name="akka" level="WARN"/>
+    <logger name="org.mongodb" level="WARN"/>
+    <logger name="com.mongodb" level="WARN"/>
 </configuration>
