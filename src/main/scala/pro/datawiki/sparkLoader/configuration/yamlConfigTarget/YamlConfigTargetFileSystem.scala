@@ -84,10 +84,14 @@ case class YamlConfigTargetFileSystem(
         val catalog = icebergLoader.configYaml.catalog
         val warehouse = icebergLoader.configYaml.warehouse
         
+        val lastSlashIdx = targetFile.lastIndexOf('/')
+        val s3SchemaFolder = if (lastSlashIdx != -1) targetFile.substring(0, lastSlashIdx) else s"$schemaName.db"
+        val tempTableLocation = s"$s3SchemaFolder/$tempTable"
+
         logInfo(s"Step A: Writing DataFrame to temp table $tempTableName in Spark catalog $catalog")
-        icebergLoader.writeDf(df.getDataFrame, tempTable, tempTableName, WriteMode.overwriteTable, partitionBy)
+        icebergLoader.writeDf(df.getDataFrame, tempTableName, tempTableLocation, WriteMode.overwriteTable, partitionBy)
         
-        val tableLocation = s"$warehouse/$schemaName/$tempTable"
+        val tableLocation = s"$warehouse/$s3SchemaFolder/$tempTable"
         
         pro.datawiki.sparkLoader.register.TableRegister(icebergLoader.configYaml.register) match {
           case Some(trinoRegistry: TrinoJdbcTableRegister) =>
@@ -103,10 +107,10 @@ case class YamlConfigTargetFileSystem(
               
               logInfo(s"Step E: Dropping temp table $tempTableName in Spark")
               try {
-                SparkObject.spark.sql(s"DROP TABLE IF EXISTS $catalog.$tempTableName")
+                SparkObject.spark.sql(s"DROP TABLE IF EXISTS $catalog.`$s3SchemaFolder`.$tempTable")
               } catch {
                 case e: Exception =>
-                  logWarning(s"Failed to drop temp table $tempTableName in Spark: ${e.getMessage}")
+                  logWarning(s"Failed to drop temp table $tempTable in Spark database $s3SchemaFolder: ${e.getMessage}")
               }
             }
             

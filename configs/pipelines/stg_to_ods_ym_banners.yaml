@@ -3,40 +3,43 @@
 # Target: s3://bi-dev/warehouse/ods__ym.db/banners/ (Iceberg, Hive Metastore)
 
 connections:
-  - sourceName: "stg_avro"
-    connection: "minioAvro"
-    configLocation: "configs/connections/local_stg_avro.yaml"
-  - sourceName: "ods_iceberg"
-    connection: "minioIceberg"
-    configLocation: "configs/connections/yandex_s3_iceberg_ods_hadoop.yaml"
-
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
 source:
-  - sourceName: "stg_avro"
-    objectName: "stg_banners"
-    initMode: "instantly"
-    sourceFileSystem:
-      tableName: "warehouse/stg__ym.db/banners"
-      partitionBy:
-        - "partition"
-      where: "partition = '${partition}'"
-
+- sourceName: stg_avro
+  objectName: stg_banners
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__ym.db/banners
 transformations:
-  - objectName: "banners_transformed"
-    sparkSql:
-      sql: |
-        SELECT 
-          campaignId as campaignid,
-          warehouseId as warehouseid,
-          offerId as offerid,
-          stockType as stocktype,
-          count,
-          partition
-        FROM stg_banners
-
+- objectName: banners_transformed
+  sparkSql:
+    sql: "SELECT \n  campaignId as campaignid,\n  warehouseId as warehouseid,\n  offerId\
+      \ as offerid,\n  stockType as stocktype,\n  count,\n  partition\nFROM stg_banners\n"
+- objectName: banners_deduplicated
+  deduplicate:
+    sourceTable: banners_transformed
+    uniqueKey:
+    - campaignid
+    - warehouseid
+    - offerid
+    - stocktype
+    deduplicationKey:
+    - partition desc
+    - count desc
 target:
-  - fileSystem:
-      connection: "ods_iceberg"
-      source: "banners_transformed"
-      tableName: "ods__ym.banners"
-      targetFile: "ods__ym.db/banners"
-      mode: "overwriteTable"
+- fileSystem:
+    connection: ods_iceberg
+    source: banners_deduplicated
+    tableName: ods__ym.banners
+    targetFile: ods__ym.db/banners
+    mode: mergeDelta
+    mergeKeys:
+    - campaignid
+    - warehouseid
+    - offerid
+    - stocktype

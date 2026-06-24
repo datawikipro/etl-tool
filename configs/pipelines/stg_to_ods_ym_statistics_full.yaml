@@ -3,26 +3,37 @@
 # Target: s3://bi-dev/warehouse/ods__ym.db/statistics/ (Iceberg, Hive Metastore)
 
 connections:
-  - sourceName: "stg_avro"
-    connection: "minioAvro"
-    configLocation: "configs/connections/local_stg_avro.yaml"
-  - sourceName: "ods_iceberg"
-    connection: "minioIceberg"
-    configLocation: "configs/connections/yandex_s3_iceberg_ods_hadoop.yaml"
-
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
 source:
-  - sourceName: "stg_avro"
-    objectName: "stg_statistics"
-    initMode: "instantly"
-    sourceFileSystem:
-      tableName: "warehouse/stg__ym.db/statistics"
-      partitionBy:
-        - "partition"
-
+- sourceName: stg_avro
+  objectName: stg_statistics
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__ym.db/statistics
 target:
-  - fileSystem:
-      connection: "ods_iceberg"
-      source: "stg_statistics"
-      tableName: "ods__ym.statistics"
-      targetFile: "ods__ym.db/statistics"
-      mode: "overwriteTable"
+- fileSystem:
+    connection: ods_iceberg
+    source: statistics_deduplicated
+    tableName: ods__ym.statistics
+    targetFile: ods__ym.db/statistics
+    mode: overwriteTable
+    mergeKeys:
+    - campaignid
+    - orderid
+    - offerid
+transformations:
+- objectName: statistics_deduplicated
+  deduplicate:
+    sourceTable: stg_statistics
+    uniqueKey:
+    - campaignid
+    - orderid
+    - offerid
+    deduplicationKey:
+    - partition desc
+    - creationdate desc

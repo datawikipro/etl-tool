@@ -7,27 +7,33 @@
 # Запуск pipeline: передать параметр --partition YYYY-MM-DD
 
 connections:
-  - sourceName: "stg_avro"
-    connection: "minioAvro"
-    configLocation: "configs/connections/local_stg_avro.yaml"
-  - sourceName: "ods_iceberg"
-    connection: "minioIceberg"
-    configLocation: "configs/connections/yandex_s3_iceberg_ods_hadoop.yaml"
-
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
 source:
-  - sourceName: "stg_avro"
-    objectName: "stg_excel_mp_manual_data"
-    initMode: "instantly"
-    sourceFileSystem:
-      tableName: "warehouse/stg__mdm.db/excel_mp_manual_data"
-      partitionBy:
-        - "partition"
-      where: "partition = '${partition}'"
-
+- sourceName: stg_avro
+  objectName: stg_excel_mp_manual_data
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__mdm.db/excel_mp_manual_data
 target:
-  - fileSystem:
-      connection: "ods_iceberg"
-      source: "stg_excel_mp_manual_data"
-      tableName: "ods__mdm.excel_mp_manual_data"
-      targetFile: "ods__mdm.db/excel_mp_manual_data"
-      mode: "overwriteTable"
+- fileSystem:
+    connection: ods_iceberg
+    source: excel_mp_manual_data_deduplicated
+    tableName: ods__mdm.excel_mp_manual_data
+    targetFile: ods__mdm.db/excel_mp_manual_data
+    mode: overwriteTable
+    mergeKeys:
+    - kod_1s
+transformations:
+- objectName: excel_mp_manual_data_deduplicated
+  deduplicate:
+    sourceTable: stg_excel_mp_manual_data
+    uniqueKey:
+    - kod_1s
+    deduplicationKey:
+    - partition desc
+    - loaded_at desc

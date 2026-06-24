@@ -127,7 +127,8 @@ docker run -d --name $containerName --restart=no \
   --entrypoint bash \
   -e SPARK_LOCAL_HOSTNAME=localhost \
   -e SPARK_LOCAL_IP=127.0.0.1 \
-  -e 'JAVA_TOOL_OPTIONS=-Xmx6g -Xms2g -Dfile.encoding=UTF-8' \
+  -e DISABLE_CERT_CHECKING=true \
+  -e 'JAVA_TOOL_OPTIONS=-Xmx6g -Xms2g -Dfile.encoding=UTF-8 -Dcom.amazonaws.sdk.disableCertChecking=true' \
   $ImageName \
   /app/run_all_partitions.sh $cfg $parts
 "@

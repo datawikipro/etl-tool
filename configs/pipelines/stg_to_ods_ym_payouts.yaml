@@ -5,40 +5,39 @@
 # Transformation: camelCase -> lowercase (Yandex Market convention)
 
 connections:
-  - sourceName: "stg_avro"
-    connection: "minioAvro"
-    configLocation: "configs/connections/local_stg_avro.yaml"
-  - sourceName: "ods_iceberg"
-    connection: "minioIceberg"
-    configLocation: "configs/connections/yandex_s3_iceberg_ods_hadoop.yaml"
-
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
 source:
-  - sourceName: "stg_avro"
-    objectName: "stg_payouts"
-    initMode: "instantly"
-    sourceFileSystem:
-      tableName: "warehouse/stg__ym.db/payouts"
-      partitionBy:
-        - "partition"
-      where: "partition = '${partition}'"
-
+- sourceName: stg_avro
+  objectName: stg_payouts
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__ym.db/payouts
 transformations:
-  - objectName: "payouts_transformed"
-    sparkSql:
-      sql: |
-        SELECT
-          campaignId as campaignid,
-          id,
-          date,
-          amount,
-          status,
-          partition
-        FROM stg_payouts
-
+- objectName: payouts_transformed
+  sparkSql:
+    sql: "SELECT\n  campaignId as campaignid,\n  id,\n  date,\n  amount,\n  status,\n\
+      \  partition\nFROM stg_payouts\n"
+- objectName: payouts_deduplicated
+  deduplicate:
+    sourceTable: payouts_transformed
+    uniqueKey:
+    - campaignid
+    - id
+    deduplicationKey:
+    - partition desc
+    - date desc
 target:
-  - fileSystem:
-      connection: "ods_iceberg"
-      source: "payouts_transformed"
-      tableName: "ods__ym.payouts"
-      targetFile: "ods__ym.db/payouts"
-      mode: "overwriteTable"
+- fileSystem:
+    connection: ods_iceberg
+    source: payouts_deduplicated
+    tableName: ods__ym.payouts
+    targetFile: ods__ym.db/payouts
+    mode: mergeDelta
+    mergeKeys:
+    - campaignid
+    - id

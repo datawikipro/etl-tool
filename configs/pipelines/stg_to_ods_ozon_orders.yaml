@@ -2,29 +2,33 @@
 # Пример: копирование таблицы ozon.orders из STG в ODS
 
 connections:
-  - sourceName: "stg_avro"
-    connection: "minioAvro"
-    configLocation: "configs/connections/local_stg_avro.yaml"
-  - sourceName: "ods_iceberg"
-    connection: "minioIceberg"
-    configLocation: "configs/connections/yandex_s3_iceberg_ods_hadoop.yaml"
-
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
 source:
-  - sourceName: "stg_avro"
-    objectName: "stg_orders"
-    initMode: "instantly"
-    sourceFileSystem:
-      tableName: "warehouse/stg__ozon.db/orders"
-      partitionBy:
-        - "partition"
-      where: "partition = '${partition}'"
-
+- sourceName: stg_avro
+  objectName: stg_orders
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__ozon.db/orders
 target:
-  - fileSystem:
-      connection: "ods_iceberg"
-      source: "stg_orders"
-      # tableName используется для логирования/метаданных
-      tableName: "ods__ozon.orders"
-      # targetFile = schema.table — Iceberg-референс (без catalog-префикса)
-      targetFile: "ods__ozon.db/orders"
-      mode: "overwriteTable"
+- fileSystem:
+    connection: ods_iceberg
+    source: orders_deduplicated
+    tableName: ods__ozon.orders
+    targetFile: ods__ozon.db/orders
+    mode: mergeDelta
+    mergeKeys:
+    - postingnumber
+transformations:
+- objectName: orders_deduplicated
+  deduplicate:
+    sourceTable: stg_orders
+    uniqueKey:
+    - postingnumber
+    deduplicationKey:
+    - partition desc
+    - createdat desc

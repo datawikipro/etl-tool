@@ -3,27 +3,35 @@
 # Target: s3://bi-dev/warehouse/ods__ozon.db/products/ (Iceberg, Hive Metastore)
 
 connections:
-  - sourceName: "stg_avro"
-    connection: "minioAvro"
-    configLocation: "configs/connections/local_stg_avro.yaml"
-  - sourceName: "ods_iceberg"
-    connection: "minioIceberg"
-    configLocation: "configs/connections/yandex_s3_iceberg_ods_hadoop.yaml"
-
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
 source:
-  - sourceName: "stg_avro"
-    objectName: "stg_products"
-    initMode: "instantly"
-    sourceFileSystem:
-      tableName: "warehouse/stg__ozon.db/products"
-      partitionBy:
-        - "partition"
-      where: "partition = '${partition}'"
-
+- sourceName: stg_avro
+  objectName: stg_products
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__ozon.db/products
 target:
-  - fileSystem:
-      connection: "ods_iceberg"
-      source: "stg_products"
-      tableName: "ods__ozon.products"
-      targetFile: "ods__ozon.db/products"
-      mode: "overwriteTable"
+- fileSystem:
+    connection: ods_iceberg
+    source: products_deduplicated
+    tableName: ods__ozon.products
+    targetFile: ods__ozon.db/products
+    mode: mergeDelta
+    mergeKeys:
+    - productid
+    - offerid
+transformations:
+- objectName: products_deduplicated
+  deduplicate:
+    sourceTable: stg_products
+    uniqueKey:
+    - productid
+    - offerid
+    deduplicationKey:
+    - partition desc
+    - productid desc

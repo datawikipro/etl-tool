@@ -3,42 +3,38 @@
 # Target: s3://bi-dev/warehouse/ods__ym.db/campaigns/ (Iceberg, Hive Metastore)
 
 connections:
-  - sourceName: "stg_avro"
-    connection: "minioAvro"
-    configLocation: "configs/connections/local_stg_avro.yaml"
-  - sourceName: "ods_iceberg"
-    connection: "minioIceberg"
-    configLocation: "configs/connections/yandex_s3_iceberg_ods_hadoop.yaml"
-
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
 source:
-  - sourceName: "stg_avro"
-    objectName: "stg_campaigns"
-    initMode: "instantly"
-    sourceFileSystem:
-      tableName: "warehouse/stg__ym.db/campaigns"
-      partitionBy:
-        - "partition"
-      where: "partition = '${partition}'"
-
+- sourceName: stg_avro
+  objectName: stg_campaigns
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__ym.db/campaigns
 transformations:
-  - objectName: "campaigns_transformed"
-    sparkSql:
-      sql: |
-        SELECT 
-          id,
-          domain,
-          clientId as clientid,
-          placementType as placementtype,
-          apiAvailability as apiavailability,
-          businessId as businessid,
-          businessName as businessname,
-          partition
-        FROM stg_campaigns
-
+- objectName: campaigns_transformed
+  sparkSql:
+    sql: "SELECT \n  id,\n  domain,\n  clientId as clientid,\n  placementType as placementtype,\n\
+      \  apiAvailability as apiavailability,\n  businessId as businessid,\n  businessName\
+      \ as businessname,\n  partition\nFROM stg_campaigns\n"
+- objectName: campaigns_deduplicated
+  deduplicate:
+    sourceTable: campaigns_transformed
+    uniqueKey:
+    - id
+    deduplicationKey:
+    - partition desc
+    - id desc
 target:
-  - fileSystem:
-      connection: "ods_iceberg"
-      source: "campaigns_transformed"
-      tableName: "ods__ym.campaigns"
-      targetFile: "ods__ym.db/campaigns"
-      mode: "overwriteTable"
+- fileSystem:
+    connection: ods_iceberg
+    source: campaigns_deduplicated
+    tableName: ods__ym.campaigns
+    targetFile: ods__ym.db/campaigns
+    mode: mergeDelta
+    mergeKeys:
+    - id

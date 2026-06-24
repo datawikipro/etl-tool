@@ -3,41 +3,40 @@
 # Target: s3://bi-dev/warehouse/ods__ym.db/campaign_objects/ (Iceberg, Hive Metastore)
 
 connections:
-  - sourceName: "stg_avro"
-    connection: "minioAvro"
-    configLocation: "configs/connections/local_stg_avro.yaml"
-  - sourceName: "ods_iceberg"
-    connection: "minioIceberg"
-    configLocation: "configs/connections/yandex_s3_iceberg_ods_hadoop.yaml"
-
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
 source:
-  - sourceName: "stg_avro"
-    objectName: "stg_campaign_objects"
-    initMode: "instantly"
-    sourceFileSystem:
-      tableName: "warehouse/stg__ym.db/campaign-objects"
-      partitionBy:
-        - "partition"
-      where: "partition = '${partition}'"
-
+- sourceName: stg_avro
+  objectName: stg_campaign_objects
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__ym.db/campaign-objects
 transformations:
-  - objectName: "campaign_objects_transformed"
-    sparkSql:
-      sql: |
-        SELECT 
-          campaignId as campaignid,
-          offerId as offerid,
-          status,
-          price,
-          discountBase as discountbase,
-          currencyId as currencyid,
-          partition
-        FROM stg_campaign_objects
-
+- objectName: campaign_objects_transformed
+  sparkSql:
+    sql: "SELECT \n  campaignId as campaignid,\n  offerId as offerid,\n  status,\n\
+      \  price,\n  discountBase as discountbase,\n  currencyId as currencyid,\n  partition\n\
+      FROM stg_campaign_objects\n"
+- objectName: campaign_objects_deduplicated
+  deduplicate:
+    sourceTable: campaign_objects_transformed
+    uniqueKey:
+    - campaignid
+    - offerid
+    deduplicationKey:
+    - partition desc
+    - offerid desc
 target:
-  - fileSystem:
-      connection: "ods_iceberg"
-      source: "campaign_objects_transformed"
-      tableName: "ods__ym.campaign_objects"
-      targetFile: "ods__ym.db/campaign_objects"
-      mode: "overwriteTable"
+- fileSystem:
+    connection: ods_iceberg
+    source: campaign_objects_deduplicated
+    tableName: ods__ym.campaign_objects
+    targetFile: ods__ym.db/campaign_objects
+    mode: mergeDelta
+    mergeKeys:
+    - campaignid
+    - offerid
