@@ -16,11 +16,25 @@ $JAVA_HOME/bin/keytool -import -noprompt -trustcacerts \
   -file "$CERT" \
   -cacerts -storepass changeit 2>/dev/null && echo "[INFO] S3 cert imported" || echo "[INFO] S3 cert already exists, skipping"
 
-exec java \
-  --add-exports java.base/sun.nio.ch=ALL-UNNAMED \
-  --add-exports java.base/java.nio=ALL-UNNAMED \
-  --add-opens java.base/sun.util.calendar=ALL-UNNAMED \
-  --add-opens java.base/java.nio=ALL-UNNAMED \
-  -Dfile.encoding=UTF-8 \
-  -jar "$JAR" \
-  "$@"
+if [ -d "/app/libs" ]; then
+    # stageApp mode (thin jar)
+    exec java \
+      --add-exports java.base/sun.nio.ch=ALL-UNNAMED \
+      --add-exports java.base/java.nio=ALL-UNNAMED \
+      --add-opens java.base/sun.util.calendar=ALL-UNNAMED \
+      --add-opens java.base/java.nio=ALL-UNNAMED \
+      -Dfile.encoding=UTF-8 \
+      -cp "/app/etl-tool.jar:/app/schema-validator.jar:/app/libs/*:/opt/spark/jars/*" \
+      pro.datawiki.sparkLoader.sparkRun \
+      "$@"
+else
+    # assembly mode (fat jar)
+    exec java \
+      --add-exports java.base/sun.nio.ch=ALL-UNNAMED \
+      --add-exports java.base/java.nio=ALL-UNNAMED \
+      --add-opens java.base/sun.util.calendar=ALL-UNNAMED \
+      --add-opens java.base/java.nio=ALL-UNNAMED \
+      -Dfile.encoding=UTF-8 \
+      -jar "$JAR" \
+      "$@"
+fi
