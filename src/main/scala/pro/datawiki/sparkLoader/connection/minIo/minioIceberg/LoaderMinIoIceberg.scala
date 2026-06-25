@@ -336,19 +336,19 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   }
 
   override def generateIdMap(inTable: String, domain: String, systemCode: String): Boolean = {
-    val targetTable = s"$${configYaml.catalog}.idmap.$$domain"
+    val targetTable = s"${configYaml.catalog}.idmap.$domain"
     val sql =
-      s"""INSERT INTO $$targetTable (ccd, system_code, rk)
+      s"""INSERT INTO $targetTable (ccd, source_code, rk)
          |WITH max_rk AS (
-         |    SELECT coalesce(max(rk), 0) AS max_val FROM $$targetTable
+         |    SELECT coalesce(max(rk), 0) AS max_val FROM $targetTable
          |),
          |new_rows AS (
-         |    SELECT data.ccd, '$$systemCode' as system_code
-         |      FROM $$inTable as data
-         |      LEFT JOIN $$targetTable id ON id.ccd = data.ccd AND id.system_code = '$$systemCode'
+         |    SELECT data.ccd, '$systemCode' as source_code
+         |      FROM $inTable as data
+         |      LEFT JOIN $targetTable id ON id.ccd = data.ccd AND id.source_code = '$systemCode'
          |     WHERE id.ccd IS NULL
          |)
-         |SELECT new_rows.ccd, new_rows.system_code, max_val + ROW_NUMBER() OVER(ORDER BY new_rows.ccd) as rk
+         |SELECT new_rows.ccd, new_rows.source_code, max_val + ROW_NUMBER() OVER(ORDER BY new_rows.ccd) as rk
          |  FROM new_rows CROSS JOIN max_rk
          |""".stripMargin
     SparkObject.spark.sql(sql)
@@ -356,13 +356,13 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   }
 
   override def mergeIdMap(inTable: String, domain: String, inSystemCode: String, outSystemCode: String): Boolean = {
-    val targetTable = s"$${configYaml.catalog}.idmap.$$domain"
+    val targetTable = s"${configYaml.catalog}.idmap.$domain"
     val sql =
-      s"""INSERT INTO $$targetTable (ccd, system_code, rk)
-         |WITH in_idmap AS (SELECT ccd, rk FROM $$targetTable WHERE system_code = '$$inSystemCode'),
-         |     out_idmap AS (SELECT ccd FROM $$targetTable WHERE system_code = '$$outSystemCode')
-         |SELECT data.out_ccd, '$$outSystemCode', MAX(in_idmap.rk)
-         |  FROM $$inTable as data
+      s"""INSERT INTO $targetTable (ccd, source_code, rk)
+         |WITH in_idmap AS (SELECT ccd, rk FROM $targetTable WHERE source_code = '$inSystemCode'),
+         |     out_idmap AS (SELECT ccd FROM $targetTable WHERE source_code = '$outSystemCode')
+         |SELECT data.out_ccd, '$outSystemCode', MAX(in_idmap.rk)
+         |  FROM $inTable as data
          |  JOIN in_idmap ON in_ccd = in_idmap.ccd
          |  LEFT JOIN out_idmap ON out_ccd = out_idmap.ccd
          | WHERE out_idmap.ccd IS NULL

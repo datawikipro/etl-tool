@@ -1,7 +1,8 @@
 package pro.datawiki.sparkLoader.taskTemplate
 
 import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
-import pro.datawiki.sparkLoader.connection.{DatabaseTrait, SupportIdMap}
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait, SupportIdMap}
+import pro.datawiki.sparkLoader.connection.minIo.minioIceberg.LoaderMinIoIceberg
 import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode.overwriteTable
 import pro.datawiki.sparkLoader.transformation.TransformationCacheDatabase
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
@@ -10,12 +11,11 @@ import scala.collection.mutable
 
 class TaskTemplateIdMapGenerate(sourceName: String,
                                 dataAtServer: Boolean,
-                                connection: DatabaseTrait,
+                                connection: ConnectionTrait with SupportIdMap,
                                 template: TaskTemplateIdMapConfig
                                ) extends TaskTemplate {
-  val cache: TransformationCacheDatabase = TransformationCacheDatabase()
 
-  private def getTableFromSpark:String = {
+  private def getTableFromSpark: String = {
     val sql: String =
       s"""
          |select ${template.columnNames.mkString("|| '!@#' ||")} as ccd
@@ -26,8 +26,19 @@ class TaskTemplateIdMapGenerate(sourceName: String,
 
     var df = SparkObject.spark.sql(sqlText = sql)
     LogMode.debugDF(df)
-    cache.saveTable(DataFrameOriginal(df), overwriteTable, connection)
-    cache.getLocation
+
+    connection match {
+      case db: DatabaseTrait =>
+        val cache = TransformationCacheDatabase()
+        cache.saveTable(DataFrameOriginal(df), overwriteTable, db)
+        cache.getLocation
+      case fs: LoaderMinIoIceberg =>
+        val tempViewName = "tmp_idmap_gen_spark_" + scala.util.Random.alphanumeric.filter(_.isLetter).take(10).mkString
+        df.createOrReplaceTempView(tempViewName)
+        tempViewName
+      case _ =>
+        throw UnsupportedOperationException(s"Unsupported connection type for ID map generation: ${connection.getClass.getSimpleName}")
+    }
   }
 
   override def run(parameters: Map[String, String], isSync: Boolean): List[DataFrameTrait] = {

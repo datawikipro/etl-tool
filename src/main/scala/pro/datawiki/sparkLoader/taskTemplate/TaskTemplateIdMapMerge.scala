@@ -1,7 +1,8 @@
 package pro.datawiki.sparkLoader.taskTemplate
 
 import pro.datawiki.datawarehouse.{DataFrameOriginal, DataFrameTrait}
-import pro.datawiki.sparkLoader.connection.{DatabaseTrait, SupportIdMap}
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait, SupportIdMap}
+import pro.datawiki.sparkLoader.connection.minIo.minioIceberg.LoaderMinIoIceberg
 import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode.overwriteTable
 import pro.datawiki.sparkLoader.transformation.TransformationCacheDatabase
 import pro.datawiki.sparkLoader.{LogMode, SparkObject}
@@ -9,12 +10,11 @@ import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import scala.collection.mutable
 
 case class TaskTemplateIdMapMerge(sourceName: String,
-                                  connection: DatabaseTrait,
+                                  connection: ConnectionTrait with SupportIdMap,
                                   dataAtServer:Boolean,
                                   in: TaskTemplateIdMapConfig,
                                   out: TaskTemplateIdMapConfig
                                  ) extends TaskTemplate {
-  val cache: TransformationCacheDatabase = TransformationCacheDatabase()
 
   private def getTableFromSpark: String = {
     val sql: String =
@@ -29,8 +29,19 @@ case class TaskTemplateIdMapMerge(sourceName: String,
 
     var df = SparkObject.spark.sql(sqlText = sql)
     LogMode.debugDF(df)
-    cache.saveTable(DataFrameOriginal(df), overwriteTable,connection)
-    cache.getLocation
+
+    connection match {
+      case db: DatabaseTrait =>
+        val cache = TransformationCacheDatabase()
+        cache.saveTable(DataFrameOriginal(df), overwriteTable, db)
+        cache.getLocation
+      case fs: LoaderMinIoIceberg =>
+        val tempViewName = "tmp_idmap_merge_spark_" + scala.util.Random.alphanumeric.filter(_.isLetter).take(10).mkString
+        df.createOrReplaceTempView(tempViewName)
+        tempViewName
+      case _ =>
+        throw UnsupportedOperationException(s"Unsupported connection type for ID map merge: ${connection.getClass.getSimpleName}")
+    }
   }
   
   override def run(parameters:Map[String, String], isSync: Boolean): List[DataFrameTrait] = {
@@ -42,7 +53,7 @@ case class TaskTemplateIdMapMerge(sourceName: String,
           case false => getTableFromSpark
         }
         x.mergeIdMap(
-          inTable = cache.getLocation,
+          inTable = tableName,
           domain = in.domainName,
           inSystemCode = in.systemCode,
           outSystemCode = out.systemCode

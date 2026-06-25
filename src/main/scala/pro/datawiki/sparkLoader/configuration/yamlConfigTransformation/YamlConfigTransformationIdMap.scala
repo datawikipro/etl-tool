@@ -2,7 +2,7 @@ package pro.datawiki.sparkLoader.configuration.yamlConfigTransformation
 
 import pro.datawiki.sparkLoader.configuration.YamlConfigTransformationTrait
 import pro.datawiki.sparkLoader.configuration.yamlConfigTransformation.yamlConfigTransformationIdmap.{YamlConfigTransformationIdMapConfig, YamlConfigTransformationIdMapMerge}
-import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait}
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait, SupportIdMap}
 import pro.datawiki.sparkLoader.context.ApplicationContext
 import pro.datawiki.sparkLoader.task.*
 import pro.datawiki.sparkLoader.taskTemplate.*
@@ -29,12 +29,12 @@ case class YamlConfigTransformationIdMap(
   //  }
   //  override def getTask(in: TaskTemplate): Task = throw NotImplementedException("Method not implemented")
 
-  var locConnection: DatabaseTrait = null
+  var locConnection: ConnectionTrait with SupportIdMap = null
 
-  private def getConnection: DatabaseTrait = {
+  private def getConnection: ConnectionTrait with SupportIdMap = {
     if locConnection == null then {
       ApplicationContext.getConnection(connection) match
-        case x: DatabaseTrait => locConnection = x
+        case x: ConnectionTrait with SupportIdMap => locConnection = x
         case _ => throw UnsupportedOperationException("Unsupported connection type for ID map transformation")
     }
     return locConnection
