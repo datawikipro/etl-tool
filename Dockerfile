@@ -60,6 +60,7 @@ COPY --from=builder /build/etl-tool/target/stage/ /app/
 COPY logback.xml /app/logback.xml
 
 # Copy runtime scripts
+COPY yandex_s3.crt /app/yandex_s3.crt
 COPY run_etl.sh /app/run_etl.sh
 COPY run_all_partitions.sh /app/run_all_partitions.sh
 RUN chmod +x /app/run_etl.sh /app/run_all_partitions.sh
