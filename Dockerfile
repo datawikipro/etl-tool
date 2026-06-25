@@ -53,6 +53,8 @@ ENV JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto
 ENV PATH=${PATH}:${JAVA_HOME}/bin
 ENV SPARK_LOCAL_HOSTNAME=localhost
 
+WORKDIR /app
+
 # Copy the staged application files (jars + libs folder)
 COPY --from=builder /build/etl-tool/target/stage/ /app/
 
