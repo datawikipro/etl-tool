@@ -26,6 +26,7 @@ transformations:
           systemCode: "1C"
           domainName: "product"
           timeColumn: "null"
+          tableLocation: "idmap.db/product"
           columnNames:
             - "kod_1s"
 
@@ -36,11 +37,13 @@ transformations:
             systemCode: "1C"
             domainName: "product"
             timeColumn: "null"
+            tableLocation: "idmap.db/product"
             columnNames: ["kod_1s"]
           out:
             systemCode: "ozon"
             domainName: "product"
             timeColumn: "null"
+            tableLocation: "idmap.db/product"
             columnNames: ["kod_ozon"]
 
         - alias: "merge_wb"
@@ -49,11 +52,13 @@ transformations:
             systemCode: "1C"
             domainName: "product"
             timeColumn: "null"
+            tableLocation: "idmap.db/product"
             columnNames: ["kod_1s"]
           out:
             systemCode: "wb"
             domainName: "product"
             timeColumn: "null"
+            tableLocation: "idmap.db/product"
             columnNames: ["artikul_wb_orion"]
 
         - alias: "merge_ym"
@@ -62,11 +67,13 @@ transformations:
             systemCode: "1C"
             domainName: "product"
             timeColumn: "null"
+            tableLocation: "idmap.db/product"
             columnNames: ["kod_1s"]
           out:
             systemCode: "yandex_market"
             domainName: "product"
             timeColumn: "null"
+            tableLocation: "idmap.db/product"
             columnNames: ["kod_yam"]
 
         - alias: "merge_lemana"
@@ -75,11 +82,13 @@ transformations:
             systemCode: "1C"
             domainName: "product"
             timeColumn: "null"
+            tableLocation: "idmap.db/product"
             columnNames: ["kod_1s"]
           out:
             systemCode: "lemana_pro"
             domainName: "product"
             timeColumn: "null"
+            tableLocation: "idmap.db/product"
             columnNames: ["kod_lemana_pro"]
 
         - alias: "merge_mvideo"
@@ -88,11 +97,13 @@ transformations:
             systemCode: "1C"
             domainName: "product"
             timeColumn: "null"
+            tableLocation: "idmap.db/product"
             columnNames: ["kod_1s"]
           out:
             systemCode: "mvideo"
             domainName: "product"
             timeColumn: "null"
+            tableLocation: "idmap.db/product"
             columnNames: ["kod_mvideo"]
 
 target: []
