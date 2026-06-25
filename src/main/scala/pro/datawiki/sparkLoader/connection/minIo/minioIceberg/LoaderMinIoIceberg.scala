@@ -6,6 +6,7 @@ import pro.datawiki.sparkLoader.connection.{ConnectionTrait, FileStorageTrait}
 import pro.datawiki.sparkLoader.connection.minIo.minioBase.YamlConfigHost
 import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, WriteMode}
 import pro.datawiki.sparkLoader.traits.LoggingTrait
+import pro.datawiki.sparkLoader.connection.trino.LoaderTrino
 import pro.datawiki.sparkLoader.SparkObject
 
 import java.net.Socket
@@ -138,6 +139,28 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
     }
   }
 
+  // ─── Trino JDBC Registry ──────────────────────────────────────────────────
+
+  /** Parses the register config block to instantiate a LoaderTrino if configured */
+  def getTrinoLoader: Option[LoaderTrino] = {
+    configYaml.register.flatMap { cfg =>
+      cfg.registerType.toLowerCase match {
+        case "trino-jdbc" =>
+          val url = cfg.url.getOrElse("")
+          val user = cfg.user.getOrElse("chernousov_a")
+          if (url.nonEmpty) {
+            Some(new LoaderTrino(url, user))
+          } else {
+            logWarning("Trino JDBC registry URL is empty, skipping registration")
+            None
+          }
+        case other =>
+          logWarning(s"Unknown register type: $other")
+          None
+      }
+    }
+  }
+
   // ─── Write ────────────────────────────────────────────────────────────────
 
   /**
@@ -162,7 +185,7 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
 
         if (partitionName.nonEmpty) {
           import org.apache.spark.sql.functions.col
-          writer = writer.partitionedBy(col(partitionName.head), partitionName.tail.map(col): _*)
+          writer = writer.partitionedBy(col(partitionName.head), partitionName.tail.map(col)*)
         }
         writer.create()
       } else {
@@ -181,7 +204,7 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
       }
       logOperationEnd("write Iceberg table", startTime, s"ref: $ref")
 
-      pro.datawiki.sparkLoader.register.TableRegister(configYaml.register).foreach { registry =>
+      getTrinoLoader.foreach { trino =>
         val (locSchemaName, locTableName) = parseLocation(location)
         if (locSchemaName != "default") {
           // Physical S3 path uses .db suffix from locSchemaName
@@ -196,7 +219,7 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
             (locSchemaName, locTableName)
           }
           
-          registry.registerTable(configYaml.catalog, trinoSchema, trinoTable, tableLocation)
+          trino.registerTable(configYaml.catalog, trinoSchema, trinoTable, tableLocation)
         }
       }
     } catch {
@@ -276,7 +299,7 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
 
   override def getConfigLocation(): String = _configLocation
 
-  // Registration logic is handled via pro.datawiki.sparkLoader.register.TableRegister
+  // Registration logic is handled via LoaderTrino using getTrinoLoader
 }
 
 object LoaderMinIoIceberg extends pro.datawiki.yamlConfiguration.YamlClass {

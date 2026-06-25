@@ -3,7 +3,7 @@ package pro.datawiki.sparkLoader.dictionaryEnum
 enum ConnectionEnum {
   case mysql, postgres, mongodb, kafkaBatch, kafkaStream, kafkaSaslSSLBatch, kafkaSaslSSLStream, kafkaAmazonBatch, kafkaAmazonStream, clickhouse, bigQuery,
   minioParquet, minioJson, minioJsonStream, minioText, minioAvro, minioIceberg, localText, localJson, localParquet,
-  selenium, jsonApi, googleAds, mail, qdrant
+  selenium, jsonApi, googleAds, mail, qdrant, trino
 
   override def toString: String = {
     this match {
@@ -32,6 +32,7 @@ enum ConnectionEnum {
       case `googleAds` => "googleAds"
       case `mail` => "mail"
       case `qdrant` => "qdrant"
+      case `trino` => "trino"
       case _ => throw new IllegalArgumentException(s"Unknown connection type: $this")
     }
   }
@@ -67,6 +68,7 @@ object ConnectionEnum {
       case "googleAds" => ConnectionEnum.googleAds
       case "mail" => ConnectionEnum.mail
       case "qdrant" => ConnectionEnum.qdrant
+      case "trino" => ConnectionEnum.trino
       case _ => throw new IllegalArgumentException(s"Unknown connection type: $connectionType")
     }
   }

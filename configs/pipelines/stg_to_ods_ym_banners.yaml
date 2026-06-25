@@ -19,7 +19,7 @@ transformations:
 - objectName: banners_transformed
   sparkSql:
     sql: "SELECT \n  campaignId as campaignid,\n  warehouseId as warehouseid,\n  offerId\
-      \ as offerid,\n  stockType as stocktype,\n  count,\n  partition\nFROM stg_banners\n"
+      \ as offerid,\n  stockType as stocktype,\n  count,\n  CAST(partition as string) as partition\nFROM stg_banners\n"
 - objectName: banners_deduplicated
   deduplicate:
     sourceTable: banners_transformed

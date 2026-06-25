@@ -31,7 +31,7 @@ class LoaderMinIoBatch(format: FileBaseFormat, configYaml: YamlConfig, configLoc
 
         case _ => {
           if partitionColumns.nonEmpty then {
-            writer.partitionBy(partitionColumns: _*)
+            writer.partitionBy(partitionColumns*)
           }
           else {
             writer
@@ -130,7 +130,7 @@ class LoaderMinIoBatch(format: FileBaseFormat, configYaml: YamlConfig, configLoc
     modifySpark()
     val optimizedDf = super.optimizeDataFramePartitions(df.distinct())
     write(
-      optimizedDf.orderBy(partitionName.head, partitionName: _*),
+      optimizedDf.orderBy(partitionName.head, partitionName*),
       tableName = tableName,
       format.toString,
       writeMode,

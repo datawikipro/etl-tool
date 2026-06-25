@@ -1,7 +1,6 @@
 package pro.datawiki.sparkLoader.connection.minIo.minioIceberg
 
 import pro.datawiki.sparkLoader.connection.minIo.minioBase.YamlConfigHost
-import pro.datawiki.sparkLoader.register.YamlConfigRegister
 
 case class YamlConfigIceberg(
                               minioHost: List[YamlConfigHost],

@@ -21,7 +21,7 @@ transformations:
 - objectName: payouts_transformed
   sparkSql:
     sql: "SELECT\n  campaignId as campaignid,\n  id,\n  date,\n  amount,\n  status,\n\
-      \  partition\nFROM stg_payouts\n"
+      \  CAST(partition as string) as partition\nFROM stg_payouts\n"
 - objectName: payouts_deduplicated
   deduplicate:
     sourceTable: payouts_transformed

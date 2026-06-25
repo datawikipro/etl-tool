@@ -20,7 +20,7 @@ transformations:
   sparkSql:
     sql: "SELECT \n  id,\n  domain,\n  clientId as clientid,\n  placementType as placementtype,\n\
       \  apiAvailability as apiavailability,\n  businessId as businessid,\n  businessName\
-      \ as businessname,\n  partition\nFROM stg_campaigns\n"
+      \ as businessname,\n  CAST(partition as string) as partition\nFROM stg_campaigns\n"
 - objectName: campaigns_deduplicated
   deduplicate:
     sourceTable: campaigns_transformed

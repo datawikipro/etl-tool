@@ -19,7 +19,7 @@ transformations:
 - objectName: campaign_objects_transformed
   sparkSql:
     sql: "SELECT \n  campaignId as campaignid,\n  offerId as offerid,\n  status,\n\
-      \  price,\n  discountBase as discountbase,\n  currencyId as currencyid,\n  partition\n\
+      \  price,\n  discountBase as discountbase,\n  currencyId as currencyid,\n  CAST(partition as string) as partition\n\
       FROM stg_campaign_objects\n"
 - objectName: campaign_objects_deduplicated
   deduplicate:

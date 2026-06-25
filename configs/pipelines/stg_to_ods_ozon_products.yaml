@@ -26,9 +26,12 @@ target:
     - productid
     - offerid
 transformations:
+- objectName: products_transformed
+  sparkSql:
+    sql: "SELECT productId, offerId, name, rawJson, CAST(partition as string) as partition FROM stg_products"
 - objectName: products_deduplicated
   deduplicate:
-    sourceTable: stg_products
+    sourceTable: products_transformed
     uniqueKey:
     - productid
     - offerid

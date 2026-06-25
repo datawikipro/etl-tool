@@ -20,7 +20,7 @@ transformations:
   sparkSql:
     sql: "SELECT \n  campaignId as campaignid,\n  orderId as orderid,\n  status,\n\
       \  substatus,\n  creationDate as creationdate,\n  offerId as offerid,\n  count,\n\
-      \  price,\n  partition\nFROM stg_keywords\n"
+      \  price,\n  CAST(partition as string) as partition\nFROM stg_keywords\n"
 - objectName: keywords_deduplicated
   deduplicate:
     sourceTable: keywords_transformed

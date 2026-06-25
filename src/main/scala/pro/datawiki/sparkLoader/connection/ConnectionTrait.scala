@@ -140,6 +140,7 @@ object ConnectionTrait extends LoggingTrait {
       case ConnectionEnum.googleAds => LoaderGoogleAds(configLocation)
       case ConnectionEnum.mail => LoaderMail(configLocation)
       case ConnectionEnum.qdrant => LoaderQdrant(configLocation)
+      case ConnectionEnum.trino => pro.datawiki.sparkLoader.connection.trino.LoaderTrino(configLocation)
   }
 
   def apply(sourceName: String, connection: String, configLocation: String): ConnectionTrait = {

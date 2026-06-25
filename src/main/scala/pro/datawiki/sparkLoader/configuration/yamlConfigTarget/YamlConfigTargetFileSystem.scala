@@ -8,7 +8,6 @@ import pro.datawiki.sparkLoader.connection.FileStorageTrait
 import pro.datawiki.sparkLoader.context.ApplicationContext
 import pro.datawiki.sparkLoader.dictionaryEnum.WriteMode
 import pro.datawiki.sparkLoader.traits.LoggingTrait
-import pro.datawiki.sparkLoader.register.TrinoJdbcTableRegister
 import pro.datawiki.sparkLoader.connection.minIo.minioIceberg.LoaderMinIoIceberg
 import pro.datawiki.sparkLoader.SparkObject
 
@@ -74,7 +73,7 @@ case class YamlConfigTargetFileSystem(
     if (lastDotIdx == -1) throw IllegalArgumentException(s"tableName must be in format schema.table, got: $tableName")
     val schemaName = tableName.substring(0, lastDotIdx)
     val targetTable = tableName.substring(lastDotIdx + 1)
-    val tempTable = s"${targetTable}_tmp"
+    val tempTable = s"${targetTable}_tmp_${System.currentTimeMillis()}"
     val tempTableName = s"$schemaName.$tempTable"
     
     logInfo(s"Starting merge write for $tableName with temp table $tempTableName")
@@ -93,8 +92,8 @@ case class YamlConfigTargetFileSystem(
         
         val tableLocation = s"$warehouse/$s3SchemaFolder/$tempTable"
         
-        pro.datawiki.sparkLoader.register.TableRegister(icebergLoader.configYaml.register) match {
-          case Some(trinoRegistry: TrinoJdbcTableRegister) =>
+        icebergLoader.getTrinoLoader match {
+          case Some(trinoRegistry) =>
             logInfo(s"Step B: Registering temp table $tempTableName in Trino")
             trinoRegistry.registerTable(catalog, schemaName, tempTable, tableLocation)
             

@@ -25,9 +25,14 @@ target:
     mergeKeys:
     - id
 transformations:
+- objectName: campaigns_transformed
+  sparkSql:
+    sql: "SELECT \n  id,\n  title,\n  state,\n  advObjectType,\n  placement,\n  fromDate,\n\
+      \  toDate,\n  dailyBudget,\n  budget,\n  weeklyBudget,\n  paymentType,\n  createdAt,\n\
+      \  updatedAt,\n  CAST(partition as string) as partition\nFROM stg_campaigns\n"
 - objectName: campaigns_deduplicated
   deduplicate:
-    sourceTable: stg_campaigns
+    sourceTable: campaigns_transformed
     uniqueKey:
     - id
     deduplicationKey:
