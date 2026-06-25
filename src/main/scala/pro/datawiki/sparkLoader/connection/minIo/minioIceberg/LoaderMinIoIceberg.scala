@@ -107,7 +107,7 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   }
 
   /** Full Iceberg table reference: catalog.schema.table */
-  private def fullRef(location: String): String = {
+  def fullRef(location: String): String = {
     val (schemaName, tableName) = parseLocation(location)
     if (schemaName != "default") {
       s"${configYaml.catalog}.`$schemaName`.$tableName"
@@ -304,7 +304,7 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
 
   // Registration logic is handled via LoaderTrino using getTrinoLoader
 
-  def idmapSchema: String = configYaml.idmapSchema.getOrElse("idmap")
+
 
   // ─── SupportIdMap Implementation ──────────────────────────────────────────
 
@@ -337,10 +337,9 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
     targetTableName
   }
 
-  override def generateIdMap(inTable: String, domain: String, systemCode: String): Boolean = {
-    val schema = idmapSchema
-    createSchemaIfNotExists(s"$schema.$domain")
-    val targetTable = s"${configYaml.catalog}.`$schema`.$domain"
+  override def generateIdMap(inTable: String, domain: String, systemCode: String, tableLocation: String): Boolean = {
+    createSchemaIfNotExists(tableLocation)
+    val targetTable = fullRef(tableLocation)
     val sql =
       s"""INSERT INTO $targetTable (ccd, source_code, rk)
          |WITH max_rk AS (
@@ -359,10 +358,9 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
     true
   }
 
-  override def mergeIdMap(inTable: String, domain: String, inSystemCode: String, outSystemCode: String): Boolean = {
-    val schema = idmapSchema
-    createSchemaIfNotExists(s"$schema.$domain")
-    val targetTable = s"${configYaml.catalog}.`$schema`.$domain"
+  override def mergeIdMap(inTable: String, domain: String, inSystemCode: String, outSystemCode: String, tableLocation: String): Boolean = {
+    createSchemaIfNotExists(tableLocation)
+    val targetTable = fullRef(tableLocation)
     val sql =
       s"""INSERT INTO $targetTable (ccd, source_code, rk)
          |WITH in_idmap AS (SELECT ccd, rk FROM $targetTable WHERE source_code = '$inSystemCode'),

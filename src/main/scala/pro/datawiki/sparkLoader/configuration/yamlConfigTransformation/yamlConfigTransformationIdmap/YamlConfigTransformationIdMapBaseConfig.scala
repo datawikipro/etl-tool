@@ -12,8 +12,9 @@ case class YamlConfigTransformationIdMapBaseConfig(
                                                     timeColumn: String,
                                                     secondForExpire: Int = -1,
                                                     domainName: String,
+                                                    tableLocation: Option[String] = None,
                                                   ) {
   def getTaskTemplateIdMapConfig: TaskTemplateIdMapConfig = {
-    TaskTemplateIdMapConfig(systemCode, columnNames, domainName,timeColumn,secondForExpire)
+    TaskTemplateIdMapConfig(systemCode, columnNames, domainName, timeColumn, secondForExpire, tableLocation)
   }
 }

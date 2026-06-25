@@ -274,7 +274,7 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
     }
   }
 
-  override def generateIdMap(inTable: String, domain: String, systemCode: String): Boolean = {
+  override def generateIdMap(inTable: String, domain: String, systemCode: String, tableLocation: String): Boolean = {
     val sql =
       s"""insert into idmap.${domain}(ccd, system_code)
          |with id as (
@@ -289,7 +289,7 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
     runSQL(sql)
   }
 
-  override def mergeIdMap(inTable: String, domain: String, inSystemCode: String, outSystemCode: String): Boolean = {
+  override def mergeIdMap(inTable: String, domain: String, inSystemCode: String, outSystemCode: String, tableLocation: String): Boolean = {
     val sql =
       s"""insert into idmap.${domain}(ccd, system_code, rk)
          |with  in_idmap as (select ccd, rk from idmap.${domain} where system_code = '${inSystemCode}'),

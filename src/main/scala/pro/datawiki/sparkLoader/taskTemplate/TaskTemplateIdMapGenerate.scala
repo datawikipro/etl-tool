@@ -53,7 +53,8 @@ class TaskTemplateIdMapGenerate(sourceName: String,
         x.generateIdMap(
           inTable = tableName,
           domain = template.domainName,
-          systemCode = template.systemCode
+          systemCode = template.systemCode,
+          tableLocation = template.getResolvedLocation
         )
       case _ => throw UnsupportedOperationException("Unsupported connection type for ID map generation")
     }

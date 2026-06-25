@@ -50,11 +50,10 @@ class TaskTemplateIdMapRestore(sourceName: String,
       case fs: LoaderMinIoIceberg =>
         val tempViewName = "tmp_restore_" + scala.util.Random.alphanumeric.filter(_.isLetter).take(10).mkString
         df.createOrReplaceTempView(tempViewName)
-        val catalog = fs.configYaml.catalog
-        val idmapSchema = s"`${fs.idmapSchema}`"
         var idMapJoin: List[String] = List.apply()
         template.foreach(i => {
-          idMapJoin = idMapJoin.appended(s"""left join ${catalog}.${idmapSchema}.${i._2.domainName} ${i._1} on ${i._1}.ccd = temporary.${i._1}_ccd and ${i._1}.source_code = '${i._2.systemCode}'""")
+          val resolvedTable = fs.fullRef(i._2.getResolvedLocation)
+          idMapJoin = idMapJoin.appended(s"""left join $resolvedTable ${i._1} on ${i._1}.ccd = temporary.${i._1}_ccd and ${i._1}.source_code = '${i._2.systemCode}'""")
         })
         var sql2 =
           s"""select ${idMapSelect.mkString(",\n       ")},

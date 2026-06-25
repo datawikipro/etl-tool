@@ -56,7 +56,8 @@ case class TaskTemplateIdMapMerge(sourceName: String,
           inTable = tableName,
           domain = in.domainName,
           inSystemCode = in.systemCode,
-          outSystemCode = out.systemCode
+          outSystemCode = out.systemCode,
+          tableLocation = out.getResolvedLocation
         )
       }
       case _ => throw UnsupportedOperationException("Unsupported connection type for ID map merge")
