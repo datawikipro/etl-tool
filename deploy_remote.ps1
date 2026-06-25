@@ -149,7 +149,7 @@ docker build -f Dockerfile -t $ImageName .
 
         $runContainerCmd = @"
 docker rm -f $containerName 2>/dev/null || true
-docker run -d --name $containerName --restart=no \
+docker run -d --name $containerName --restart=no --net=host \
   --entrypoint bash \
   -e SPARK_LOCAL_HOSTNAME=localhost \
   -e SPARK_LOCAL_IP=127.0.0.1 \
