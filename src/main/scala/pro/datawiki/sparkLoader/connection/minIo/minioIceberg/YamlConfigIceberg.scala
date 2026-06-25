@@ -19,4 +19,5 @@ case class YamlConfigIceberg(
                               region: Option[String] = None,
                               catalogType: Option[String] = None,
                               register: Option[YamlConfigRegister] = None,
+                              idmapSchema: Option[String] = None,
                             )

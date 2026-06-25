@@ -14,6 +14,7 @@ bucket: "bi-dev"
 warehouse: "s3a://bi-dev/warehouse"
 hiveMetastoreUri: "thrift://hive-metastore:9083"
 catalog: "iceberg"
+idmapSchema: "idmap"
 
 # S3 connection settings
 pathStyleAccess: true

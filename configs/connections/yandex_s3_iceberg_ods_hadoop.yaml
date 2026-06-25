@@ -16,6 +16,7 @@ hiveMetastoreUri: "${HIVE_METASTORE_URI:}"
 catalog: "${ICEBERG_CATALOG:iceberg}"
 catalogType: "${ICEBERG_CATALOG_TYPE:hadoop}"
 region: "${S3_REGION:us-east-1}"
+idmapSchema: "idmap.db"
 
 pathStyleAccess: ${S3_PATH_STYLE_ACCESS:true}
 establishTimeout: "${S3_ESTABLISH_TIMEOUT:15000}"

@@ -304,13 +304,7 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
 
   // Registration logic is handled via LoaderTrino using getTrinoLoader
 
-  def idmapSchema: String = {
-    if (configYaml.catalogType.contains("hadoop")) {
-      "idmap.db"
-    } else {
-      "idmap"
-    }
-  }
+  def idmapSchema: String = configYaml.idmapSchema.getOrElse("idmap")
 
   // ─── SupportIdMap Implementation ──────────────────────────────────────────
 

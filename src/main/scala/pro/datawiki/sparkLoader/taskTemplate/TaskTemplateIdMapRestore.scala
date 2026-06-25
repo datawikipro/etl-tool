@@ -51,7 +51,7 @@ class TaskTemplateIdMapRestore(sourceName: String,
         val tempViewName = "tmp_restore_" + scala.util.Random.alphanumeric.filter(_.isLetter).take(10).mkString
         df.createOrReplaceTempView(tempViewName)
         val catalog = fs.configYaml.catalog
-        val idmapSchema = if (fs.configYaml.catalogType.contains("hadoop")) "`idmap.db`" else "idmap"
+        val idmapSchema = s"`${fs.idmapSchema}`"
         var idMapJoin: List[String] = List.apply()
         template.foreach(i => {
           idMapJoin = idMapJoin.appended(s"""left join ${catalog}.${idmapSchema}.${i._2.domainName} ${i._1} on ${i._1}.ccd = temporary.${i._1}_ccd and ${i._1}.source_code = '${i._2.systemCode}'""")
