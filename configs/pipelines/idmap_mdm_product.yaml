@@ -18,7 +18,7 @@ transformations:
   - type: "idmap"
     sourceName: "mdm_product"
     connection: "ods_mdm"
-    dataAtServer: true
+    dataAtServer: false
     idMapGenerate:
       - alias: "gen_1c"
         systemCode: "1C"

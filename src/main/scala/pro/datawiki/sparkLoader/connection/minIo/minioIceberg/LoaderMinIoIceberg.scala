@@ -249,6 +249,7 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
 
   override def readDf(location: String): DataFrame = {
     modifySpark()
+    createSchemaIfNotExists(location)
     val ref = fullRef(location)
     logInfo(s"Reading Iceberg table: $ref")
     SparkObject.spark.read.format("iceberg").load(ref)
@@ -272,6 +273,7 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
 
   override def readDfSchema(location: String): DataFrame = {
     modifySpark()
+    createSchemaIfNotExists(location)
     SparkObject.spark.read.format("iceberg").load(fullRef(location)).limit(0)
   }
 
