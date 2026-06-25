@@ -117,7 +117,7 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   }
 
   /** Ensures the Iceberg schema (Hive database) exists, with S3 location at {schema}.db/. */
-  private def createSchemaIfNotExists(tableRef: String): Unit = {
+  def createSchemaIfNotExists(tableRef: String): Unit = {
     val (schemaName, _) = parseLocation(tableRef)
     if (schemaName != "default") {
       val schemaRef = s"${configYaml.catalog}.`$schemaName`"
@@ -340,6 +340,20 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   override def generateIdMap(inTable: String, domain: String, systemCode: String, tableLocation: String): Boolean = {
     createSchemaIfNotExists(tableLocation)
     val targetTable = fullRef(tableLocation)
+
+    if (!SparkObject.spark.catalog.tableExists(targetTable)) {
+      logInfo(s"Table $targetTable does not exist. Creating empty IDMap table.")
+      SparkObject.spark.sql(
+        s"""CREATE TABLE $targetTable (
+           |  ccd STRING,
+           |  source_code STRING,
+           |  rk BIGINT
+           |) USING iceberg
+           |TBLPROPERTIES ('format-version'='2', 'write.format.default'='parquet')
+           |""".stripMargin
+      )
+    }
+
     val sql =
       s"""INSERT INTO $targetTable (ccd, source_code, rk)
          |WITH max_rk AS (
@@ -361,6 +375,20 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   override def mergeIdMap(inTable: String, domain: String, inSystemCode: String, outSystemCode: String, tableLocation: String): Boolean = {
     createSchemaIfNotExists(tableLocation)
     val targetTable = fullRef(tableLocation)
+
+    if (!SparkObject.spark.catalog.tableExists(targetTable)) {
+      logInfo(s"Table $targetTable does not exist. Creating empty IDMap table.")
+      SparkObject.spark.sql(
+        s"""CREATE TABLE $targetTable (
+           |  ccd STRING,
+           |  source_code STRING,
+           |  rk BIGINT
+           |) USING iceberg
+           |TBLPROPERTIES ('format-version'='2', 'write.format.default'='parquet')
+           |""".stripMargin
+      )
+    }
+
     val sql =
       s"""INSERT INTO $targetTable (ccd, source_code, rk)
          |WITH in_idmap AS (SELECT ccd, rk FROM $targetTable WHERE source_code = '$inSystemCode'),

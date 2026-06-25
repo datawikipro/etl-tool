@@ -52,7 +52,22 @@ class TaskTemplateIdMapRestore(sourceName: String,
         df.createOrReplaceTempView(tempViewName)
         var idMapJoin: List[String] = List.apply()
         template.foreach(i => {
-          val resolvedTable = fs.fullRef(i._2.getResolvedLocation)
+          val resolvedLocation = i._2.getResolvedLocation
+          val resolvedTable = fs.fullRef(resolvedLocation)
+
+          if (!SparkObject.spark.catalog.tableExists(resolvedTable)) {
+            fs.createSchemaIfNotExists(resolvedLocation)
+            SparkObject.spark.sql(
+              s"""CREATE TABLE $resolvedTable (
+                 |  ccd STRING,
+                 |  source_code STRING,
+                 |  rk BIGINT
+                 |) USING iceberg
+                 |TBLPROPERTIES ('format-version'='2', 'write.format.default'='parquet')
+                 |""".stripMargin
+            )
+          }
+
           idMapJoin = idMapJoin.appended(s"""left join $resolvedTable ${i._1} on ${i._1}.ccd = temporary.${i._1}_ccd and ${i._1}.source_code = '${i._2.systemCode}'""")
         })
         var sql2 =
