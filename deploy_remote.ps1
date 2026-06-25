@@ -154,7 +154,7 @@ docker run -d --name $containerName --restart=no --net=host \
   -e SPARK_LOCAL_HOSTNAME=localhost \
   -e SPARK_LOCAL_IP=127.0.0.1 \
   -e DISABLE_CERT_CHECKING=true \
-  -e 'JAVA_TOOL_OPTIONS=-Xmx4g -Xms1g -XX:MaxMetaspaceSize=512m -XX:-ShowCodeDetailsInExceptionMessages -Dfile.encoding=UTF-8 -Dcom.amazonaws.sdk.disableCertChecking=true' \
+  -e 'JAVA_TOOL_OPTIONS=-Xmx4g -Xms1g -XX:MaxMetaspaceSize=512m -XX:-ShowCodeDetailsInExceptionMessages -XX:TieredStopAtLevel=1 -Dfile.encoding=UTF-8 -Dcom.amazonaws.sdk.disableCertChecking=true' \
   $ImageName \
   /app/run_all_partitions.sh $cfg $parts
 "@
