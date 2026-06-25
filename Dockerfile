@@ -59,6 +59,11 @@ COPY --from=builder /build/etl-tool/target/stage/ /app/
 # Copy logback config
 COPY logback.xml /app/logback.xml
 
+# Copy runtime scripts
+COPY run_etl.sh /app/run_etl.sh
+COPY run_all_partitions.sh /app/run_all_partitions.sh
+RUN chmod +x /app/run_etl.sh /app/run_all_partitions.sh
+
 # Default entrypoint: java with Spark jars + staged libraries
 ENTRYPOINT ["java", \
   "--add-exports", "java.base/sun.nio.ch=ALL-UNNAMED", \

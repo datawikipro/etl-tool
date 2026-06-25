@@ -29,8 +29,7 @@ $ErrorActionPreference = "Stop"
 
 $RemoteHost  = "chernousov_a@100.89.122.84"
 $RemotePath  = "~/build/etl-tool"
-$K3sImage    = "ghcr.io/datawikipro/etl-tool:latest"
-$LocalImage  = "datawiki/etl-tool:latest"
+$ImageName   = "ghcr.io/datawikipro/etl-tool:latest"
 
 # Список пайплайнов и партиций для удаленного запуска
 $partitions = @{
@@ -93,20 +92,20 @@ if ($Action -eq "k3s") {
     $k3sCmd = @"
 set -e
 cd $RemotePath
-echo '[1/3] Building runtime Docker image $K3sImage ...'
-docker build -f Dockerfile -t $K3sImage .
+echo '[1/3] Building runtime Docker image $ImageName ...'
+docker build -f Dockerfile -t $ImageName .
 
 echo '[2/3] Exporting image to $tmpTar ...'
 rm -f $tmpTar
-docker save --format=docker-archive -o $tmpTar $K3sImage
+docker save --format=docker-archive -o $tmpTar $ImageName
 
 echo '[3/3] Importing image into k3s containerd (namespace k8s.io) ...'
 sudo /usr/local/bin/k3s ctr -n k8s.io images import $tmpTar
 
 # Убираем localhost/ префикс если он создался при импорте
-if sudo /usr/local/bin/k3s ctr -n k8s.io images list | grep -q "localhost/$K3sImage"; then
-    echo "Tagging localhost/$K3sImage as $K3sImage ..."
-    sudo /usr/local/bin/k3s ctr -n k8s.io images tag localhost/$K3sImage $K3sImage
+if sudo /usr/local/bin/k3s ctr -n k8s.io images list | grep -q "localhost/$ImageName"; then
+    echo "Tagging localhost/$ImageName as $ImageName ..."
+    sudo /usr/local/bin/k3s ctr -n k8s.io images tag localhost/$ImageName $ImageName
 fi
 
 rm -f $tmpTar
@@ -118,17 +117,17 @@ echo '=== K3S DEPLOY SUCCESSFUL ==='
 elseif ($Action -eq "run") {
     Write-Host "`n=== MODE: Running on Remote Server ===" -ForegroundColor Cyan
     
-    # Сначала собираем локальный образ для автономного рана
+    # Сначала собираем образ для рана (через оригинальный Dockerfile)
     $runBuildCmd = @"
 set -e
 cd $RemotePath
-echo '[1/2] Building local run Docker image $LocalImage ...'
-docker build -f Dockerfile.build -t $LocalImage .
+echo '[1/2] Building run Docker image $ImageName ...'
+docker build -f Dockerfile -t $ImageName .
 "@
     $runBuildCmdClean = $runBuildCmd -replace "`r", ""
     ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=20 $RemoteHost $runBuildCmdClean
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "Local Docker image build failed!" -ForegroundColor Red
+        Write-Host "Docker image build failed!" -ForegroundColor Red
         exit 1
     }
 
@@ -156,7 +155,7 @@ docker run -d --name $containerName --restart=no \
   -e SPARK_LOCAL_IP=127.0.0.1 \
   -e DISABLE_CERT_CHECKING=true \
   -e 'JAVA_TOOL_OPTIONS=-Xmx6g -Xms2g -Dfile.encoding=UTF-8 -Dcom.amazonaws.sdk.disableCertChecking=true' \
-  $LocalImage \
+  $ImageName \
   /app/run_all_partitions.sh $cfg $parts
 "@
         $runContainerCmdClean = $runContainerCmd -replace "`r", ""
