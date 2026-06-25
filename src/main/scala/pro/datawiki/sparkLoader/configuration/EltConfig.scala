@@ -117,7 +117,10 @@ case class EltConfig(
   def runTarget(): ProgressStatus = {
     target.length match
       case 1 => target.head.writeTarget()
-      case 0 => throw ConfigurationException("No target configured. At least one target is required.")
+      case 0 => {
+        logInfo("No targets configured. Skipping target write.")
+        ProgressStatus.done
+      }
 
       case _ => target.foreach(i => {
         try {
