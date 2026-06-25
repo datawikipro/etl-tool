@@ -2,7 +2,7 @@ package pro.datawiki.sparkLoader.connection.minIo.minioIceberg
 
 import org.apache.spark.sql.DataFrame
 import pro.datawiki.exception.{NotImplementedException, TableNotExistException}
-import pro.datawiki.sparkLoader.connection.{ConnectionTrait, FileStorageTrait}
+import pro.datawiki.sparkLoader.connection.{ConnectionTrait, FileStorageTrait, SupportIdMap}
 import pro.datawiki.sparkLoader.connection.minIo.minioBase.YamlConfigHost
 import pro.datawiki.sparkLoader.dictionaryEnum.{ConnectionEnum, WriteMode}
 import pro.datawiki.sparkLoader.traits.LoggingTrait
@@ -12,7 +12,8 @@ import pro.datawiki.sparkLoader.SparkObject
 import java.net.Socket
 
 class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: String)
-  extends FileStorageTrait with LoggingTrait {
+  extends FileStorageTrait with SupportIdMap with LoggingTrait {
+
 
   private val _configLocation: String = configLocation
 
@@ -300,6 +301,75 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   override def getConfigLocation(): String = _configLocation
 
   // Registration logic is handled via LoaderTrino using getTrinoLoader
+
+  // ─── SupportIdMap Implementation ──────────────────────────────────────────
+
+  override def createViewIdMapGenerate(tableName: String, surrogateKey: List[String]): String = {
+    val targetTableName = "tmp_idmap_gen_" + scala.util.Random.alphanumeric.filter(_.isLetter).take(10).mkString
+    val sql =
+      s"""CREATE OR REPLACE TEMPORARY VIEW $$targetTableName AS
+         |SELECT concat_ws('!@#', $${surrogateKey.mkString(", ")}) as ccd
+         |  FROM $${configYaml.catalog}.$${tableName}
+         | WHERE coalesce($${surrogateKey.mkString(", ")}) is not null
+         |   AND concat_ws('!@#', $${surrogateKey.mkString(", ")}) != ''
+         | GROUP BY 1
+         |""".stripMargin
+    SparkObject.spark.sql(sql)
+    targetTableName
+  }
+
+  override def createViewIdMapMerge(tableName: String, inSurrogateKey: List[String], outSurrogateKey: List[String]): String = {
+    val targetTableName = "tmp_idmap_merge_" + scala.util.Random.alphanumeric.filter(_.isLetter).take(10).mkString
+    val sql =
+      s"""CREATE OR REPLACE TEMPORARY VIEW $$targetTableName AS
+         |SELECT concat_ws('!@#', $${inSurrogateKey.mkString(", ")}) as in_ccd,
+         |       concat_ws('!@#', $${outSurrogateKey.mkString(", ")}) as out_ccd
+         |  FROM $${configYaml.catalog}.$${tableName}
+         | WHERE coalesce($${inSurrogateKey.mkString(", ")}) is not null
+         |   AND coalesce($${outSurrogateKey.mkString(", ")}) is not null
+         | GROUP BY 1, 2
+         |""".stripMargin
+    SparkObject.spark.sql(sql)
+    targetTableName
+  }
+
+  override def generateIdMap(inTable: String, domain: String, systemCode: String): Boolean = {
+    val targetTable = s"$${configYaml.catalog}.idmap.$$domain"
+    val sql =
+      s"""INSERT INTO $$targetTable (ccd, system_code, rk)
+         |WITH max_rk AS (
+         |    SELECT coalesce(max(rk), 0) AS max_val FROM $$targetTable
+         |),
+         |new_rows AS (
+         |    SELECT data.ccd, '$$systemCode' as system_code
+         |      FROM $$inTable as data
+         |      LEFT JOIN $$targetTable id ON id.ccd = data.ccd AND id.system_code = '$$systemCode'
+         |     WHERE id.ccd IS NULL
+         |)
+         |SELECT new_rows.ccd, new_rows.system_code, max_val + ROW_NUMBER() OVER(ORDER BY new_rows.ccd) as rk
+         |  FROM new_rows CROSS JOIN max_rk
+         |""".stripMargin
+    SparkObject.spark.sql(sql)
+    true
+  }
+
+  override def mergeIdMap(inTable: String, domain: String, inSystemCode: String, outSystemCode: String): Boolean = {
+    val targetTable = s"$${configYaml.catalog}.idmap.$$domain"
+    val sql =
+      s"""INSERT INTO $$targetTable (ccd, system_code, rk)
+         |WITH in_idmap AS (SELECT ccd, rk FROM $$targetTable WHERE system_code = '$$inSystemCode'),
+         |     out_idmap AS (SELECT ccd FROM $$targetTable WHERE system_code = '$$outSystemCode')
+         |SELECT data.out_ccd, '$$outSystemCode', MAX(in_idmap.rk)
+         |  FROM $$inTable as data
+         |  JOIN in_idmap ON in_ccd = in_idmap.ccd
+         |  LEFT JOIN out_idmap ON out_ccd = out_idmap.ccd
+         | WHERE out_idmap.ccd IS NULL
+         | GROUP BY data.out_ccd
+         |HAVING count(distinct in_idmap.rk) = 1
+         |""".stripMargin
+    SparkObject.spark.sql(sql)
+    true
+  }
 }
 
 object LoaderMinIoIceberg extends pro.datawiki.yamlConfiguration.YamlClass {
