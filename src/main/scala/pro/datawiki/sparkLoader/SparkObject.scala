@@ -43,6 +43,7 @@ object SparkObject extends LoggingTrait {
     conf.set("spark.mongodb.read.maxAwaitTimeMS", "30000") // 30 seconds max await time
     conf.set("spark.mongodb.read.batchSize", "1000") // Optimize batch size
     conf.set("spark.mongodb.read.maxBatchSize", "1000") // Optimize max batch size
+    conf.set("spark.sql.codegen.wholeStage", "false")
     conf.set("spark.sql.execution.arrow.pyspark.enabled", "false")
     conf.set("spark.sql.adaptive.enabled", "true")
     conf.set("spark.sql.adaptive.coalescePartitions.enabled", "true")
@@ -106,11 +107,11 @@ object SparkObject extends LoggingTrait {
 //    conf.set("spark.driver.port", "7001")
 //    conf.set("spark.driver.blockManager.port", "7002")
 
+    val masterName = conf.get("spark.master", "local[*]")
     localSpark = SparkSession.builder().
       appName("etl-tool").
       config(conf).
-      master("local[*]").
-//      master("spark://spark-master:7077").
+      master(masterName).
       getOrCreate()
     localSpark.sparkContext.setLogLevel("ERROR")
 
