@@ -13,6 +13,7 @@ source:
     initMode: "instantly"
     sourceFileSystem:
       tableName: "ods__mdm.excel_mp_manual_data"
+      tableLocation: "ods__mdm.db/excel_mp_manual_data"
 
 transformations:
   - type: "idmap"

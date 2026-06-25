@@ -9,6 +9,7 @@ import pro.datawiki.sparkLoader.traits.LoggingTrait
 import scala.collection.mutable
 
 class TaskTemplateTableFromFileSystem(tableName: String,
+                                      tableLocation: String,
                                       partitionBy: List[String] = List.apply(),
                                       where: String,
                                       limit: Int, 
@@ -17,10 +18,10 @@ class TaskTemplateTableFromFileSystem(tableName: String,
     val startTime = logOperationStart("file system table load", s"table: $tableName")
 
     try {
-      logInfo(s"Loading data from file system table: $tableName")
+      logInfo(s"Loading data from file system table: $tableName (location: $tableLocation)")
       logConfigInfo("file system table", s"partitions: ${partitionBy.length}, where: $where, limit: $limit")
 
-      var df = source.readDf(tableName, partitionBy, ApplicationContext.getPartitions(partitionBy *), true)
+      var df = source.readDf(tableLocation, partitionBy, ApplicationContext.getPartitions(partitionBy *), true)
 
       // Проверяем наличие поврежденных записей (для JSON файлов)
       if (df.columns.contains("_corrupt_record")) {
