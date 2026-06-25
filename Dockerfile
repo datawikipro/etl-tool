@@ -63,6 +63,7 @@ COPY logback.xml /app/logback.xml
 COPY yandex_s3.crt /app/yandex_s3.crt
 COPY run_etl.sh /app/run_etl.sh
 COPY run_all_partitions.sh /app/run_all_partitions.sh
+COPY configs/ /app/configs/
 RUN chmod +x /app/run_etl.sh /app/run_all_partitions.sh
 
 # Default entrypoint: java with Spark jars + staged libraries
