@@ -304,16 +304,24 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
 
   // Registration logic is handled via LoaderTrino using getTrinoLoader
 
+  def idmapSchema: String = {
+    if (configYaml.catalogType.contains("hadoop")) {
+      "idmap.db"
+    } else {
+      "idmap"
+    }
+  }
+
   // ─── SupportIdMap Implementation ──────────────────────────────────────────
 
   override def createViewIdMapGenerate(tableName: String, surrogateKey: List[String]): String = {
     val targetTableName = "tmp_idmap_gen_" + scala.util.Random.alphanumeric.filter(_.isLetter).take(10).mkString
     val sql =
-      s"""CREATE OR REPLACE TEMPORARY VIEW $$targetTableName AS
-         |SELECT concat_ws('!@#', $${surrogateKey.mkString(", ")}) as ccd
-         |  FROM $${configYaml.catalog}.$${tableName}
-         | WHERE coalesce($${surrogateKey.mkString(", ")}) is not null
-         |   AND concat_ws('!@#', $${surrogateKey.mkString(", ")}) != ''
+      s"""CREATE OR REPLACE TEMPORARY VIEW $targetTableName AS
+         |SELECT concat_ws('!@#', ${surrogateKey.mkString(", ")}) as ccd
+         |  FROM ${configYaml.catalog}.${tableName}
+         | WHERE coalesce(${surrogateKey.mkString(", ")}) is not null
+         |   AND concat_ws('!@#', ${surrogateKey.mkString(", ")}) != ''
          | GROUP BY 1
          |""".stripMargin
     SparkObject.spark.sql(sql)
@@ -323,12 +331,12 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   override def createViewIdMapMerge(tableName: String, inSurrogateKey: List[String], outSurrogateKey: List[String]): String = {
     val targetTableName = "tmp_idmap_merge_" + scala.util.Random.alphanumeric.filter(_.isLetter).take(10).mkString
     val sql =
-      s"""CREATE OR REPLACE TEMPORARY VIEW $$targetTableName AS
-         |SELECT concat_ws('!@#', $${inSurrogateKey.mkString(", ")}) as in_ccd,
-         |       concat_ws('!@#', $${outSurrogateKey.mkString(", ")}) as out_ccd
-         |  FROM $${configYaml.catalog}.$${tableName}
-         | WHERE coalesce($${inSurrogateKey.mkString(", ")}) is not null
-         |   AND coalesce($${outSurrogateKey.mkString(", ")}) is not null
+      s"""CREATE OR REPLACE TEMPORARY VIEW $targetTableName AS
+         |SELECT concat_ws('!@#', ${inSurrogateKey.mkString(", ")}) as in_ccd,
+         |       concat_ws('!@#', ${outSurrogateKey.mkString(", ")}) as out_ccd
+         |  FROM ${configYaml.catalog}.${tableName}
+         | WHERE coalesce(${inSurrogateKey.mkString(", ")}) is not null
+         |   AND coalesce(${outSurrogateKey.mkString(", ")}) is not null
          | GROUP BY 1, 2
          |""".stripMargin
     SparkObject.spark.sql(sql)
@@ -336,7 +344,9 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   }
 
   override def generateIdMap(inTable: String, domain: String, systemCode: String): Boolean = {
-    val targetTable = s"${configYaml.catalog}.idmap.$domain"
+    val schema = idmapSchema
+    createSchemaIfNotExists(s"$schema.$domain")
+    val targetTable = s"${configYaml.catalog}.`$schema`.$domain"
     val sql =
       s"""INSERT INTO $targetTable (ccd, source_code, rk)
          |WITH max_rk AS (
@@ -356,7 +366,9 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   }
 
   override def mergeIdMap(inTable: String, domain: String, inSystemCode: String, outSystemCode: String): Boolean = {
-    val targetTable = s"${configYaml.catalog}.idmap.$domain"
+    val schema = idmapSchema
+    createSchemaIfNotExists(s"$schema.$domain")
+    val targetTable = s"${configYaml.catalog}.`$schema`.$domain"
     val sql =
       s"""INSERT INTO $targetTable (ccd, source_code, rk)
          |WITH in_idmap AS (SELECT ccd, rk FROM $targetTable WHERE source_code = '$inSystemCode'),
