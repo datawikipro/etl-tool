@@ -1,0 +1,47 @@
+# Pipeline: STG -> ODS (Avro -> Iceberg)
+# Source: s3://bi-dev/warehouse/stg__ym.db/stocks/ (Avro)
+# Target: s3://bi-dev/warehouse/ods__ym.db/stocks/ (Iceberg, Hadoop Catalog)
+# Schema fields: campaignId, offerId, warehouseId, warehouseName, available, stockType
+# Transformation: camelCase -> lowercase (Yandex Market convention)
+
+connections:
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
+source:
+- sourceName: stg_avro
+  objectName: stg_stocks
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__ym.db/stocks
+transformations:
+- objectName: stocks_transformed
+  sparkSql:
+    sql: "SELECT\n  campaignId as campaignid,\n  offerId as offerid,\n  warehouseId\
+      \ as warehouseid,\n  warehouseName as warehousename,\n  available,\n  stockType\
+      \ as stocktype,\n  CAST(partition as string) as partition\nFROM stg_stocks\n"
+- objectName: stocks_deduplicated
+  deduplicate:
+    sourceTable: stocks_transformed
+    uniqueKey:
+    - campaignid
+    - offerid
+    - warehouseid
+    - stocktype
+    deduplicationKey:
+    - partition desc
+target:
+- fileSystem:
+    connection: ods_iceberg
+    source: stocks_deduplicated
+    tableName: ods__ym.stocks
+    targetFile: ods__ym.db/stocks
+    mode: mergeDelta
+    mergeKeys:
+    - campaignid
+    - offerid
+    - warehouseid
+    - stocktype

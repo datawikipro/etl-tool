@@ -1,0 +1,35 @@
+connections:
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
+source:
+- sourceName: stg_avro
+  objectName: stg_reviews
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__ym.db/reviews
+transformations:
+- objectName: reviews_transformed
+  sparkSql:
+    sql: "SELECT\n  campaignId as campaignid,\n  reviewId as reviewid,\n  offerId as offerid,\n  createdAt as createdat,\n  updatedAt as updatedat,\n  author,\n  rating,\n  text,\n  pros,\n  cons,\n  state,\n  orderId as orderid,\n  CAST(partition as string) as partition\nFROM stg_reviews\n"
+- objectName: reviews_deduplicated
+  deduplicate:
+    sourceTable: reviews_transformed
+    uniqueKey:
+    - campaignid
+    - reviewid
+    deduplicationKey:
+    - updatedat desc
+target:
+- fileSystem:
+    connection: ods_iceberg
+    source: reviews_deduplicated
+    tableName: ods__ym.reviews
+    targetFile: ods__ym.db/reviews
+    mode: mergeDelta
+    mergeKeys:
+    - campaignid
+    - reviewid

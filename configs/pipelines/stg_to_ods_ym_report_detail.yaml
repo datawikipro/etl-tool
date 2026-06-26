@@ -1,0 +1,39 @@
+connections:
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
+source:
+- sourceName: stg_avro
+  objectName: stg_report_detail
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__ym.db/report_detail
+transformations:
+- objectName: report_detail_transformed
+  sparkSql:
+    sql: "SELECT\n  campaignId as campaignid,\n  businessId as businessid,\n  reportId as reportid,\n  orderId as orderid,\n  offerId as offerid,\n  date,\n  docType as doctype,\n  amount,\n  quantity,\n  retailPrice as retailprice,\n  commissionPercent as commissionpercent,\n  deliveryAmount as deliveryamount,\n  returnAmount as returnamount,\n  type,\n  sourcePaymentId as sourcepaymentid,\n  CAST(partition as string) as partition\nFROM stg_report_detail\n"
+- objectName: report_detail_deduplicated
+  deduplicate:
+    sourceTable: report_detail_transformed
+    uniqueKey:
+    - campaignid
+    - orderid
+    - offerid
+    - doctype
+    deduplicationKey:
+    - partition desc
+target:
+- fileSystem:
+    connection: ods_iceberg
+    source: report_detail_deduplicated
+    tableName: ods__ym.report_detail
+    targetFile: ods__ym.db/report_detail
+    mode: mergeDelta
+    mergeKeys:
+    - campaignid
+    - orderid
+    - offerid
+    - doctype

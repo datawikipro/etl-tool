@@ -1,0 +1,47 @@
+# Pipeline: STG -> ODS (Avro -> Iceberg)
+# Source: s3://bi-dev/warehouse/stg__ym.db/returns/ (Avro)
+# Target: s3://bi-dev/warehouse/ods__ym.db/returns/ (Iceberg, Hadoop Catalog)
+# Schema fields: campaignId, orderId, returnId, creationDate, updateDate, status, type, reasonCode, offerId, count, price
+# Transformation: camelCase -> lowercase (Yandex Market convention)
+
+connections:
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
+source:
+- sourceName: stg_avro
+  objectName: stg_returns
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__ym.db/returns
+transformations:
+- objectName: returns_transformed
+  sparkSql:
+    sql: "SELECT\n  campaignId as campaignid,\n  orderId as orderid,\n  returnId as\
+      \ returnid,\n  creationDate as creationdate,\n  updateDate as updatedate,\n\
+      \  status,\n  type,\n  reasonCode as reasoncode,\n  offerId as offerid,\n  count,\n\
+      \  price,\n  CAST(partition as string) as partition\nFROM stg_returns\n"
+- objectName: returns_deduplicated
+  deduplicate:
+    sourceTable: returns_transformed
+    uniqueKey:
+    - campaignid
+    - returnid
+    - offerid
+    deduplicationKey:
+    - partition desc
+    - updatedate desc
+target:
+- fileSystem:
+    connection: ods_iceberg
+    source: returns_deduplicated
+    tableName: ods__ym.returns
+    targetFile: ods__ym.db/returns
+    mode: mergeDelta
+    mergeKeys:
+    - campaignid
+    - returnid
+    - offerid

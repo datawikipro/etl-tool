@@ -1,0 +1,38 @@
+connections:
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
+source:
+- sourceName: stg_avro
+  objectName: stg_orders
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__ym.db/orders
+transformations:
+- objectName: orders_transformed
+  sparkSql:
+    sql: "SELECT\n  campaignId as campaignid,\n  orderId as orderid,\n  creationDate as creationdate,\n  updatedAt as updatedat,\n  status,\n  substatus,\n  total,\n  offerId as offerid,\n  count,\n  price,\n  subsidy,\n  CAST(partition as string) as partition\nFROM stg_orders\n"
+- objectName: orders_deduplicated
+  deduplicate:
+    sourceTable: orders_transformed
+    uniqueKey:
+    - campaignid
+    - orderid
+    - offerid
+    deduplicationKey:
+    - partition desc
+    - updatedat desc
+target:
+- fileSystem:
+    connection: ods_iceberg
+    source: orders_deduplicated
+    tableName: ods__ym.orders
+    targetFile: ods__ym.db/orders
+    mode: mergeDelta
+    mergeKeys:
+    - campaignid
+    - orderid
+    - offerid

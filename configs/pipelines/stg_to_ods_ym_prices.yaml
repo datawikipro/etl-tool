@@ -1,0 +1,44 @@
+# Pipeline: STG -> ODS (Avro -> Iceberg)
+# Source: s3://bi-dev/warehouse/stg__ym.db/prices/ (Avro)
+# Target: s3://bi-dev/warehouse/ods__ym.db/prices/ (Iceberg, Hadoop Catalog)
+# Schema fields: campaignId, offerId, price, discountBase, currencyId, updatedAt
+# Transformation: camelCase -> lowercase (Yandex Market convention)
+
+connections:
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
+source:
+- sourceName: stg_avro
+  objectName: stg_prices
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__ym.db/prices
+transformations:
+- objectName: prices_transformed
+  sparkSql:
+    sql: "SELECT\n  campaignId as campaignid,\n  offerId as offerid,\n  price,\n\
+      \  discountBase as discountbase,\n  currencyId as currencyid,\n  updatedAt as\
+      \ updatedat,\n  CAST(partition as string) as partition\nFROM stg_prices\n"
+- objectName: prices_deduplicated
+  deduplicate:
+    sourceTable: prices_transformed
+    uniqueKey:
+    - campaignid
+    - offerid
+    deduplicationKey:
+    - partition desc
+    - updatedat desc
+target:
+- fileSystem:
+    connection: ods_iceberg
+    source: prices_deduplicated
+    tableName: ods__ym.prices
+    targetFile: ods__ym.db/prices
+    mode: mergeDelta
+    mergeKeys:
+    - campaignid
+    - offerid
