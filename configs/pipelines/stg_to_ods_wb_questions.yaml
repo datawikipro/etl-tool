@@ -1,0 +1,35 @@
+# Pipeline: STG -> ODS (Avro -> Iceberg)
+# Source: s3://bi-dev/warehouse/stg__wb.db/questions/ (Avro)
+# Target: s3://bi-dev/warehouse/ods__wb.db/questions/ (Iceberg, Hadoop Catalog)
+# Schema fields: id, text, createdDate, nmId, answerText, answerState
+
+connections:
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
+source:
+- sourceName: stg_avro
+  objectName: stg_questions
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__wb.db/questions
+target:
+- fileSystem:
+    connection: ods_iceberg
+    source: questions_deduplicated
+    tableName: ods__wb.questions
+    targetFile: ods__wb.db/questions
+    mode: mergeDelta
+    mergeKeys:
+    - id
+transformations:
+- objectName: questions_deduplicated
+  deduplicate:
+    sourceTable: stg_questions
+    uniqueKey:
+    - id
+    deduplicationKey:
+    - partition desc
