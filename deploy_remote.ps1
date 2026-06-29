@@ -75,7 +75,7 @@ set -e
 cd $RemotePath
 git fetch origin
 git reset --hard $commitSha
-echo "HEAD on remote is now at: \$(git log --oneline -1)"
+echo "HEAD on remote is now at: $commitSha"
 "@
 $syncCmdClean = $syncCmd -replace "`r", ""
 ssh $RemoteHost $syncCmdClean
