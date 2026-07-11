@@ -1,0 +1,36 @@
+# Pipeline: STG -> ODS (Avro -> Iceberg)
+# Source: s3://bi-dev/warehouse/stg__ozon.db/statistics_expense/ (Avro)
+# Target: s3://bi-dev/warehouse/ods__ozon.db/statistics_expense/ (Iceberg)
+
+connections:
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
+source:
+- sourceName: stg_avro
+  objectName: stg_statistics_expense
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__ozon.db/statistics_expense
+target:
+- fileSystem:
+    connection: ods_iceberg
+    source: statistics_expense_deduplicated
+    tableName: ods__ozon.statistics_expense
+    targetFile: ods__ozon.db/statistics_expense
+    mode: mergeDelta
+    mergeKeys:
+    - campaignid
+    - date
+transformations:
+- objectName: statistics_expense_deduplicated
+  deduplicate:
+    sourceTable: stg_statistics_expense
+    uniqueKey:
+    - campaignid
+    - date
+    deduplicationKey:
+    - partition desc

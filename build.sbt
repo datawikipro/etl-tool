@@ -147,9 +147,28 @@ libraryDependencies ++= Seq(
 )
 
 
+val nettyVersion = "4.1.96.Final"
 dependencyOverrides ++= Seq(
   "com.fasterxml.jackson.core" % "jackson-databind" % jacksonDataformatVersion,
-  "org.scala-lang.modules" %% "scala-xml" % "2.2.0"
+  "org.scala-lang.modules" %% "scala-xml" % "2.2.0",
+  "io.netty" % "netty-all" % nettyVersion,
+  "io.netty" % "netty-buffer" % nettyVersion,
+  "io.netty" % "netty-codec" % nettyVersion,
+  "io.netty" % "netty-codec-dns" % nettyVersion,
+  "io.netty" % "netty-codec-http" % nettyVersion,
+  "io.netty" % "netty-codec-http2" % nettyVersion,
+  "io.netty" % "netty-codec-socks" % nettyVersion,
+  "io.netty" % "netty-common" % nettyVersion,
+  "io.netty" % "netty-handler" % nettyVersion,
+  "io.netty" % "netty-handler-proxy" % nettyVersion,
+  "io.netty" % "netty-resolver" % nettyVersion,
+  "io.netty" % "netty-resolver-dns" % nettyVersion,
+  "io.netty" % "netty-transport" % nettyVersion,
+  "io.netty" % "netty-transport-native-epoll" % nettyVersion,
+  "io.netty" % "netty-transport-native-kqueue" % nettyVersion,
+  "io.netty" % "netty-transport-native-unix-common" % nettyVersion,
+  "io.netty" % "netty-transport-classes-epoll" % nettyVersion,
+  "io.netty" % "netty-transport-classes-kqueue" % nettyVersion
 )
 
 // Force scala-xml to use a specific version to avoid conflicts
