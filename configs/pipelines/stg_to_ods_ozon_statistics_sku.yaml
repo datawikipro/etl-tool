@@ -1,0 +1,38 @@
+# Pipeline: STG -> ODS (Avro -> Iceberg)
+# Source: s3://bi-dev/warehouse/stg__ozon.db/statistics_sku/ (Avro)
+# Target: s3://bi-dev/warehouse/ods__ozon.db/statistics_sku/ (Iceberg)
+
+connections:
+- sourceName: stg_avro
+  connection: minioAvro
+  configLocation: configs/connections/local_stg_avro.yaml
+- sourceName: ods_iceberg
+  connection: minioIceberg
+  configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
+source:
+- sourceName: stg_avro
+  objectName: stg_statistics_sku
+  initMode: instantly
+  sourceFileSystem:
+    tableName: warehouse/stg__ozon.db/statistics_sku
+target:
+- fileSystem:
+    connection: ods_iceberg
+    source: statistics_sku_deduplicated
+    tableName: ods__ozon.statistics_sku
+    targetFile: ods__ozon.db/statistics_sku
+    mode: mergeDelta
+    mergeKeys:
+    - campaignid
+    - sku
+    - date
+transformations:
+- objectName: statistics_sku_deduplicated
+  deduplicate:
+    sourceTable: stg_statistics_sku
+    uniqueKey:
+    - campaignid
+    - sku
+    - date
+    deduplicationKey:
+    - partition desc
