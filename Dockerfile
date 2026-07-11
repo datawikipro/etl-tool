@@ -7,10 +7,10 @@ RUN yum install -y --allowerasing wget tar java-17-amazon-corretto curl gzip && 
     yum clean all
 
 # Spark (needed at compile time by schema-validator)
-RUN wget -q https://dlcdn.apache.org/spark/spark-3.5.8/spark-3.5.8-bin-hadoop3-scala2.13.tgz && \
-    tar -xzf spark-3.5.8-bin-hadoop3-scala2.13.tgz && \
-    rm spark-3.5.8-bin-hadoop3-scala2.13.tgz && \
-    mv spark-3.5.8-bin-hadoop3-scala2.13 /opt/spark
+RUN wget -q https://archive.apache.org/dist/spark/spark-3.5.6/spark-3.5.6-bin-hadoop3-scala2.13.tgz && \
+    tar -xzf spark-3.5.6-bin-hadoop3-scala2.13.tgz && \
+    rm spark-3.5.6-bin-hadoop3-scala2.13.tgz && \
+    mv spark-3.5.6-bin-hadoop3-scala2.13 /opt/spark
 
 ENV SPARK_HOME=/opt/spark
 ENV PATH=${PATH}:${SPARK_HOME}/bin
@@ -42,10 +42,10 @@ RUN yum install -y --allowerasing java-17-amazon-corretto wget tar gzip && \
     yum clean all
 
 # Spark runtime (needed for Spark JARs)
-RUN wget -q https://dlcdn.apache.org/spark/spark-3.5.8/spark-3.5.8-bin-hadoop3-scala2.13.tgz && \
-    tar -xzf spark-3.5.8-bin-hadoop3-scala2.13.tgz && \
-    rm spark-3.5.8-bin-hadoop3-scala2.13.tgz && \
-    mv spark-3.5.8-bin-hadoop3-scala2.13 /opt/spark
+RUN wget -q https://archive.apache.org/dist/spark/spark-3.5.6/spark-3.5.6-bin-hadoop3-scala2.13.tgz && \
+    tar -xzf spark-3.5.6-bin-hadoop3-scala2.13.tgz && \
+    rm spark-3.5.6-bin-hadoop3-scala2.13.tgz && \
+    mv spark-3.5.6-bin-hadoop3-scala2.13 /opt/spark
 
 ENV SPARK_HOME=/opt/spark
 ENV PATH=${PATH}:${SPARK_HOME}/bin
