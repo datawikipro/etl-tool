@@ -44,9 +44,17 @@ class TaskTemplateExtractDataFromJsonBySchemaBatch(tableName: String,
         // Извлекаем схему из JSON данных один раз
         logInfo("Extracting schema from JSON data")
         masterSchema = migrationJson.evolutionSchemaByList(jsons, masterSchema)
-        migrationProjectSchema.writeTemplate(baseSchema, masterSchema) match {
-          case true =>
-          case false => throw DataProcessingException("Failed to write schema template")
+        
+        if (masterSchema == null) {
+          logInfo("Warning: No base schema and no data to infer schema. Using empty object schema.")
+          masterSchema = BaseSchemaObjectTemplate(List.empty, false)
+        }
+        
+        if (baseSchema != null && baseSchema.trim.nonEmpty) {
+          migrationProjectSchema.writeTemplate(baseSchema, masterSchema) match {
+            case true =>
+            case false => throw DataProcessingException("Failed to write schema template")
+          }
         }
       }
       

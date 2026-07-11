@@ -26,9 +26,20 @@ target:
     - productid
     - offerid
 transformations:
+- objectName: stocks_extracted
+  extractSchema:
+    tableName: stg_stocks
+    jsonColumn: rawJson
+    jsonResultColumn: rawJson_struct
+    baseSchema: ozon_stocks_rawjson
+    mergeSchema: true
+    loadMode: batch
+- objectName: stocks_transformed
+  sparkSql:
+    sql: "SELECT productId, offerId, CAST(partition as string) as partition, rawJson_struct.* FROM stocks_extracted"
 - objectName: stocks_deduplicated
   deduplicate:
-    sourceTable: stg_stocks
+    sourceTable: stocks_transformed
     uniqueKey:
     - productid
     - offerid

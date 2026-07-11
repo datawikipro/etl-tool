@@ -25,9 +25,20 @@ target:
     mergeKeys:
     - id
 transformations:
+- objectName: returns_extracted
+  extractSchema:
+    tableName: stg_returns
+    jsonColumn: rawJson
+    jsonResultColumn: rawJson_struct
+    baseSchema: ozon_returns_rawjson
+    mergeSchema: true
+    loadMode: batch
+- objectName: returns_transformed
+  sparkSql:
+    sql: "SELECT id, postingNumber, status, CAST(partition as string) as partition, rawJson_struct.* FROM returns_extracted"
 - objectName: returns_deduplicated
   deduplicate:
-    sourceTable: stg_returns
+    sourceTable: returns_transformed
     uniqueKey:
     - id
     deduplicationKey:

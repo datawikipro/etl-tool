@@ -69,7 +69,10 @@ object YamlClass {
   def writefile(fileLocation: String, text: String): Unit = {
     try {
       val filePath = Paths.get(fileLocation)
-      Files.createDirectories(filePath.getParent)
+      val parent = filePath.getParent
+      if (parent != null) {
+        Files.createDirectories(parent)
+      }
       Files.write(filePath, text.getBytes(StandardCharsets.UTF_8))
     } catch {
       case e: java.nio.file.InvalidPathException =>

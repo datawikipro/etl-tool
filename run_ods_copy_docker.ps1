@@ -35,7 +35,8 @@ $pipelines = @(
     "stg_to_ods_ym_campaigns.yaml",
     "stg_to_ods_ym_keywords.yaml",
     "stg_to_ods_ym_statistics.yaml",
-    "yandex_stg_to_ods_campaigns.yaml"
+    "yandex_stg_to_ods_campaigns.yaml",
+    "stg_to_ods_ozon_products.yaml"
 )
 
 # Filter if table specified

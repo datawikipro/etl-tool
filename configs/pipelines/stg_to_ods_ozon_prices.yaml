@@ -26,9 +26,20 @@ target:
     - productid
     - offerid
 transformations:
+- objectName: prices_extracted
+  extractSchema:
+    tableName: stg_prices
+    jsonColumn: rawJson
+    jsonResultColumn: rawJson_struct
+    baseSchema: ozon_prices_rawjson
+    mergeSchema: true
+    loadMode: batch
+- objectName: prices_transformed
+  sparkSql:
+    sql: "SELECT productId, offerId, CAST(partition as string) as partition, rawJson_struct.* FROM prices_extracted"
 - objectName: prices_deduplicated
   deduplicate:
-    sourceTable: stg_prices
+    sourceTable: prices_transformed
     uniqueKey:
     - productid
     - offerid
