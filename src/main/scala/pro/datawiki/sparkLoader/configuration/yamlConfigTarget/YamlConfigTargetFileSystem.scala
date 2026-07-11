@@ -83,6 +83,14 @@ case class YamlConfigTargetFileSystem(
         val catalog = icebergLoader.configYaml.catalog
         val warehouse = icebergLoader.configYaml.warehouse
         
+        val targetRef = icebergLoader.fullRef(targetFile)
+        icebergLoader.createSchemaIfNotExists(targetFile)
+        if (!SparkObject.spark.catalog.tableExists(targetRef)) {
+          logInfo(s"Target table $targetRef does not exist. Performing initial load instead of MERGE.")
+          icebergLoader.writeDf(df.getDataFrame, tableName, targetFile, WriteMode.overwriteTable, partitionBy)
+          return true
+        }
+
         val lastSlashIdx = targetFile.lastIndexOf('/')
         val s3SchemaFolder = if (lastSlashIdx != -1) targetFile.substring(0, lastSlashIdx) else s"$schemaName.db"
         val tempTableLocation = s"$s3SchemaFolder/$tempTable"
