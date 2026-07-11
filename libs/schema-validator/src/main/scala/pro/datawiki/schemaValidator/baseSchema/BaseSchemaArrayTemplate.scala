@@ -41,24 +41,17 @@ case class BaseSchemaArrayTemplate(baseElement: BaseSchemaTemplate,
       return SparkRowElementListTemplate(baseType = SparkRowElementStringTemplate())
     }
     val base = baseElement.getSparkRowElementTemplate
-    base match
-      case x: SparkRowElementStringTemplate => {
-        return SparkRowElementListTemplate(baseType = SparkRowElementStringTemplate())
-      }
-      case x: SparkRowElementStructTemplate => {
-        return SparkRowElementListTemplate(baseType = x)
-      }
-      case _ => {
-        throw NotImplementedException("Method not implemented")
-      }
+    return SparkRowElementListTemplate(baseType = base)
   }
 
   override def getProjectSchema: SchemaArray = {
     baseElement match
       case x: BaseSchemaObjectTemplate => return SchemaArray(`object` = x.getProjectSchema, `type` = null)
       case x: BaseSchemaStringTemplate => return SchemaArray(`object` = null, `type` = "String")
-      case x: BaseSchemaNullTemplate => return SchemaArray(`object` = null, `type` = null)
       case x: BaseSchemaIntTemplate => return SchemaArray(`object` = null, `type` = "Int")
+      case x: BaseSchemaDoubleTemplate => return SchemaArray(`object` = null, `type` = "Double")
+      case x: BaseSchemaBooleanTemplate => return SchemaArray(`object` = null, `type` = "Boolean")
+      case x: BaseSchemaNullTemplate => return SchemaArray(`object` = null, `type` = null)
       case null => return SchemaArray(`object` = null, `type` = null)
 
       case other => {
@@ -104,41 +97,20 @@ case class BaseSchemaArrayTemplate(baseElement: BaseSchemaTemplate,
   }
 
   override def getSparkRowElement(data: BaseSchemaStruct): SparkRowElement = {
-    baseElement match {
-      case x: BaseSchemaObjectTemplate => {
-        val inType: DataType = ArrayType(x.getSparkRowElementTemplate.getType)
-
-        data match {
-          case y:BaseSchemaArray =>{
-            val bb = y.list.map(col=> x.getSparkRowElement(col))
-            return SparkRowElement.apply(inType,bb)
-          }
-          case other => {
-            throw SchemaValidationException(s"Unsupported data type for array element: ${other.getClass.getName}")
-          }
-        }
-
-
-      }
-      case x: BaseSchemaStringTemplate => {
-        val inType: DataType = ArrayType(x.getSparkRowElementTemplate.getType)
-
-        data match {
-          case y: BaseSchemaArray => {
-            return SparkRowElement.apply(inType, y.list.map(col => x.getSparkRowElement(col)))
-          }
-          case other => {
-            throw SchemaValidationException(s"Unsupported data type for string array element: ${other.getClass.getName}")
-          }
-        }
+    if (baseElement == null) {
+      throw SchemaValidationException("baseElement cannot be null when extracting data")
+    }
+    
+    val inType: DataType = ArrayType(baseElement.getSparkRowElementTemplate.getType)
+    
+    data match {
+      case y: BaseSchemaArray => {
+        return SparkRowElement.apply(inType, y.list.map(col => baseElement.getSparkRowElement(col)))
       }
       case other => {
-        throw SchemaValidationException(s"Unsupported base element type for array: ${other.getClass.getName}")
+        throw SchemaValidationException(s"Unsupported data type for array element: ${other.getClass.getName}")
       }
     }
-
-
-    throw NotImplementedException("getSparkRowElement not fully implemented for BaseSchemaArrayTemplate")
   }
 }
 
