@@ -23,15 +23,12 @@ target:
     targetFile: ods__ozon.db/keywords
     mode: mergeDelta
     mergeKeys:
-    - campaignid
-    - id
+    - sku
 transformations:
 - objectName: keywords_deduplicated
   deduplicate:
     sourceTable: stg_keywords
     uniqueKey:
-    - campaignid
-    - id
+    - sku
     deduplicationKey:
     - partition desc
-    - id desc
