@@ -25,10 +25,12 @@ class TaskTemplateTableFromFileSystem(tableName: String,
 
       // Проверяем наличие поврежденных записей (для JSON файлов)
       if (df.columns.contains("_corrupt_record")) {
+        df.cache()
         val corruptCount = df.filter(col("_corrupt_record").isNotNull).count()
         if (corruptCount > 0) {
           logWarning(s"Found $corruptCount corrupted JSON records in table: $tableName")
         }
+        df.unpersist()
       }
 
       if where != null then {
