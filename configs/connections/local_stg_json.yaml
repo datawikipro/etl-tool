@@ -10,3 +10,4 @@ bucket: "bi-dev"
 pathStyleAccess: true
 establishTimeout: "15000"
 connectionTimeout: "60000"
+jsonMultiline: true

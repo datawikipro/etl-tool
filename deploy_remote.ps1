@@ -27,7 +27,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$RemoteHost  = "chernousov_a@100.89.122.84"
+$RemoteHost  = "chernousov_a@100.126.175.126"
 $RemotePath  = "~/build/etl-tool"
 $ImageName   = "ghcr.io/datawikipro/etl-tool:latest"
 
