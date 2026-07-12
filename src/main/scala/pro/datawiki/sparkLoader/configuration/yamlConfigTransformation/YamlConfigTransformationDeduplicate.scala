@@ -24,6 +24,19 @@ case class YamlConfigTransformationDeduplicate(
         
         try {
           SparkContext.initTables()
+          
+          var df = SparkObject.spark.table(sourceTable)
+          var updated = false
+          uniqueKey.foreach { keyCol =>
+            if (!df.columns.contains(keyCol)) {
+              df = df.withColumn(keyCol, org.apache.spark.sql.functions.lit(null).cast("string"))
+              updated = true
+            }
+          }
+          if (updated) {
+            df.createOrReplaceTempView(sourceTable)
+          }
+
           val sql = 
             s"""with deduplicated as (
                |  select *, 
@@ -35,7 +48,7 @@ case class YamlConfigTransformationDeduplicate(
                | where __tmp_rn = 1""".stripMargin
                
           logInfo(s"Executing SQL for Deduplicate: $sql")
-          val df = SparkObject.spark.sql(sql).drop("__tmp_rn")
+          df = SparkObject.spark.sql(sql).drop("__tmp_rn")
           LogMode.debugDF(df)
           logOperationEnd("Spark SQL Deduplicate execution", startTime, "successful")
           

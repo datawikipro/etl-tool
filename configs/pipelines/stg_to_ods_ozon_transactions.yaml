@@ -13,8 +13,11 @@ source:
 - sourceName: stg_avro
   objectName: stg_transactions
   initMode: instantly
+  skipIfEmpty: true
   sourceFileSystem:
     tableName: warehouse/stg__ozon.db/transactions
+    partitionBy:
+    - partition
 target:
 - fileSystem:
     connection: ods_iceberg

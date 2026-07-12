@@ -1,6 +1,6 @@
 # Pipeline: STG -> ODS (Avro -> Iceberg)
-# Source: s3://bi-dev/warehouse/stg__ozon.db/keywords/ (Avro)
-# Target: s3://bi-dev/warehouse/ods__ozon.db/keywords/ (Iceberg, Hive Metastore)
+# Source: s3://bi-dev/warehouse/stg__ozon.db/search_promo_products/ (Avro)
+# Target: s3://bi-dev/warehouse/ods__ozon.db/search_promo_products/ (Iceberg, Hive Metastore)
 
 connections:
 - sourceName: stg_avro
@@ -11,23 +11,23 @@ connections:
   configLocation: configs/connections/yandex_s3_iceberg_ods_hadoop.yaml
 source:
 - sourceName: stg_avro
-  objectName: stg_keywords
+  objectName: stg_search_promo_products
   initMode: instantly
   sourceFileSystem:
-    tableName: warehouse/stg__ozon.db/keywords
+    tableName: warehouse/stg__ozon.db/search_promo_products
 target:
 - fileSystem:
     connection: ods_iceberg
-    source: keywords_deduplicated
-    tableName: ods__ozon.keywords
-    targetFile: ods__ozon.db/keywords
+    source: search_promo_products_deduplicated
+    tableName: ods__ozon.search_promo_products
+    targetFile: ods__ozon.db/search_promo_products
     mode: mergeDelta
     mergeKeys:
     - sku
 transformations:
-- objectName: keywords_deduplicated
+- objectName: search_promo_products_deduplicated
   deduplicate:
-    sourceTable: stg_keywords
+    sourceTable: stg_search_promo_products
     uniqueKey:
     - sku
     deduplicationKey:
