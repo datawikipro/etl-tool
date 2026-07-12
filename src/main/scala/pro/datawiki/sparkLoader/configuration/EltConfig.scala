@@ -43,29 +43,31 @@ case class EltConfig(
 
   @JsonIgnore
   def initPreEtlOperations(): ProgressStatus = {
-    val startTime = logOperationStart("initialize pre-ETL operations", s"count: ${preEtlOperations.length}")
-    preEtlOperations.foreach(i => {
+    val ops = Option(preEtlOperations).getOrElse(List.empty)
+    val startTime = logOperationStart("initialize pre-ETL operations", s"count: ${ops.length}")
+    ops.foreach(i => {
       i.run("", Map(), true) match {
         case ProgressStatus.done =>
         case ProgressStatus.skip => return ProgressStatus.skip
         case _ => throw Exception()
       }
     })
-    logOperationEnd("initialize pre-ETL operations", startTime, s"count: ${preEtlOperations.length}")
+    logOperationEnd("initialize pre-ETL operations", startTime, s"count: ${ops.length}")
     return ProgressStatus.done
   }
 
   @JsonIgnore
   def initPostEtlOperations(): ProgressStatus = {
-    val startTime = logOperationStart("initialize post-ETL operations", s"count: ${preEtlOperations.length}")
-    postEtlOperations.foreach(i => {
+    val ops = Option(postEtlOperations).getOrElse(List.empty)
+    val startTime = logOperationStart("initialize post-ETL operations", s"count: ${ops.length}")
+    ops.foreach(i => {
       i.run("", Map(), true) match {
         case ProgressStatus.done =>
         case ProgressStatus.skip => return ProgressStatus.skip
         case _ => throw Exception()
       }
     })
-    logOperationEnd("initialize pre-ETL operations", startTime, s"count: ${preEtlOperations.length}")
+    logOperationEnd("initialize post-ETL operations", startTime, s"count: ${ops.length}")
     return ProgressStatus.done
   }
 
