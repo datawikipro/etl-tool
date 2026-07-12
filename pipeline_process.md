@@ -330,7 +330,7 @@ spark-submit \
 |---------------|----------|-------------|---------|
 | `stg_to_ods_ozon_campaigns.yaml` | `stg__ozon.db/campaigns` | `ods__ozon.campaigns` | — |
 | `stg_to_ods_ozon_campaign_objects.yaml` | `stg__ozon.db/campaign_objects` | `ods__ozon.campaign_objects` | — |
-| `stg_to_ods_ozon_keywords.yaml` | `stg__ozon.db/keywords` | `ods__ozon.keywords` | — |
+| `stg_to_ods_ozon_search_promo_products.yaml` | `stg__ozon.db/search_promo_products` | `ods__ozon.search_promo_products` | — |
 | `stg_to_ods_ozon_orders.yaml` | `stg__ozon.db/orders` | `ods__ozon.orders` | — |
 | `stg_to_ods_ozon_prices.yaml` | `stg__ozon.db/prices` | `ods__ozon.prices` | — |
 | `stg_to_ods_ozon_products.yaml` | `stg__ozon.db/products` | `ods__ozon.products` | — |

@@ -37,7 +37,7 @@ services:
       - SPARK_LOCAL_HOSTNAME=localhost
       - SPARK_LOCAL_IP=127.0.0.1
       # Tune heap per your machine; 4 g is safe for 16 GB RAM
-      - JAVA_TOOL_OPTIONS=-Xmx4g -Xms1g -Dcom.amazonaws.sdk.disableCertChecking=true
+      - JAVA_TOOL_OPTIONS=-Xmx4g -Xms1g -Dcom.amazonaws.sdk.disableCertChecking=true -Djava.security.egd=file:/dev/./urandom
     networks:
       - etl_net
     # The image ENTRYPOINT already sets java flags + classpath.
