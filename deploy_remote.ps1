@@ -100,12 +100,12 @@ rm -f $tmpTar
 docker save --format=docker-archive -o $tmpTar $ImageName
 
 echo '[3/3] Importing image into k3s containerd (namespace k8s.io) ...'
-sudo /usr/local/bin/k3s ctr -n k8s.io images import $tmpTar
+sudo ctr -n k8s.io images import $tmpTar
 
 # Убираем localhost/ префикс если он создался при импорте
-if sudo /usr/local/bin/k3s ctr -n k8s.io images list | grep -q "localhost/$ImageName"; then
+if sudo ctr -n k8s.io images list | grep -q "localhost/$ImageName"; then
     echo "Tagging localhost/$ImageName as $ImageName ..."
-    sudo /usr/local/bin/k3s ctr -n k8s.io images tag localhost/$ImageName $ImageName
+    sudo ctr -n k8s.io images tag localhost/$ImageName $ImageName
 fi
 
 rm -f $tmpTar
