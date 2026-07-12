@@ -36,7 +36,7 @@ transformations:
     loadMode: batch
 - objectName: products_transformed
   sparkSql:
-    sql: "SELECT productId, offerId, name, CAST(partition as string) as partition, rawJson_struct.* FROM products_extracted"
+    sql: "SELECT productId, offerId, CAST(partition as string) as partition, rawJson_struct.* FROM products_extracted"
 - objectName: products_deduplicated
   deduplicate:
     sourceTable: products_transformed

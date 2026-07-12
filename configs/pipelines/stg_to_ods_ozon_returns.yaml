@@ -30,12 +30,12 @@ transformations:
     tableName: stg_returns
     jsonColumn: rawJson
     jsonResultColumn: rawJson_struct
-    baseSchema: ozon_returns_rawjson
+    baseSchema: /app/configs/pipelines/ozon_returns_rawjson
     mergeSchema: true
     loadMode: batch
 - objectName: returns_transformed
   sparkSql:
-    sql: "SELECT id, postingNumber, status, CAST(partition as string) as partition, rawJson_struct.* FROM returns_extracted"
+    sql: "SELECT id, postingNumber, CAST(partition as string) as partition, rawJson, rawJson_struct.* EXCEPT (id) FROM returns_extracted"
 - objectName: returns_deduplicated
   deduplicate:
     sourceTable: returns_transformed
