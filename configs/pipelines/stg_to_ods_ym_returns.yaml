@@ -1,4 +1,4 @@
-# Pipeline: STG -> ODS (Avro -> Iceberg)
+﻿# Pipeline: STG -> ODS (Avro -> Iceberg)
 # Source: s3://bi-dev/warehouse/stg__ym.db/returns/ (Avro)
 # Target: s3://bi-dev/warehouse/ods__ym.db/returns/ (Iceberg, Hadoop Catalog)
 # Schema fields: campaignId, orderId, returnId, creationDate, updateDate, status, type, reasonCode, offerId, count, price
@@ -17,6 +17,9 @@ source:
   initMode: instantly
   sourceFileSystem:
     tableName: warehouse/stg__ym.db/returns
+    partitionBy:
+    - partition
+    where: "partition = '${partition}'"
 transformations:
 - objectName: returns_transformed
   sparkSql:

@@ -1,6 +1,9 @@
 # Pipeline: STG -> ODS (Avro -> Iceberg)
 # Source: s3://bi-dev/warehouse/stg__ym.db/banners/ (Avro)
 # Target: s3://bi-dev/warehouse/ods__ym.db/banners/ (Iceberg, Hive Metastore)
+# Fix: Added partitionBy/where to read only current day's partition.
+#      Previously all 909 files (110 dates) were read, causing Trino MERGE
+#      to exceed the 100 open writers limit.
 
 connections:
 - sourceName: stg_avro
@@ -15,11 +18,15 @@ source:
   initMode: instantly
   sourceFileSystem:
     tableName: warehouse/stg__ym.db/banners
+    partitionBy:
+    - partition
+    where: "partition = '${partition}'"
 transformations:
 - objectName: banners_transformed
   sparkSql:
     sql: "SELECT \n  campaignId as campaignid,\n  warehouseId as warehouseid,\n  offerId\
-      \ as offerid,\n  stockType as stocktype,\n  count,\n  CAST(partition as string) as partition\nFROM stg_banners\n"
+      \ as offerid,\n  stockType as stocktype,\n  count,\n  CAST(partition as string)\
+      \ as partition\nFROM stg_banners\n"
 - objectName: banners_deduplicated
   deduplicate:
     sourceTable: banners_transformed
@@ -29,7 +36,6 @@ transformations:
     - offerid
     - stocktype
     deduplicationKey:
-    - partition desc
     - count desc
 target:
 - fileSystem:

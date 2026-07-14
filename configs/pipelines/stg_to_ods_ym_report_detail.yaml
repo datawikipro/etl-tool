@@ -1,4 +1,4 @@
-connections:
+﻿connections:
 - sourceName: stg_avro
   connection: minioAvro
   configLocation: configs/connections/local_stg_avro.yaml
@@ -11,6 +11,9 @@ source:
   initMode: instantly
   sourceFileSystem:
     tableName: warehouse/stg__ym.db/report_detail
+    partitionBy:
+    - partition
+    where: "partition = '${partition}'"
 transformations:
 - objectName: report_detail_transformed
   sparkSql:

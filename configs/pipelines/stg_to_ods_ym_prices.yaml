@@ -1,4 +1,4 @@
-# Pipeline: STG -> ODS (Avro -> Iceberg)
+﻿# Pipeline: STG -> ODS (Avro -> Iceberg)
 # Source: s3://bi-dev/warehouse/stg__ym.db/prices/ (Avro)
 # Target: s3://bi-dev/warehouse/ods__ym.db/prices/ (Iceberg, Hadoop Catalog)
 # Schema fields: campaignId, offerId, price, discountBase, currencyId, updatedAt
@@ -17,6 +17,9 @@ source:
   initMode: instantly
   sourceFileSystem:
     tableName: warehouse/stg__ym.db/prices
+    partitionBy:
+    - partition
+    where: "partition = '${partition}'"
 transformations:
 - objectName: prices_transformed
   sparkSql:
