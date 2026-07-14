@@ -35,7 +35,7 @@ transformations:
     loadMode: batch
 - objectName: returns_transformed
   sparkSql:
-    sql: "SELECT root_id as id, postingNumber, partition, rawJson, * EXCEPT (root_id, id, postingNumber, partition, rawJson) FROM (SELECT id as root_id, postingNumber, CAST(partition as string) as partition, rawJson, rawJson_struct.* FROM returns_extracted)"
+    sql: "SELECT id, postingNumber as postingnumber, status, CAST(partition as string) as partition FROM returns_extracted"
 - objectName: returns_deduplicated
   deduplicate:
     sourceTable: returns_transformed
