@@ -128,6 +128,8 @@ object SparkMain extends LoggingTrait {
   
   def run(args: Seq[String]): Unit = {
     val startTime = logOperationStart("spark ETL process", s"args: ${args.mkString(" ")}")
+    var exitCode = 0
+    var shouldExit = false
 
     try {
       val config: Config = SparkRunCLI.parseArgs(args.toArray)
@@ -157,13 +159,14 @@ object SparkMain extends LoggingTrait {
         EltConfig(config.configLocation) match {
           case ProgressStatus.done =>
             logInfo("ETL process completed successfully")
-            etlProcessId.foreach(processId => completeETLProcess(processId, ETLProgressStatus.Completed)            )
-            return
+            etlProcessId.foreach(processId => completeETLProcess(processId, ETLProgressStatus.Completed))
+            exitCode = 0
+            shouldExit = true
           case ProgressStatus.skip =>
             logInfo("ETL process skipped")
-            etlProcessId.foreach(processId => completeETLProcess(processId, ETLProgressStatus.Skipped)            )
-            System.exit(2)
-            return
+            etlProcessId.foreach(processId => completeETLProcess(processId, ETLProgressStatus.Skipped))
+            exitCode = 2
+            shouldExit = true
           case ProgressStatus.error =>
             throw DataProcessingException("ETL process failed with error status")
           case _ =>
@@ -172,23 +175,37 @@ object SparkMain extends LoggingTrait {
       } catch {
         case e: org.apache.spark.sql.streaming.StreamingQueryException => { //TODO
           logError("ETL process skipped", e)
-          System.exit(2)
-          return
+          exitCode = 2
+          shouldExit = true
         }
-//        case e: Exception =>
-//          throw e
       } finally {
         logInfo("Closing connections")
         ApplicationContext.closeConnections()
+
+        // Stop Spark session to release resources and daemon threads cleanly
+        if (SparkObject.localSpark != null) {
+          try {
+            logInfo("Stopping Spark session")
+            SparkObject.localSpark.stop()
+          } catch {
+            case e: Exception => logWarning(s"Failed to stop Spark session: ${e.getMessage}")
+          }
+        }
+
         // Закрываем ETL progress logger
         getETLProgressLogger.foreach(_.close())
       }
-//    } catch {
-//      case e: Exception =>
-//        logError("spark ETL process", e, "unexpected error occurred")
-//        System.exit(1)
+    } catch {
+      case e: Exception =>
+        logError("spark ETL process", e, "unexpected error occurred")
+        exitCode = 1
+        shouldExit = true
     } finally {
       logOperationEnd("spark ETL process", startTime)
+    }
+
+    if (shouldExit) {
+      System.exit(exitCode)
     }
   }
 }

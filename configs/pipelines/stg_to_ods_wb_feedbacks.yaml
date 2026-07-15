@@ -1,4 +1,4 @@
-# Pipeline: STG -> ODS (Avro -> Iceberg)
+﻿# Pipeline: STG -> ODS (Avro -> Iceberg)
 # Source: s3://bi-dev/warehouse/stg__wb.db/feedbacks/ (Avro)
 # Target: s3://bi-dev/warehouse/ods__wb.db/feedbacks/ (Iceberg, Hadoop Catalog)
 # Schema fields: id, userName, text, pros, cons, createdDate, productValuation,
@@ -17,6 +17,9 @@ source:
   initMode: instantly
   sourceFileSystem:
     tableName: warehouse/stg__wb.db/feedbacks
+    partitionBy:
+    - partition
+    where: "partition = '${partition}'"
 target:
 - fileSystem:
     connection: ods_iceberg

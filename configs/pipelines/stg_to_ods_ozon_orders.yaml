@@ -1,4 +1,4 @@
-# ETL-пайплайн: stg → ods (Avro → Iceberg)
+﻿# ETL-пайплайн: stg → ods (Avro → Iceberg)
 # Пример: копирование таблицы ozon.orders из STG в ODS
 
 connections:
@@ -14,6 +14,9 @@ source:
   initMode: instantly
   sourceFileSystem:
     tableName: warehouse/stg__ozon.db/orders
+    partitionBy:
+    - partition
+    where: "partition = '${partition}'"
 target:
 - fileSystem:
     connection: ods_iceberg

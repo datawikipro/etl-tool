@@ -1,4 +1,4 @@
-# Pipeline: STG -> ODS (Avro -> Iceberg)
+﻿# Pipeline: STG -> ODS (Avro -> Iceberg)
 # Source: s3://bi-dev/warehouse/stg__wb.db/questions/ (Avro)
 # Target: s3://bi-dev/warehouse/ods__wb.db/questions/ (Iceberg, Hadoop Catalog)
 # Schema fields: id, text, createdDate, nmId, answerText, answerState
@@ -16,6 +16,9 @@ source:
   initMode: instantly
   sourceFileSystem:
     tableName: warehouse/stg__wb.db/questions
+    partitionBy:
+    - partition
+    where: "partition = '${partition}'"
 target:
 - fileSystem:
     connection: ods_iceberg

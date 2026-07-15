@@ -1,4 +1,4 @@
-# Pipeline: STG -> ODS (Avro -> Iceberg)
+﻿# Pipeline: STG -> ODS (Avro -> Iceberg)
 # Source: s3://bi-dev/warehouse/stg__ozon.db/campaign_products/ (Avro)
 # Target: s3://bi-dev/warehouse/ods__ozon.db/campaign_products/ (Iceberg)
 # Содержит: CPC-товары кампаний с bid, targetCir, topPosition
@@ -16,6 +16,9 @@ source:
   initMode: instantly
   sourceFileSystem:
     tableName: warehouse/stg__ozon.db/campaign_products
+    partitionBy:
+    - partition
+    where: "partition = '${partition}'"
 target:
 - fileSystem:
     connection: ods_iceberg

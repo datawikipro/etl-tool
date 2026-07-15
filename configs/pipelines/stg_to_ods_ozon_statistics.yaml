@@ -1,4 +1,4 @@
-# Pipeline: STG -> ODS (Avro -> Iceberg)
+﻿# Pipeline: STG -> ODS (Avro -> Iceberg)
 # Source: s3://bi-dev/warehouse/stg__ozon.db/statistics/ (Avro)
 # Target: s3://bi-dev/warehouse/ods__ozon.db/statistics/ (Iceberg, Hive Metastore)
 
@@ -15,6 +15,9 @@ source:
   initMode: instantly
   sourceFileSystem:
     tableName: warehouse/stg__ozon.db/statistics
+    partitionBy:
+    - partition
+    where: "partition = '${partition}'"
 target:
 - fileSystem:
     connection: ods_iceberg
