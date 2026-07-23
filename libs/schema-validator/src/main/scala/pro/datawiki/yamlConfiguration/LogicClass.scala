@@ -5,7 +5,11 @@ import pro.datawiki.exception.ValidationException
 object LogicClass {
   
   def getLogic(in: Any*): Any = {
-    val list = in.toList.filter(_ != null)
+    var list = in.toList.filter(_ != null)
+
+    if (list.length > 1 && list.exists(!_.isInstanceOf[String])) {
+      list = list.filter(!_.isInstanceOf[String])
+    }
 
     list.length match
       case 1 => return list.head
@@ -15,3 +19,4 @@ object LogicClass {
         throw new ValidationException(s"LogicClass.getLogic requires exactly one argument, got: ${list.length}")
   }
 }
+

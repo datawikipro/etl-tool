@@ -19,12 +19,19 @@ class ProjectSchemaConstructor extends Migration {
       case None => // Продолжаем чтение файла
     }
 
-    val configFile = java.nio.file.Paths.get(inFileName)
+    var resolvedPath = inFileName
+    var configFile = java.nio.file.Paths.get(resolvedPath)
     if (!java.nio.file.Files.exists(configFile)) {
-      return null
+      val fallback = java.nio.file.Paths.get("configs", "pipelines", inFileName)
+      if (java.nio.file.Files.exists(fallback)) {
+        resolvedPath = fallback.toString
+        configFile = fallback
+      } else {
+        return null
+      }
     }
 
-    val json = SchemaObject(inFileName)
+    val json = SchemaObject(resolvedPath)
     val schema = json.getBaseSchemaTemplate(false)
     
     // Сохраняем результат в кэш
