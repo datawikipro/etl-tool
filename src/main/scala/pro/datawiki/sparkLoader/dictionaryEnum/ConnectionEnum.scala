@@ -1,13 +1,14 @@
 package pro.datawiki.sparkLoader.dictionaryEnum
 
 enum ConnectionEnum {
-  case mysql, postgres, mongodb, kafkaBatch, kafkaStream, kafkaSaslSSLBatch, kafkaSaslSSLStream, kafkaAmazonBatch, kafkaAmazonStream, clickhouse, bigQuery,
+  case mysql, mssql, postgres, mongodb, kafkaBatch, kafkaStream, kafkaSaslSSLBatch, kafkaSaslSSLStream, kafkaAmazonBatch, kafkaAmazonStream, clickhouse, bigQuery,
   minioParquet, minioJson, minioJsonStream, minioText, minioAvro, minioIceberg, localText, localJson, localParquet,
   selenium, jsonApi, googleAds, mail, qdrant, trino
 
   override def toString: String = {
     this match {
       case `mysql` => "mysql"
+      case `mssql` => "mssql"
       case `postgres` => "postgres"
       case `mongodb` => "mongodb"
       case `kafkaBatch` => "kafkaBatch"
@@ -43,6 +44,7 @@ object ConnectionEnum {
   def fromString(connectionType: String): ConnectionEnum = {
     connectionType match {
       case "mysql" => ConnectionEnum.mysql
+      case "mssql" => ConnectionEnum.mssql
       case "postgres" => ConnectionEnum.postgres
       case "mongodb" => ConnectionEnum.mongodb
       case "kafkaBatch" => ConnectionEnum.kafkaBatch

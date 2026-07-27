@@ -10,18 +10,18 @@ import pro.datawiki.yamlConfiguration.LogicClass
 @JsonInclude(JsonInclude.Include.NON_ABSENT)
 case class YamlConfigTransformation(objectName: String,
 //                                    cache: String,
-                                    idMap: YamlConfigTransformationIdMap,
-                                    sparkSql: YamlConfigTransformationSparkSql,
-                                    sparkSqlLazy: YamlConfigTransformationSparkSqlLazy,
-                                    extractSchema: YamlConfigTransformationExtractSchema,
-                                    extractAndValidateDataFrame: YamlConfigTransformationExtractAndValidateDataFrame,
-                                    adHoc: YamlConfigTransformationAdHoc,
-                                    deduplicate: YamlConfigTransformationDeduplicate,
-
+                                    idMap: YamlConfigTransformationIdMap = null,
+                                    sparkSql: YamlConfigTransformationSparkSql = null,
+                                    sparkSqlLazy: YamlConfigTransformationSparkSqlLazy = null,
+                                    extractSchema: YamlConfigTransformationExtractSchema = null,
+                                    extractAndValidateDataFrame: YamlConfigTransformationExtractAndValidateDataFrame = null,
+                                    adHoc: YamlConfigTransformationAdHoc = null,
+                                    deduplicate: YamlConfigTransformationDeduplicate = null,
+                                    sparkGoldenRecord: YamlConfigTransformationSparkGoldenRecord = null
                                    )  {
   @JsonIgnore
   def getLogic: Any = {
-    LogicClass.getLogic(idMap, sparkSql,sparkSqlLazy, extractSchema, extractAndValidateDataFrame, adHoc, deduplicate)
+    LogicClass.getLogic(idMap, sparkSql, sparkSqlLazy, extractSchema, extractAndValidateDataFrame, adHoc, deduplicate, sparkGoldenRecord)
   }
 
   @JsonIgnore

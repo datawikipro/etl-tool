@@ -112,6 +112,7 @@ object ConnectionTrait extends LoggingTrait {
     connection match
       // Databases
       case ConnectionEnum.mysql => LoaderMySql(configLocation)
+      case ConnectionEnum.mssql => pro.datawiki.sparkLoader.connection.mssql.LoaderMsSql(configLocation)
       case ConnectionEnum.postgres => LoaderPostgres(configLocation)
       case ConnectionEnum.mongodb => LoaderMongoDb(configLocation)
       case ConnectionEnum.clickhouse => LoaderClickHouse(sourceName, configLocation)

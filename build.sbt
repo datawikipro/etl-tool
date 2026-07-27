@@ -119,6 +119,7 @@ libraryDependencies ++= Seq(
 )
 libraryDependencies ++= Seq(
   "mysql" % "mysql-connector-java" % mysqlVersion,
+  "com.microsoft.sqlserver" % "mssql-jdbc" % "12.6.1.jre11",
   "org.postgresql" % "postgresql" % postgresqlVersion,
   "com.clickhouse" % "clickhouse-jdbc" % clickhouseVersion,
   "io.minio" % "minio" % ioMinioVersion,
