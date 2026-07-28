@@ -58,10 +58,10 @@ class LoaderMySql(configYaml: YamlConfig, configLocation: String) extends Connec
 
 
   def getJdbc: String = {
-    configYaml.server.replica.foreach(f = i => {
-      return getJdbcDb(i, configYaml.gateway)
-    })
-    return getJdbcDb(configYaml.server.master, configYaml.gateway)
+    configYaml.server.replica.headOption match {
+      case Some(i) => getJdbcDb(i, configYaml.gateway)
+      case None => getJdbcDb(configYaml.server.master, configYaml.gateway)
+    }
   }
 
   @Override

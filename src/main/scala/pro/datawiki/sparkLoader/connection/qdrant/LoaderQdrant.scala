@@ -76,15 +76,12 @@ class LoaderQdrant(configYaml: YamlConfig, configLocation: String) extends Conne
   //  }
 
   private def getServer: YamlServerHost = {
-    configYaml.server.replica.foreach { replica =>
-      if (replica.validateHost) {
-        return replica
-      }
+    configYaml.server.replica.find(_.validateHost) match {
+      case Some(replica) => replica
+      case None =>
+        if (configYaml.server.master.validateHost) configYaml.server.master
+        else throw new Exception("No valid Qdrant server found")
     }
-    if (configYaml.server.master.validateHost) {
-      return configYaml.server.master
-    }
-    throw new Exception("No valid Qdrant server found")
   }
 
   private def getBaseUrl: String = {

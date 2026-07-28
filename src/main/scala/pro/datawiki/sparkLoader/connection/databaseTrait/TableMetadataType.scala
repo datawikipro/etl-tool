@@ -33,7 +33,7 @@ enum TableMetadataType {
       case Array => return String //TODO Срочно
       case TimestampWithTimeZone => return Date
       case TimestampWithoutTimeZone => return Date
-      case _ => {
+      case null => {
         throw NotImplementedException(s"getMasterType not implemented for: ${this}")
       }
     }

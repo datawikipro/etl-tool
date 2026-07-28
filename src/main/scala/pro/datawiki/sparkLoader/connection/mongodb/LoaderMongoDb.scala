@@ -127,14 +127,12 @@ class LoaderMongoDb(configYaml: YamlConfig, configLocation: String) extends Conn
   var server: YamlServerHost = null
 
   private def getServer: YamlServerHost = {
-    configYaml.server.replica.foreach(i => {
-      if i.validateHost then
-        return i
-    })
-    if configYaml.server.master.validateHost then {
-      return configYaml.server.master
+    configYaml.server.replica.find(_.validateHost) match {
+      case Some(host) => host
+      case None =>
+        if (configYaml.server.master.validateHost) configYaml.server.master
+        else throw NotImplementedException("Method not implemented for MongoDB")
     }
-    throw NotImplementedException("Method not implemented for MongoDB")
   }
 
   override def close(): Unit = {

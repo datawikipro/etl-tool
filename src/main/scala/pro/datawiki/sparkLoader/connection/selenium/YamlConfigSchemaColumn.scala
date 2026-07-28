@@ -36,7 +36,6 @@ class YamlConfigSchemaColumn(
               case null => default
               case x: String => x
           }
-          case _ => throw UnsupportedOperationException("Unsupported schema column case")
 
         return SparkRowAttribute(column, SparkRowElementString(result))
 
@@ -88,9 +87,6 @@ class YamlConfigSchemaColumn(
               case _ => {
                 throw UnsupportedOperationException("Unsupported array type")
               }
-          }
-          case _ => {
-            throw UnsupportedOperationException("Unsupported array case")
           }
         var listSparkRowElementRow: List[SparkRowElementRow] = List.apply()
 

@@ -10,17 +10,16 @@ class YamlConfigTemplateFilterByRegexp(
                                       ) {
 
   def checkRegexp(in: Map[String, SeleniumType]): Boolean = {
-    in.foreach(i =>
-      if i._1 == varName then {
-        val pattern1: Regex = s"${regexp}".r
-        val res = i._2 match
+    in.get(varName) match {
+      case Some(selType) =>
+        val pattern1: Regex = regexp.r
+        val res = selType match {
           case x: SeleniumString => x.getValue
           case _ => throw UnsupportedOperationException("Unsupported type for regexp filtering")
-        val tst = pattern1.matches(res)
-        return tst
-      }
-    )
-    return false
+        }
+        pattern1.matches(res)
+      case None => false
+    }
   }
 
 

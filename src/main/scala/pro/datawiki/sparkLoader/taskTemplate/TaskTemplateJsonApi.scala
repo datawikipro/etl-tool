@@ -61,33 +61,33 @@ class TaskTemplateJsonApi(
   }
 
   private def getDataFrameFromJsonMultySchema(json: String): DataFrameTrait = {
-    potentialSchemasList.foreach(
-      i => {
-        val baseSchema: BaseSchemaTemplate = migrationProjectSchema.readTemplate(i.fileLocation)
-        val result = try {
-          val spark = SparkObject.spark
-          val rawDf = migrationJson.getDataFrameFromString(
-            inString = json,
-            schemaName = i.schemaName,
-            inSchema = baseSchema,
-            validData = i.isError,
-            isStrongValidation = false)(spark)
-          if (rawDf == null) new DataFrameError() else DataFrameOriginal(rawDf)
-        } catch {
-          case _: Throwable => new DataFrameError()
-        }
-        result match {
-          case x: DataFrameError => {}
-          case fs =>
-            return fs
-        }
-      })
+    val spark = SparkObject.spark
+    val validResult = potentialSchemasList.iterator.map { i =>
+      val baseSchema: BaseSchemaTemplate = migrationProjectSchema.readTemplate(i.fileLocation)
+      try {
+        val rawDf = migrationJson.getDataFrameFromString(
+          inString = json,
+          schemaName = i.schemaName,
+          inSchema = baseSchema,
+          validData = i.isError,
+          isStrongValidation = false)(spark)
+        if (rawDf == null) new DataFrameError() else DataFrameOriginal(rawDf)
+      } catch {
+        case _: Throwable => new DataFrameError()
+      }
+    }.find {
+      case _: DataFrameError => false
+      case _ => true
+    }
 
-    throw DataProcessingException(
-      s"""No valid schema found for JSON
-         |data json:
-         |$json""".stripMargin)
-
+    validResult match {
+      case Some(df) => df
+      case None =>
+        throw DataProcessingException(
+          s"""No valid schema found for JSON
+             |data json:
+             |$json""".stripMargin)
+    }
   }
 
   private def getDataFrameFromJson(json: String): DataFrameTrait = {

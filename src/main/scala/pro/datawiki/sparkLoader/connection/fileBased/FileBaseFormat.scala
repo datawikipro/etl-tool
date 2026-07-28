@@ -13,7 +13,7 @@ enum FileBaseFormat {
       case `parquet` => return "parquet"
       case `avro` => return "avro"
 
-      case _ => {
+      case null => {
         throw UnsupportedOperationException("Unsupported file format")
       }
   }

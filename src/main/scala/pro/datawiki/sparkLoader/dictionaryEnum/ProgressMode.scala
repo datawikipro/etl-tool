@@ -7,7 +7,7 @@ enum ProgressMode {
 
   def toString2: String = {
     this match {
-      case batch => "batch"
+      case `batch` => "batch"
       case _ => throw NotImplementedException(s"toString2 not implemented for: ${this}")
     }
   }

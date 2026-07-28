@@ -68,19 +68,22 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
 
   /** Resolves active MinIO/S3 host from the failover list. */
   private def getMinIoHost: String = {
-    configYaml.minioHost.foreach { host =>
+    val timeout = configYaml.establishTimeout.getOrElse("30000").toInt
+    val availableHost = configYaml.minioHost.find { host =>
       val socket = new Socket()
       try {
-        socket.connect(new java.net.InetSocketAddress(host.hostName, host.hostPort),
-          configYaml.establishTimeout.getOrElse("30000").toInt)
-        return host.getUrl
+        socket.connect(new java.net.InetSocketAddress(host.hostName, host.hostPort), timeout)
+        true
       } catch {
-        case _: Exception => // try next host
+        case _: Exception => false
       } finally {
         if (socket != null) socket.close()
       }
     }
-    throw NotImplementedException("No reachable MinIO host found in Iceberg config")
+    availableHost match {
+      case Some(host) => host.getUrl
+      case None => throw NotImplementedException("No reachable MinIO host found in Iceberg config")
+    }
   }
 
   private def parseLocation(location: String): (String, String) = {

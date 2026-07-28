@@ -34,7 +34,7 @@ enum ConnectionEnum {
       case `mail` => "mail"
       case `qdrant` => "qdrant"
       case `trino` => "trino"
-      case _ => throw new IllegalArgumentException(s"Unknown connection type: $this")
+      case null => throw new IllegalArgumentException(s"Unknown connection type: $this")
     }
   }
 

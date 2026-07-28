@@ -354,14 +354,12 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
   }
 
   private def getServer: YamlServerHost = {
-    configYaml.server.replica.foreach(i => {
-      if i.validateHost then
-        return i
-    })
-    if configYaml.server.master.validateHost then {
-      return configYaml.server.master
+    configYaml.server.replica.find(_.validateHost) match {
+      case Some(i) => i
+      case None =>
+        if (configYaml.server.master.validateHost) configYaml.server.master
+        else throw NotImplementedException("Server not found")
     }
-    throw NotImplementedException("Server not found")
   }
 
   def getJdbc: String = {

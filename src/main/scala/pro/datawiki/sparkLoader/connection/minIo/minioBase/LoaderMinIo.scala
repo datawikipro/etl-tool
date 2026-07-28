@@ -250,20 +250,22 @@ case class LoaderMinIo(format: FileBaseFormat,
   }
 
   private def getMinIoHost: String = {
-    configYaml.minioHost.foreach(i => {
+    val timeout = configYaml.establishTimeout.getOrElse("30000").toInt
+    val availableHost = configYaml.minioHost.find { i =>
       val socket = new Socket()
       try {
-        socket.connect(new java.net.InetSocketAddress(i.hostName, i.hostPort),
-          configYaml.establishTimeout.getOrElse("30000").toInt)
-        return i.getUrl
+        socket.connect(new java.net.InetSocketAddress(i.hostName, i.hostPort), timeout)
+        true
       } catch {
-        case e: Exception =>
-          false
+        case _: Exception => false
       } finally {
         if (socket != null) socket.close()
       }
-    })
-    throw NotImplementedException("Connection check not implemented for MinIO")
+    }
+    availableHost match {
+      case Some(i) => i.getUrl
+      case None => throw NotImplementedException("Connection check not implemented for MinIO")
+    }
   }
 
   private def normalizeLocation(location: String): String = {

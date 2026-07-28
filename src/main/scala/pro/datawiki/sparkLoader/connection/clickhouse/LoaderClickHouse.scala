@@ -59,12 +59,11 @@ class LoaderClickHouse(sourceName: String, configYaml: YamlConfig, configLocatio
   }
 
   def getJdbc: String = {
-    if configYaml.server.replica != null then {
-      configYaml.server.replica.foreach(i => {
-        return getJdbcDb(i)
-      })
+    if (configYaml.server.replica != null && configYaml.server.replica.nonEmpty) {
+      getJdbcDb(configYaml.server.replica.head)
+    } else {
+      getJdbcDb(configYaml.server.master)
     }
-    return getJdbcDb(configYaml.server.master)
   }
   
   override def writeDf(df: DataFrame, tableSchema: String, tableName: String, writeMode: WriteMode, scdType: SCDType, partitionBy: List[(String,String)]): Unit =  {

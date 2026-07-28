@@ -67,7 +67,7 @@ case class YamlConfigTemplateFindElements(
       case SeleniumAction.none => {
 
       }
-      case _ => {
+      case null => {
         throw UnsupportedOperationException("Unsupported Selenium action")
       }
     }

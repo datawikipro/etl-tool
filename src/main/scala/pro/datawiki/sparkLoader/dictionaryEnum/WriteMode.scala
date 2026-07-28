@@ -15,7 +15,8 @@ enum WriteMode {
       case `mergeFull` => return "mergeFull"
       case `stream` => return "append"
       case `streamByRunId` => return "append"
-      case _ => {
+      case `autoOverwrite` => return "overwrite"
+      case null => {
         throw IllegalArgumentException("Unsupported WriteMode ordinal")
       }
     }
@@ -32,7 +33,7 @@ enum WriteMode {
       case `stream` => return "stream"
       case `streamByRunId` => return "streamByRunId"
       case `autoOverwrite` => return "autoOverwrite"
-      case _ => {
+      case null => {
         throw IllegalArgumentException("Unsupported WriteMode ordinal")
       }
     }

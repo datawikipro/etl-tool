@@ -49,7 +49,7 @@ class LoaderKafkaTemplateBase(`bootstrap.servers`: List[String]) extends Logging
     val errors = mutable.ListBuffer[String]()
     
     for (broker <- brokers) {
-      Try {
+      val connResult = Try {
         val parts = broker.split(":")
         val host = parts(0)
         val port = if (parts.length > 1) parts(1).toInt else 9092
@@ -58,12 +58,13 @@ class LoaderKafkaTemplateBase(`bootstrap.servers`: List[String]) extends Logging
         try {
           socket.connect(new InetSocketAddress(host, port), connectivityTimeoutMs)
           logInfo(s"Successfully connected to broker: $broker")
-          return Right(broker)
+          broker
         } finally {
           socket.close()
         }
-      } match {
-        case Success(_) => // Already returned
+      }
+      connResult match {
+        case Success(connectedBroker) => return Right(connectedBroker)
         case Failure(e) => 
           val errMsg = s"$broker: ${e.getClass.getSimpleName} - ${e.getMessage}"
           errors += errMsg

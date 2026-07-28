@@ -37,15 +37,19 @@ object ApplicationContext {
          """^manual__(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\+(\d{2}):(\d{2})$""".r
 
     )
-    patterns.foreach(pattern => {
-      if pattern.matches(id) then {
+    var matched = false
+    val patternIterator = patterns.iterator
+    while (patternIterator.hasNext && !matched) {
+      val pattern = patternIterator.next()
+      if (pattern.matches(id)) {
         for (patternMatch <- pattern.findAllMatchIn(id)) {
           val result = s"""${patternMatch.group(1)}-${patternMatch.group(2)}-${patternMatch.group(3)} ${patternMatch.group(4)}_${patternMatch.group(5)}_${patternMatch.group(6)}"""
           setGlobalVariable("locationBasedOnRunId", result)
-          return
+          matched = true
         }
       }
-    })
+    }
+    if (matched) return
 
     val md = MessageDigest.getInstance("SHA-256")
     val result = md.digest(id.getBytes("UTF-8")).map("%02x".format(_)).mkString

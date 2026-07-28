@@ -34,7 +34,7 @@ case class YamlConfigTransformationIdMap(
   private def getConnection: ConnectionTrait & SupportIdMap = {
     if locConnection == null then {
       ApplicationContext.getConnection(connection) match
-        case x: ConnectionTrait & SupportIdMap => locConnection = x
+        case x: (ConnectionTrait with SupportIdMap) => locConnection = x
         case _ => throw UnsupportedOperationException("Unsupported connection type for ID map transformation")
     }
     return locConnection
