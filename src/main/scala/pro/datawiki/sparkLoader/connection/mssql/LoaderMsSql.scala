@@ -54,7 +54,7 @@ class LoaderMsSql(configYaml: YamlConfig, configLocation: String) extends Connec
     }
   }
 
-  override def getConnection: Connection = throw NotImplementedException("Method not implemented")
+  def getConnection: Connection = throw NotImplementedException("Method not implemented")
 
   override def close(): Unit = {
     ConnectionTrait.removeFromCache(getCacheKey())
