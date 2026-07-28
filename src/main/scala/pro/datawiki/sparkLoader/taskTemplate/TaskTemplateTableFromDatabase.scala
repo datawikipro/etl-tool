@@ -40,9 +40,14 @@ class TaskTemplateTableFromDatabase(tableSchema: String,
       case _ => s"limit $limit"
   }
 
+  private def getFullTableName: String = {
+    if (tableSchema == null || tableSchema.trim.isEmpty || tableSchema == "null") tableName
+    else s"${tableSchema}.${tableName}"
+  }
+
   private def getReadSql(parameters: Map[String, String]):String={
     var sql=  s"""select ${getSQLColumnList}
-       |  from ${tableSchema}.${tableName}
+       |  from ${getFullTableName}
        |  $getSQLWhere
        |  $getSQLLimit
        |  """.stripMargin
@@ -69,7 +74,7 @@ class TaskTemplateTableFromDatabase(tableSchema: String,
     val startTime = logOperationStart("database table load", s"schema: $tableSchema, table: $tableName")
 
     try {
-      logInfo(s"Loading data from database table: $tableSchema.$tableName")
+      logInfo(s"Loading data from database table: ${getFullTableName}")
       logConfigInfo("database table", s"columns: ${tableColumns.length}, filter: $filter, limit: $limit")
       
       val df = getTable(src = connection, parameters = parameters)
