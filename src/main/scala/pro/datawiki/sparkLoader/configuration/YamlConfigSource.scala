@@ -1,6 +1,6 @@
 package pro.datawiki.sparkLoader.configuration
 
-import com.fasterxml.jackson.annotation.{JsonIgnore, JsonInclude}
+import com.fasterxml.jackson.annotation.{JsonAlias, JsonIgnore, JsonInclude}
 import pro.datawiki.exception.ConfigurationException
 import pro.datawiki.sparkLoader.configuration.yamlConfigSource.*
 import pro.datawiki.sparkLoader.context.ApplicationContext
@@ -18,7 +18,7 @@ case class YamlConfigSource(
                              sourceName: String,
                              objectName: String,
                              segmentation: String,
-                             sourceDb: YamlConfigSourceDBTable,
+                             @JsonAlias(Array("jdbc")) sourceDb: YamlConfigSourceDBTable,
                              sourceSQL: YamlConfigSourceDBSQL,
                              sourceFileSystem: YamlConfigSourceFileSystem,
                              sourceKafka: YamlConfigSourceKafka,
