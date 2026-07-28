@@ -26,11 +26,10 @@ case class YamlConfigEltOnServerOperation(
   }
 
   def createTask(): Task = {
-    val taskTemplate: TaskTemplate = getLogic match {
-      case x: YamlConfigEltOnServerOperationTrait => x.getTaskTemplate(ApplicationContext.getConnection(sourceName))
-      case other => throw ConfigurationException(s"Неизвестный тип источника: '$other'. Пожалуйста, проверьте конфигурацию.")
-    }
-    return TaskSimple(taskTemplate, false)
+    val logic = getLogic
+    if logic == null then throw ConfigurationException("Logic is null for EltOnServerOperation")
+    val taskTemplate: TaskTemplate = logic.getTaskTemplate(ApplicationContext.getConnection(sourceName))
+    TaskSimple(taskTemplate, false)
   }
 
   def run(targetName: String, parameters: Map[String, String], isSync: Boolean): ProgressStatus = {

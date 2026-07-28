@@ -169,7 +169,7 @@ object SparkMain extends LoggingTrait {
             shouldExit = true
           case ProgressStatus.error =>
             throw DataProcessingException("ETL process failed with error status")
-          case _ =>
+          case null =>
             throw DataProcessingException()
         }
       } catch {

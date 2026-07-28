@@ -272,7 +272,7 @@ case class YamlConfigTargetDatabase(
     var df = super.getSourceDf
     var dfConverted: DataFrame = loader match {
       case x: DatabaseTrait => x.convertComplexTypesToJson(df.getDataFrame)
-      case _ => df.getDataFrame
+      case null => df.getDataFrame
     }
 
 

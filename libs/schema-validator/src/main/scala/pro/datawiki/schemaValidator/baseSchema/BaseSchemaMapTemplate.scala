@@ -64,14 +64,14 @@ case class BaseSchemaMapTemplate(baseElement: BaseSchemaTemplate,
 
     baseElement.getSparkRowElementTemplate match
       case x: SparkRowElementTypeTemplate => {
-        return SparkRowElementListTemplate(
+        SparkRowElementListTemplate(
           baseType = SparkRowElementStructTemplate(
             List.apply(
               SparkRowAttributeTemplate(name = "key", value = SparkRowElementStringTemplate()),
               SparkRowAttributeTemplate(name = "value", value = x)
             )))
       }
-      case _ => {
+      case null => {
         throw NotImplementedException("Method not implemented")
       }
   }

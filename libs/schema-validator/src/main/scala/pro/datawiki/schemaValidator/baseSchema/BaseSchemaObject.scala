@@ -14,8 +14,7 @@ case class BaseSchemaObject(inElements: List[(String, BaseSchemaStruct)],
   }
 
   def getBaseSchemaStruct(name: String): BaseSchemaStruct = {
-    inElements.filter(i => i._1 == name).foreach(col => return col._2)
-    return null
+    inElements.find(_._1 == name).map(_._2).orNull
   }
 
 

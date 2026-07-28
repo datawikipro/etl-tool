@@ -45,54 +45,47 @@ case class EltConfig(
   def initPreEtlOperations(): ProgressStatus = {
     val ops = Option(preEtlOperations).getOrElse(List.empty)
     val startTime = logOperationStart("initialize pre-ETL operations", s"count: ${ops.length}")
-    ops.foreach(i => {
+    val hasSkip = ops.exists { i =>
       i.run("", Map(), true) match {
-        case ProgressStatus.done =>
-        case ProgressStatus.skip => return ProgressStatus.skip
+        case ProgressStatus.done => false
+        case ProgressStatus.skip => true
         case _ => throw Exception()
       }
-    })
+    }
     logOperationEnd("initialize pre-ETL operations", startTime, s"count: ${ops.length}")
-    return ProgressStatus.done
+    if (hasSkip) ProgressStatus.skip else ProgressStatus.done
   }
 
   @JsonIgnore
   def initPostEtlOperations(): ProgressStatus = {
     val ops = Option(postEtlOperations).getOrElse(List.empty)
     val startTime = logOperationStart("initialize post-ETL operations", s"count: ${ops.length}")
-    ops.foreach(i => {
+    val hasSkip = ops.exists { i =>
       i.run("", Map(), true) match {
-        case ProgressStatus.done =>
-        case ProgressStatus.skip => return ProgressStatus.skip
+        case ProgressStatus.done => false
+        case ProgressStatus.skip => true
         case _ => throw Exception()
       }
-    })
+    }
     logOperationEnd("initialize post-ETL operations", startTime, s"count: ${ops.length}")
-    return ProgressStatus.done
+    if (hasSkip) ProgressStatus.skip else ProgressStatus.done
   }
 
   @JsonIgnore
   def initSources(): ProgressStatus = {
-    var sourceIsValid: Boolean = true
-    var sourceIsEmpty: Boolean = false
-
-    source.foreach(i => {
+    val hasSkip = source.exists { i =>
       try {
         val task: Task = i.createTask()
         task.run(i.objectName, Map(), true) match {
-          case ProgressStatus.done =>
-          case ProgressStatus.skip =>  return ProgressStatus.skip
-          case _ => {
-            throw DataProcessingException(s"Source task failed for object: ${i.objectName}")
-          }
+          case ProgressStatus.done => false
+          case ProgressStatus.skip => true
+          case _ => throw DataProcessingException(s"Source task failed for object: ${i.objectName}")
         }
       } catch {
-        case e: Exception => {
-          throw DataProcessingException(s"Failed to initialize source: ${i.objectName}", e)
-        }
+        case e: Exception => throw DataProcessingException(s"Failed to initialize source: ${i.objectName}", e)
       }
-    })
-    return ProgressStatus.done
+    }
+    if (hasSkip) ProgressStatus.skip else ProgressStatus.done
   }
 
   @JsonIgnore
@@ -101,7 +94,7 @@ case class EltConfig(
       try {
         val task: Task = i.createTask()
         task.run(i.objectName, Map(), true) match {
-          case done =>
+          case ProgressStatus.done =>
           case _ => {
             throw DataProcessingException(s"Transformation task failed for object: ${i.objectName}")
           }
@@ -131,7 +124,7 @@ case class EltConfig(
           case e: Exception => throw DataProcessingException(s"Failed to write target: ${i.getClass.getSimpleName}", e)
         }
       })
-        return ProgressStatus.done
+        ProgressStatus.done
   }
 }
 
@@ -162,12 +155,10 @@ object EltConfig extends YamlClass {
     }
 
     result.initPostEtlOperations() match {
-      case ProgressStatus.error => return ProgressStatus.error
-      case ProgressStatus.skip => return ProgressStatus.skip
-      case ProgressStatus.done => return ProgressStatus.done
-      case _ => {
-        throw DataProcessingException("Unexpected status from runTarget")
-      }
+      case ProgressStatus.error => ProgressStatus.error
+      case ProgressStatus.skip => ProgressStatus.skip
+      case ProgressStatus.done => ProgressStatus.done
+      case null => throw DataProcessingException("Unexpected status from runTarget")
     }
   }
 }

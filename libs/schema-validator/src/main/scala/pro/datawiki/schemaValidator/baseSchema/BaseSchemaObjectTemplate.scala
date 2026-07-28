@@ -19,14 +19,16 @@ case class BaseSchemaObjectTemplate(inElements: List[(String, BaseSchemaTemplate
   }
 
   private def checkExistsElementByName(in: String): Boolean = {
-    inElements.filter(i => i._1 == in).foreach(col => return true)
-    return false
+    inElements.exists(_._1 == in)
   }
 
   def getElementByName(in: String): BaseSchemaTemplate = {
-    inElements.filter(i => i._1 == in).foreach(col => return col._2)
-    if inIsIgnorable then return BaseSchemaNullTemplate(inIsIgnorable)
-    throw SchemaValidationException(s"Element '$in' not found in schema object")
+    getElementByNameSafe(in) match {
+      case Some(element) => element
+      case None =>
+        if inIsIgnorable then BaseSchemaNullTemplate(inIsIgnorable)
+        else throw SchemaValidationException(s"Element '$in' not found in schema object")
+    }
   }
 
   private def getElementByNameSafe(in: String): Option[BaseSchemaTemplate] = {
@@ -179,12 +181,13 @@ case class BaseSchemaObjectTemplate(inElements: List[(String, BaseSchemaTemplate
   override def equals(in: BaseSchemaTemplate): Boolean = {
     in match {
       case x: BaseSchemaObjectTemplate => {
-        if (inElements.size != x.inElements.size) return false
-        inElements.foreach(i => {
-          if (!x.inElements.exists(_._1 == i._1)) then return false
-          if (!x.inElements.find(_._1 == i._1).get._2.equals(i._2)) then return false
-        })
-        return true
+        if (inElements.size != x.inElements.size) false
+        else {
+          val xMap = x.inElements.toMap
+          inElements.forall { case (k, v) =>
+            xMap.get(k).contains(v)
+          }
+        }
       }
       case x: BaseSchemaNullTemplate => {
         return true

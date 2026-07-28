@@ -28,7 +28,6 @@ class BaseSchemaDoubleTemplate(inIsIgnorable: Boolean) extends BaseSchemaTemplat
       case x: BaseSchemaDoubleTemplate => BaseSchemaDoubleTemplate(inIsIgnorable)
       case x: BaseSchemaStringTemplate => BaseSchemaStringTemplate(inIsIgnorable)
       case _ => BaseSchemaStringTemplate(inIsIgnorable) //TODO
-      case other => throw SchemaValidationException(s"Невозможно извлечь данные с плавающей точкой из: ${other.getClass.getName}")
   }
   override def getSparkRowElementTemplate: SparkRowElementTypeTemplate = {
     return SparkRowElementDoubleTemplate()

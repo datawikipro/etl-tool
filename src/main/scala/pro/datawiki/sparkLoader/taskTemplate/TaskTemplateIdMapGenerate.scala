@@ -11,7 +11,7 @@ import scala.collection.mutable
 
 class TaskTemplateIdMapGenerate(sourceName: String,
                                 dataAtServer: Boolean,
-                                connection: ConnectionTrait with SupportIdMap,
+                                connection: ConnectionTrait & SupportIdMap,
                                 template: TaskTemplateIdMapConfig
                                ) extends TaskTemplate {
 
@@ -42,23 +42,14 @@ class TaskTemplateIdMapGenerate(sourceName: String,
   }
 
   override def run(parameters: Map[String, String], isSync: Boolean): List[DataFrameTrait] = {
-
-
-    connection match {
-      case x: SupportIdMap =>
-        var tableName = dataAtServer match {
-          case true => x.createViewIdMapGenerate(sourceName,template.columnNames)
-          case false => getTableFromSpark
-        }
-        x.generateIdMap(
-          inTable = tableName,
-          domain = template.domainName,
-          systemCode = template.systemCode,
-          tableLocation = template.getResolvedLocation
-        )
-      case _ => throw UnsupportedOperationException("Unsupported connection type for ID map generation")
-    }
-    return List.empty
+    val tableName = if (dataAtServer) connection.createViewIdMapGenerate(sourceName, template.columnNames) else getTableFromSpark
+    connection.generateIdMap(
+      inTable = tableName,
+      domain = template.domainName,
+      systemCode = template.systemCode,
+      tableLocation = template.getResolvedLocation
+    )
+    List.empty
   }
 
 }

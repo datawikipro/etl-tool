@@ -10,7 +10,7 @@ import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import scala.collection.mutable
 
 case class TaskTemplateIdMapMerge(sourceName: String,
-                                  connection: ConnectionTrait with SupportIdMap,
+                                  connection: ConnectionTrait & SupportIdMap,
                                   dataAtServer:Boolean,
                                   in: TaskTemplateIdMapConfig,
                                   out: TaskTemplateIdMapConfig
@@ -45,24 +45,15 @@ case class TaskTemplateIdMapMerge(sourceName: String,
   }
   
   override def run(parameters:Map[String, String], isSync: Boolean): List[DataFrameTrait] = {
-
-    connection match {
-      case x: SupportIdMap => {
-        var tableName = dataAtServer match {
-          case true => x.createViewIdMapMerge(sourceName, in.columnNames,out.columnNames)
-          case false => getTableFromSpark
-        }
-        x.mergeIdMap(
-          inTable = tableName,
-          domain = in.domainName,
-          inSystemCode = in.systemCode,
-          outSystemCode = out.systemCode,
-          tableLocation = out.getResolvedLocation
-        )
-      }
-      case _ => throw UnsupportedOperationException("Unsupported connection type for ID map merge")
-    }
-    return List.empty
+    val tableName = if (dataAtServer) connection.createViewIdMapMerge(sourceName, in.columnNames, out.columnNames) else getTableFromSpark
+    connection.mergeIdMap(
+      inTable = tableName,
+      domain = in.domainName,
+      inSystemCode = in.systemCode,
+      outSystemCode = out.systemCode,
+      tableLocation = out.getResolvedLocation
+    )
+    List.empty
   }
 
 }

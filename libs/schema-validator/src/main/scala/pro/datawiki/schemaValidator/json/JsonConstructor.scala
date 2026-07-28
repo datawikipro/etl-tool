@@ -22,6 +22,9 @@ class JsonConstructor extends Migration {
       json match
         case x: JObject => JsonStruct(x).getBaseSchemaElementData
         case x: JArray => x.arr.length match {
+          case 0 => {
+            BaseSchemaNull(true)
+          }
           case 1 => {
             val b: JValue = x.arr.head
             b match {
@@ -30,13 +33,6 @@ class JsonConstructor extends Migration {
                 throw new SchemaValidationException(s"Unsupported JSON array element type: ${fs.getClass.getName}")
               }
             }
-
-          }
-          case _ => {
-            throw new SchemaValidationException("JSON arrays with multiple elements are not supported")
-          }
-          case 0 => {
-            BaseSchemaNull(true)
           }
           case fs => {
             throw new SchemaValidationException(s"Unsupported JSON array length: $fs")

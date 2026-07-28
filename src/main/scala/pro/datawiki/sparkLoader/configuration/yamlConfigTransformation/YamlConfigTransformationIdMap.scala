@@ -29,12 +29,12 @@ case class YamlConfigTransformationIdMap(
   //  }
   //  override def getTask(in: TaskTemplate): Task = throw NotImplementedException("Method not implemented")
 
-  var locConnection: ConnectionTrait with SupportIdMap = null
+  var locConnection: ConnectionTrait & SupportIdMap = null
 
-  private def getConnection: ConnectionTrait with SupportIdMap = {
+  private def getConnection: ConnectionTrait & SupportIdMap = {
     if locConnection == null then {
       ApplicationContext.getConnection(connection) match
-        case x: ConnectionTrait with SupportIdMap => locConnection = x
+        case x: ConnectionTrait & SupportIdMap => locConnection = x
         case _ => throw UnsupportedOperationException("Unsupported connection type for ID map transformation")
     }
     return locConnection

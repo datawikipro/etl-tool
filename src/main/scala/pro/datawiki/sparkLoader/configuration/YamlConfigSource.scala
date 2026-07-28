@@ -66,7 +66,7 @@ case class YamlConfigSource(
 
       }
       case InitModeEnum.runAtServer => TaskRunAtServerRegister(taskTemplate)
-      case _ => {
+      case null => {
         throw UnsupportedOperationException("Unsupported configuration source case")
       }
 //    if cache != null then task.setCache(TransformationCache(cache),Context.getConnection(sourceName))
