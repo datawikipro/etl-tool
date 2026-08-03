@@ -45,23 +45,24 @@ class TaskTemplateTableFromDatabase(tableSchema: String,
     else s"${tableSchema}.${tableName}"
   }
 
-  private def getReadSql(parameters: Map[String, String]):String={
-    var sql=  s"""select ${getSQLColumnList}
+  private def getReadSql(parameters: Map[String, String]): String = {
+    var sql = s"""select ${getSQLColumnList}
        |  from ${getFullTableName}
        |  $getSQLWhere
-       |  $getSQLLimit
        |  """.stripMargin
     parameters.foreach(i => {
       sql = sql.replace(s"$${${i._1}}", i._2)
     })
-    return sql
+    sql
   }
 
   private def getTable(src: ConnectionTrait, parameters: Map[String, String]): DataFrameTrait = {
     var df: DataFrame = null
     src match
       case x: DatabaseTrait => {
-        val df=  x.getDataFrameBySQL(getReadSql(parameters)) 
+        val rawSql = getReadSql(parameters)
+        val finalSql = x.applyLimitToSql(rawSql, limit)
+        val df = x.getDataFrameBySQL(finalSql)
         if df.count() == 0 then return DataFrameEmpty()
         return DataFrameOriginal(df)
       }

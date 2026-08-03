@@ -36,20 +36,22 @@ class LoaderMsSql(configYaml: YamlConfig, configLocation: String) extends Connec
     s"jdbc:sqlserver://${configYaml.host}:${configYaml.port};databaseName=${configYaml.database};encrypt=$encrypt;trustServerCertificate=$trustCert;"
   }
 
-  private def transformLimitForMsSql(sql: String): String = {
+  override def applyLimitToSql(sql: String, limit: Int): String = {
     val limitPattern = "(?i)\\s+limit\\s+(\\d+)\\s*$".r
-    limitPattern.findFirstMatchIn(sql) match {
-      case Some(m) =>
-        val limitNum = m.group(1)
-        val baseSql = sql.substring(0, m.start)
-        s"select top $limitNum * from ($baseSql) _limit_wrapper"
-      case None =>
-        sql
+    val (baseSql, extractedLimit) = limitPattern.findFirstMatchIn(sql) match {
+      case Some(m) => (sql.substring(0, m.start), m.group(1).toInt)
+      case None => (sql, 0)
+    }
+    val effectiveLimit = if (limit > 0) limit else extractedLimit
+    if (effectiveLimit > 0) {
+      s"select top $effectiveLimit * from ($baseSql) _limit_wrapper"
+    } else {
+      baseSql
     }
   }
 
   override def getDataFrameBySQL(sql: String): DataFrame = {
-    val cleanSql = transformLimitForMsSql(sql)
+    val cleanSql = applyLimitToSql(sql, 0)
     val startTime = logOperationStart("MS SQL query", s"sql: ${cleanSql.take(100)}...")
     try {
       logInfo(s"Executing SQL query on MS SQL Server: ${cleanSql.take(50)}...")

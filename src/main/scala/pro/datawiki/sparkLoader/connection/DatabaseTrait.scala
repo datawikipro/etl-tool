@@ -14,6 +14,16 @@ trait DatabaseTrait extends ConnectionTrait {
   //-----------------------------------------------------------
   def getDataFrameBySQL(sql: String): DataFrame
 
+  /**
+   * Applies dialect-specific row limit to SQL query.
+   * Default implementation appends standard SQL 'LIMIT limit' if limit > 0 and no LIMIT exists.
+   */
+  def applyLimitToSql(sql: String, limit: Int): String = {
+    if (limit <= 0) return sql
+    val hasLimit = sql.matches("(?i).*\\s+limit\\s+\\d+\\s*$")
+    if (hasLimit) sql else s"$sql limit $limit"
+  }
+
   def runSQL(in: String): Boolean
 
   def readDfSchema(tableSchema: String, tableName: String): DataFrame
