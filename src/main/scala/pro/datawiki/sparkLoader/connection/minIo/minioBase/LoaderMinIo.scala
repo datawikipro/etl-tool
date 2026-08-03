@@ -243,8 +243,8 @@ case class LoaderMinIo(format: FileBaseFormat,
     modifySparkParameter("fs.s3a.temporary.file.cleanup.interval", configYaml.temporaryFileCleanupInterval)
     modifySparkParameter("fs.s3a.disable.temporary.files", configYaml.disableTemporaryFiles)
 
-    // SSL configuration - disable cert checking for self-signed certificates (MinIO / Lenovo S3)
-    SparkObject.setHadoopConfiguration("fs.s3a.ssl.channel.mode", "Insecure")
+    // SSL configuration
+    modifySparkParameter("fs.s3a.ssl.channel.mode", configYaml.sslChannelMode)
     modifySparkParameter("fs.s3a.connection.ssl.enabled", configYaml.sslEnabled.map(_.toString))
   }
 

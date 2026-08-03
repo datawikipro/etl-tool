@@ -32,6 +32,7 @@ case class YamlConfig(minioHost: List[YamlConfigHost],
 
                       // SSL and security parameters
                       sslEnabled: Option[Boolean], // SSL enabled/disabled
+                      sslChannelMode: Option[String], // SSL channel mode (Default, Insecure)
                       pathStyleAccess: Option[Boolean], // Path-style access
 
                       // Fast upload configuration
