@@ -73,7 +73,7 @@ object PartitionDeltaChecker extends LoggingTrait {
     } else "1=1"
 
     val activeFilter = config.getScdTypeEnum match {
-      case SCDType.SCD_2 =>
+      case SCDType.SCD_2 | SCDType.SCD_3 =>
         config.scdActiveFilter match {
           case Some(filter) if filter.trim.nonEmpty => filter
           case _ => "valid_to_dttm = TIMESTAMP '9999-12-31 00:00:00'"
