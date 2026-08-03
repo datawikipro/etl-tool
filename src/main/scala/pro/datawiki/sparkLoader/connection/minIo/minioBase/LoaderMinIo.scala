@@ -246,13 +246,13 @@ case class LoaderMinIo(format: FileBaseFormat,
     modifySparkParameter("fs.s3a.disable.temporary.files", configYaml.disableTemporaryFiles)
 
     // SSL configuration
-    modifySparkParameter("fs.s3a.ssl.channel.mode", configYaml.sslChannelMode)
-    modifySparkParameter("fs.s3a.connection.ssl.enabled", configYaml.sslEnabled.map(_.toString))
-
-    if (configYaml.sslChannelMode.contains("Insecure")) {
+    if (configYaml.sslChannelMode.exists(_.equalsIgnoreCase("Insecure"))) {
       System.setProperty("com.amazonaws.sdk.disableCertChecking", "true")
       System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true")
+    } else {
+      modifySparkParameter("fs.s3a.ssl.channel.mode", configYaml.sslChannelMode)
     }
+    modifySparkParameter("fs.s3a.connection.ssl.enabled", configYaml.sslEnabled.map(_.toString))
   }
 
   private def getMinIoHost: String = {
