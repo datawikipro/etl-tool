@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter
 import pro.datawiki.sparkLoader.configuration.YamlConfigPartitionSync
 import pro.datawiki.sparkLoader.connection.{ConnectionTrait, DatabaseTrait}
 import pro.datawiki.sparkLoader.connection.minIo.minioIceberg.LoaderMinIoIceberg
+import pro.datawiki.sparkLoader.dictionaryEnum.SCDType
 import pro.datawiki.sparkLoader.SparkObject
 import pro.datawiki.sparkLoader.context.ApplicationContext
 import pro.datawiki.sparkLoader.traits.LoggingTrait
@@ -71,8 +72,8 @@ object PartitionDeltaChecker extends LoggingTrait {
       s"$partCol IN (${candidatePartitions.map(p => s"'$p'").mkString(", ")})"
     } else "1=1"
 
-    val activeFilter = config.scdType.toLowerCase match {
-      case "scd2" =>
+    val activeFilter = SCDType(config.scdType) match {
+      case SCDType.SCD_2 =>
         config.scdActiveFilter match {
           case Some(filter) if filter.trim.nonEmpty => filter
           case _ => "valid_to_dttm = TIMESTAMP '9999-12-31 00:00:00'"
