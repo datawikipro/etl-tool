@@ -135,6 +135,24 @@ class LoaderMongoDb(configYaml: YamlConfig, configLocation: String) extends Conn
     }
   }
 
+  override def validateConnection(): Unit = {
+    try {
+      val mongoClient = com.mongodb.client.MongoClients.create(getMongoUriWithOptions)
+      try {
+        val dbName = if (server != null) server.database else configYaml.server.master.database
+        val database = mongoClient.getDatabase(dbName)
+        database.runCommand(new org.bson.Document("ping", 1))
+        logInfo("MongoDB connection validation passed: ping command succeeded")
+      } finally {
+        mongoClient.close()
+      }
+    } catch {
+      case e: Exception =>
+        logError("MongoDB connection validation failed (check URI, credentials, SSL certificate, server health)", e)
+        throw e
+    }
+  }
+
   override def close(): Unit = {
     ConnectionTrait.removeFromCache(getCacheKey())
   }

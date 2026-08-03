@@ -29,6 +29,13 @@ class LoaderTrino(val url: String, val user: String, val configLocation: String 
     return connection
   }
 
+  override def validateConnection(): Unit = {
+    val conn = getConnection
+    if (!conn.isValid(10)) {
+      throw new java.sql.SQLException("Trino connection validation failed: connection is invalid or unresponsive")
+    }
+  }
+
   override def close(): Unit = {
     if connection != null then {
       connection.close()

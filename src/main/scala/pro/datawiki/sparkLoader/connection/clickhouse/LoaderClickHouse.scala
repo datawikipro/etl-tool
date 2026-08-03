@@ -77,6 +77,13 @@ class LoaderClickHouse(sourceName: String, configYaml: YamlConfig, configLocatio
       case _ => throw NotImplementedException("Method not implemented")
   }
 
+  override def validateConnection(): Unit = {
+    val conn = getConnection
+    if (!conn.isValid(10)) {
+      throw new java.sql.SQLException("ClickHouse connection validation failed: connection is invalid or unresponsive")
+    }
+  }
+
   var connection: Connection = null
   
   private def getConnection: Connection = {

@@ -269,6 +269,9 @@ case class LoaderMinIo(format: FileBaseFormat,
   }
 
   private def normalizeLocation(location: String): String = {
+    if (location == null || location.trim.isEmpty) {
+      throw new IllegalArgumentException("Target location / targetFile must not be null or empty in YAML config!")
+    }
     val bucketPrefix = configYaml.bucket + "/"
     if (location.startsWith(bucketPrefix)) location.substring(bucketPrefix.length) else location
   }
@@ -284,6 +287,17 @@ case class LoaderMinIo(format: FileBaseFormat,
     FileStorageCommon.s3aUri(configYaml.bucket, getLocationWithPostfix(location, keyPartitions, valuePartitions))
 
   def getMasterFolder: String = configYaml.bucket
+
+  override def validateConnection(): Unit = {
+    try {
+      val isExist: Boolean = minioClient.bucketExists(BucketExistsArgs.builder().bucket(configYaml.bucket).build())
+      logInfo(s"MinIO/S3 connection validation passed: bucket '${configYaml.bucket}' exists=$isExist")
+    } catch {
+      case e: Exception =>
+        logError("MinIO connection validation failed (check endpoint, SSL certificate, accessKey/secretKey credentials)", e)
+        throw e
+    }
+  }
 
   override def close(): Unit = {
     ConnectionTrait.removeFromCache(getCacheKey())

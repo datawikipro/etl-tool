@@ -353,11 +353,33 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
     return s"jdbc:postgresql://${db.host}:${db.port}/${db.database}?socketTimeout=300000&loginTimeout=60&connectTimeout=60000"
   }
 
+  override def validateConnection(): Unit = {
+    val conn = getConnection
+    if (!conn.isValid(10)) {
+      throw new java.sql.SQLException("PostgreSQL connection validation failed: connection is invalid or unresponsive")
+    }
+  }
+
+  private def validateHostAndAuth(dbHost: YamlServerHost): Boolean = {
+    if (!dbHost.validateHost) return false
+    try {
+      val testConn = DriverManager.getConnection(getJdbcDb(dbHost), getProperties)
+      try {
+        testConn.isValid(5)
+      } finally {
+        testConn.close()
+      }
+    } catch {
+      case _: Exception => false
+    }
+  }
+
   private def getServer: YamlServerHost = {
-    configYaml.server.replica.find(_.validateHost) match {
+    configYaml.server.replica.find(validateHostAndAuth) match {
       case Some(i) => i
       case None =>
-        if (configYaml.server.master.validateHost) configYaml.server.master
+        if (validateHostAndAuth(configYaml.server.master)) configYaml.server.master
+        else if (configYaml.server.master.validateHost) configYaml.server.master
         else throw NotImplementedException("Server not found")
     }
   }

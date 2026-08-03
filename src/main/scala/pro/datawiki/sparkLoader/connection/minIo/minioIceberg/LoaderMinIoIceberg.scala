@@ -407,6 +407,22 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
     SparkObject.spark.sql(sql)
     true
   }
+
+  override def validateConnection(): Unit = {
+    try {
+      val minioClient = io.minio.MinioClient.builder()
+        .endpoint(getMinIoHost)
+        .credentials(configYaml.accessKey, configYaml.secretKey)
+        .build()
+
+      val isExist = minioClient.bucketExists(io.minio.BucketExistsArgs.builder().bucket(configYaml.bucket).build())
+      logInfo(s"MinIO Iceberg connection validation passed: bucket '${configYaml.bucket}' exists=$isExist")
+    } catch {
+      case e: Exception =>
+        logError("MinIO Iceberg connection validation failed (check endpoint, SSL certificate, credentials)", e)
+        throw e
+    }
+  }
 }
 
 object LoaderMinIoIceberg extends pro.datawiki.yamlConfiguration.YamlClass {

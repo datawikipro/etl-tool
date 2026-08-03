@@ -107,6 +107,17 @@ class LoaderKafkaTemplateBase(`bootstrap.servers`: List[String]) extends Logging
     }
   }
 
+  def validateKafkaConnection(): Unit = {
+    checkBrokerConnectivity() match {
+      case Left(error) => throw new KafkaConnectionException(error)
+      case Right(_) =>
+    }
+    checkClusterHealth() match {
+      case Left(error) => throw new KafkaClusterUnhealthyException(error)
+      case Right(info) => logInfo(s"Kafka connection validation passed: clusterId=${info.clusterId}, nodes=${info.nodeCount}")
+    }
+  }
+
   def createTopic(name: String, numPartitions: Int = 1, replicationFactor: Short = 1): Boolean = {
     val newTopic: NewTopic = new NewTopic(name, numPartitions, replicationFactor)
     val newTopics: List[NewTopic] = List.apply(newTopic)

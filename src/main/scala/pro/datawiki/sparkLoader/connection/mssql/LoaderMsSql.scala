@@ -13,7 +13,7 @@ import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.yamlConfiguration.YamlClass
 
 import java.nio.file.{Files, Paths}
-import java.sql.Connection
+import java.sql.{Connection, DriverManager}
 import java.util.Properties
 
 class LoaderMsSql(configYaml: YamlConfig, configLocation: String) extends ConnectionTrait with DatabaseTrait with LoggingTrait {
@@ -36,25 +36,49 @@ class LoaderMsSql(configYaml: YamlConfig, configLocation: String) extends Connec
     s"jdbc:sqlserver://${configYaml.host}:${configYaml.port};databaseName=${configYaml.database};encrypt=$encrypt;trustServerCertificate=$trustCert;"
   }
 
+  private def transformLimitForMsSql(sql: String): String = {
+    val limitPattern = "(?i)\\s+limit\\s+(\\d+)\\s*$".r
+    limitPattern.findFirstMatchIn(sql) match {
+      case Some(m) =>
+        val limitNum = m.group(1)
+        val baseSql = sql.substring(0, m.start)
+        s"select top $limitNum * from ($baseSql) _limit_wrapper"
+      case None =>
+        sql
+    }
+  }
+
   override def getDataFrameBySQL(sql: String): DataFrame = {
-    val startTime = logOperationStart("MS SQL query", s"sql: ${sql.take(100)}...")
+    val cleanSql = transformLimitForMsSql(sql)
+    val startTime = logOperationStart("MS SQL query", s"sql: ${cleanSql.take(100)}...")
     try {
-      logInfo(s"Executing SQL query on MS SQL Server: ${sql.take(50)}...")
+      logInfo(s"Executing SQL query on MS SQL Server: ${cleanSql.take(50)}...")
       val df = SparkObject.spark.sqlContext.read
         .option("fetchsize", "10000")
-        .jdbc(getJdbc, s"($sql) a", getProperties)
+        .jdbc(getJdbc, s"($cleanSql) a", getProperties)
 
       LogMode.debugDF(df)
-      logOperationEnd("MS SQL query", startTime, s"sql: ${sql.take(50)}...")
+      logOperationEnd("MS SQL query", startTime, s"sql: ${cleanSql.take(50)}...")
       df
     } catch {
       case e: Exception =>
-        logError("MS SQL query", e, s"sql: ${sql.take(50)}...")
+        logError("MS SQL query", e, s"sql: ${cleanSql.take(50)}...")
         throw e
     }
   }
 
-  def getConnection: Connection = throw NotImplementedException("Method not implemented")
+  override def validateConnection(): Unit = {
+    val conn = DriverManager.getConnection(getJdbc, getProperties)
+    try {
+      if (!conn.isValid(10)) {
+        throw new java.sql.SQLException("MS SQL connection validation failed: connection is invalid or unresponsive")
+      }
+    } finally {
+      conn.close()
+    }
+  }
+
+  def getConnection: Connection = DriverManager.getConnection(getJdbc, getProperties)
 
   override def close(): Unit = {
     ConnectionTrait.removeFromCache(getCacheKey())

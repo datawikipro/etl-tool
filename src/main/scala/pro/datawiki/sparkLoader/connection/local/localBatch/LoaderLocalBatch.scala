@@ -65,6 +65,14 @@ class LoaderLocalBatch(format: FileBaseFormat, configYaml: YamlConfig, configLoc
     ConnectionTrait.removeFromCache(getCacheKey())
   }
 
+  override def validateConnection(): Unit = {
+    val file = new java.io.File(configYaml.folder)
+    if (!file.exists()) {
+      logWarning(s"Local storage folder '${configYaml.folder}' does not exist, creating directory")
+      file.mkdirs()
+    }
+  }
+
   override def getConnectionEnum(): ConnectionEnum = connectionEnum
 
   override def getConfigLocation(): String = _configLocation

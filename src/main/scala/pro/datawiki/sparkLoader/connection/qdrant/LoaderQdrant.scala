@@ -75,6 +75,21 @@ class LoaderQdrant(configYaml: YamlConfig, configLocation: String) extends Conne
   //    SparkObject.spark.createDataFrame(emptyRDD, schema)
   //  }
 
+  override def validateConnection(): Unit = {
+    if (server == null) {
+      server = getServer
+    }
+    val url = s"${getBaseUrl}/collections"
+    val request = basicRequest
+      .get(uri"$url")
+      .header("Content-Type", "application/json")
+    val response = request.send(backend)
+    if (response.code.code >= 400) {
+      throw new Exception(s"Qdrant connection validation failed with status code ${response.code.code}: ${response.body}")
+    }
+    logInfo("Qdrant connection validation passed: collections API accessible")
+  }
+
   private def getServer: YamlServerHost = {
     configYaml.server.replica.find(_.validateHost) match {
       case Some(replica) => replica

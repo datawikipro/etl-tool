@@ -29,21 +29,24 @@ case class YamlConfigTargetFileSystem(
       case _ => throw IllegalArgumentException("Invalid loader type")
   }
 
+  @JsonIgnore
+  val effectiveTargetFile: String = Option(targetFile).filter(_.nonEmpty).getOrElse(tableName)
+
   def writeAutoPartition(df: DataFrameTrait, mode: WriteMode): Boolean = {
     if partitionBy.isEmpty then throw IllegalArgumentException("partitionBy cannot be empty for auto partition mode")
 
-    loader.writeDfPartitionAuto(df.getDataFrame, tableName, targetFile, partitionBy, mode)
+    loader.writeDfPartitionAuto(df.getDataFrame, tableName, effectiveTargetFile, partitionBy, mode)
     return true
 
   }
 
   def writeDirectPartition(df: DataFrameTrait): Boolean = {
-    loader.writeDfPartitionDirect(df.getDataFrame, tableName, targetFile, partitionBy, ApplicationContext.getPartitions(partitionBy *), loadMode, false)
+    loader.writeDfPartitionDirect(df.getDataFrame, tableName, effectiveTargetFile, partitionBy, ApplicationContext.getPartitions(partitionBy *), loadMode, false)
     return true
   }
 
   def writeStream(df: DataFrameTrait): Boolean = {
-    loader.writeDf(df.getDataFrame, tableName, targetFile, loadMode)
+    loader.writeDf(df.getDataFrame, tableName, effectiveTargetFile, loadMode)
     return true
   }
 
@@ -56,13 +59,13 @@ case class YamlConfigTargetFileSystem(
       dfWithExtraColumn = dfWithExtraColumn.withColumn(col._1, lit(col._2))
     })
 
-    loader.writeDfPartitionAuto(dfWithExtraColumn, tableName, targetFile, listPartition, loadMode)
+    loader.writeDfPartitionAuto(dfWithExtraColumn, tableName, effectiveTargetFile, listPartition, loadMode)
 
     return true
   }
 
   def writeFullTable(df: DataFrameTrait): Boolean = {
-    loader.writeDf(df.getDataFrame, tableName, targetFile, loadMode)
+    loader.writeDf(df.getDataFrame, tableName, effectiveTargetFile, loadMode)
     return true
   }
 
@@ -83,16 +86,16 @@ case class YamlConfigTargetFileSystem(
         val catalog = icebergLoader.configYaml.catalog
         val warehouse = icebergLoader.configYaml.warehouse
         
-        val targetRef = icebergLoader.fullRef(targetFile)
-        icebergLoader.createSchemaIfNotExists(targetFile)
+        val targetRef = icebergLoader.fullRef(effectiveTargetFile)
+        icebergLoader.createSchemaIfNotExists(effectiveTargetFile)
         if (!SparkObject.spark.catalog.tableExists(targetRef)) {
           logInfo(s"Target table $targetRef does not exist. Performing initial load instead of MERGE.")
-          icebergLoader.writeDf(df.getDataFrame, tableName, targetFile, WriteMode.overwriteTable, partitionBy)
+          icebergLoader.writeDf(df.getDataFrame, tableName, effectiveTargetFile, WriteMode.overwriteTable, partitionBy)
           return true
         }
 
-        val lastSlashIdx = targetFile.lastIndexOf('/')
-        val s3SchemaFolder = if (lastSlashIdx != -1) targetFile.substring(0, lastSlashIdx) else s"$schemaName.db"
+        val lastSlashIdx = effectiveTargetFile.lastIndexOf('/')
+        val s3SchemaFolder = if (lastSlashIdx != -1) effectiveTargetFile.substring(0, lastSlashIdx) else s"$schemaName.db"
         val tempTableLocation = s"$s3SchemaFolder/$tempTable"
 
         logInfo(s"Step A: Writing DataFrame to temp table $tempTableName in Spark catalog $catalog")

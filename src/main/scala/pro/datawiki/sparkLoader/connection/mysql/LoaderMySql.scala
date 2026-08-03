@@ -16,7 +16,7 @@ import pro.datawiki.sparkLoader.{LogMode, SparkObject}
 import pro.datawiki.yamlConfiguration.YamlClass
 
 import java.nio.file.{Files, Paths}
-import java.sql.Connection
+import java.sql.{Connection, DriverManager}
 import java.util.Properties
 
 class LoaderMySql(configYaml: YamlConfig, configLocation: String) extends ConnectionTrait with DatabaseTrait  with LoggingTrait{
@@ -64,9 +64,20 @@ class LoaderMySql(configYaml: YamlConfig, configLocation: String) extends Connec
     }
   }
 
+  override def validateConnection(): Unit = {
+    val conn = DriverManager.getConnection(getJdbc, getProperties)
+    try {
+      if (!conn.isValid(10)) {
+        throw new java.sql.SQLException("MySQL connection validation failed: connection is invalid or unresponsive")
+      }
+    } finally {
+      conn.close()
+    }
+  }
+
   @Override
   def getConnection: Connection = {
-    throw NotImplementedException("Method not implemented")
+    DriverManager.getConnection(getJdbc, getProperties)
   }
 
   override def close(): Unit = {

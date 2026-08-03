@@ -24,7 +24,7 @@ import pro.datawiki.sparkLoader.traits.LoggingTrait
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.mutable
 
-trait ConnectionTrait {
+trait ConnectionTrait extends LoggingTrait {
   def close(): Unit
   
   def getConnectionEnum(): ConnectionEnum
@@ -34,6 +34,18 @@ trait ConnectionTrait {
   }
   
   def getConfigLocation(): String
+
+  def validateConnection(): Unit = {
+    logWarning(
+      s"""
+         |================================================================================
+         | WARNING: NO CONNECTION VALIDATION IMPLEMENTED FOR LOADER: ${this.getClass.getSimpleName}
+         | Connection Type: ${getConnectionEnum()} | Config: ${getConfigLocation()}
+         | Credentials, SSL/TLS certificates, and service health will NOT be verified upfront!
+         |================================================================================
+         |""".stripMargin
+    )
+  }
 }
 
 object ConnectionTrait extends LoggingTrait {
@@ -93,6 +105,11 @@ object ConnectionTrait extends LoggingTrait {
       logInfo(s"Creating new connection of type: $connection for source: $sourceName")
 
       val locConnection = createConnection(sourceName, connection, configLocation)
+
+      // Validate connection parameters, credentials, SSL, and server health
+      logInfo(s"Validating connection of type: $connection for source: $sourceName")
+      locConnection.validateConnection()
+      logInfo(s"Successfully validated connection of type: $connection for source: $sourceName")
 
       // Cache the newly created connection
       cacheConnection(cacheKey, locConnection)

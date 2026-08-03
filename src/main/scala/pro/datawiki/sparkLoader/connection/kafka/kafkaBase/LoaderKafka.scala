@@ -13,6 +13,8 @@ class LoaderKafka(configYaml: YamlConfig, configLocation: String) extends Loader
   private val _configLocation: String = configLocation
 
   override def getConfigLocation(): String = _configLocation
+
+  override def validateConnection(): Unit = validateKafkaConnection()
   
   override def getListTopics(template: String): DataFrame = super.getListTopics(template)
   
