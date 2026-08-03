@@ -22,6 +22,7 @@ case class LoaderMinIo(format: FileBaseFormat,
   private val _configLocation: String = configLocation
 
   logInfo("Creating MinIO connection")
+  modifySpark()
 
   def optimizeDataFramePartitions(df: DataFrame): DataFrame = FileStorageCommon.optimizeDataFramePartitions(df)
 
@@ -89,7 +90,8 @@ case class LoaderMinIo(format: FileBaseFormat,
       .endpoint(getMinIoHost)
       .credentials(configYaml.accessKey, configYaml.secretKey)
 
-    val disableCertChecking = sys.props.get("com.amazonaws.sdk.disableCertChecking").contains("true") || 
+    val disableCertChecking = configYaml.sslChannelMode.contains("Insecure") ||
+                              sys.props.get("com.amazonaws.sdk.disableCertChecking").contains("true") || 
                               sys.env.get("DISABLE_CERT_CHECKING").contains("true")
 
     if (disableCertChecking) {
@@ -246,6 +248,11 @@ case class LoaderMinIo(format: FileBaseFormat,
     // SSL configuration
     modifySparkParameter("fs.s3a.ssl.channel.mode", configYaml.sslChannelMode)
     modifySparkParameter("fs.s3a.connection.ssl.enabled", configYaml.sslEnabled.map(_.toString))
+
+    if (configYaml.sslChannelMode.contains("Insecure")) {
+      System.setProperty("com.amazonaws.sdk.disableCertChecking", "true")
+      System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true")
+    }
   }
 
   private def getMinIoHost: String = {
