@@ -72,7 +72,7 @@ object PartitionDeltaChecker extends LoggingTrait {
       s"$partCol IN (${candidatePartitions.map(p => s"'$p'").mkString(", ")})"
     } else "1=1"
 
-    val activeFilter = SCDType(config.scdType) match {
+    val activeFilter = config.getScdTypeEnum match {
       case SCDType.SCD_2 =>
         config.scdActiveFilter match {
           case Some(filter) if filter.trim.nonEmpty => filter

@@ -1,6 +1,7 @@
 package pro.datawiki.sparkLoader.configuration
 
 import com.fasterxml.jackson.annotation.{JsonIgnore, JsonInclude}
+import pro.datawiki.sparkLoader.dictionaryEnum.SCDType
 
 @JsonInclude(JsonInclude.Include.NON_ABSENT)
 case class YamlConfigPartitionSync(
@@ -15,4 +16,7 @@ case class YamlConfigPartitionSync(
                                      odsTable: String,
                                      scdType: String = "SCD_1",
                                      scdActiveFilter: Option[String] = None
-                                   )
+                                   ) {
+  @JsonIgnore
+  def getScdTypeEnum: SCDType = SCDType(scdType)
+}
