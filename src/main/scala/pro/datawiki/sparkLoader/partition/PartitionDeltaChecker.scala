@@ -76,7 +76,7 @@ object PartitionDeltaChecker extends LoggingTrait {
       case SCDType.SCD_2 | SCDType.SCD_3 =>
         config.scdActiveFilter match {
           case Some(filter) if filter.trim.nonEmpty => filter
-          case _ => "valid_to_dttm = TIMESTAMP '9999-12-31 00:00:00'"
+          case _ => "valid_to_dttm = to_date('2100','yyyy')"
         }
       case _ => "1=1"
     }
