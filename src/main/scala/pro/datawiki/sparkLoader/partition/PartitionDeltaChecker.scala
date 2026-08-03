@@ -76,7 +76,10 @@ object PartitionDeltaChecker extends LoggingTrait {
       case SCDType.SCD_2 | SCDType.SCD_3 =>
         config.scdActiveFilter match {
           case Some(filter) if filter.trim.nonEmpty => filter
-          case _ => "valid_to_dttm = to_date('2100','yyyy')"
+          case _ => odsConn match {
+            case db: DatabaseTrait => db.scdActiveFilter
+            case _                 => s"valid_to_dttm = date('${SCDType.INFINITY_YEAR}-01-01')" // Spark SQL / Iceberg
+          }
         }
       case _ => "1=1"
     }

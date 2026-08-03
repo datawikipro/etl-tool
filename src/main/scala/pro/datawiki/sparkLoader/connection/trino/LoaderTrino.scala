@@ -13,6 +13,9 @@ import java.util.Properties
 
 class LoaderTrino(val url: String, val user: String, val configLocation: String = "") extends ConnectionTrait, DatabaseTrait, LoggingTrait {
 
+  /** Trino dialect: date '2100-01-01' */
+  override def scdInfinityDateExpr: String = s"date '${SCDType.INFINITY_YEAR}-01-01'"
+
   var connection: Connection = null
 
   def getProperties: Properties = {

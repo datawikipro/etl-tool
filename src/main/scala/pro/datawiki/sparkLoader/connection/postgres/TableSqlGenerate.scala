@@ -22,7 +22,7 @@ class TableSqlGenerate(
       case SCDType.SCD_3 => {
         return List(
           ("valid_from_dttm", s"cast('$startTime' as TimeStamp)"),
-          ("valid_to_dttm", "to_date('2100','yyyy')"),
+          ("valid_to_dttm", s"to_date('${SCDType.INFINITY_YEAR}','yyyy')"),
           ("run_id", s"""'${ApplicationContext.getRunId}'""")
         )
       }
@@ -80,7 +80,7 @@ class TableSqlGenerate(
       case _ =>  s"""$sql and ${partitionBy.map(col => s"""${col._1} = '${col._2}'""").mkString(" and ")}"""
     }
     sql = scdType match {
-      case SCDType.SCD_3 => s"""$sql and valid_to_dttm = to_date('2100','yyyy')"""
+      case SCDType.SCD_3 => s"""$sql and ${dataBase.scdActiveFilter}"""
       case SCDType.SCD_0 => sql
       case _=> {
         throw Exception()

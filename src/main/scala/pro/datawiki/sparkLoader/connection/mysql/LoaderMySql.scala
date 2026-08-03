@@ -24,6 +24,9 @@ class LoaderMySql(configYaml: YamlConfig, configLocation: String) extends Connec
   
   logInfo("Creating MySQL connection")
 
+  /** MySQL dialect: DATE('2100-01-01') */
+  override def scdInfinityDateExpr: String = s"DATE('${SCDType.INFINITY_YEAR}-01-01')"
+
   override def getDataFrameBySQL(sql: String): DataFrame = {
     val df = SparkObject.spark.sqlContext.read.jdbc(getJdbc, s"""($sql) a """, getProperties)
     LogMode.debugDF(df)

@@ -24,6 +24,24 @@ trait DatabaseTrait extends ConnectionTrait {
     if (hasLimit) sql else s"$sql limit $limit"
   }
 
+  /**
+   * Dialect-specific SQL expression for the SCD_2/SCD_3 "infinity" date (year 2100).
+   * Must be implemented in each connector subclass to match the target database SQL dialect.
+   *
+   * Examples:
+   *   PostgreSQL:  to_date('2100','yyyy')
+   *   MSSQL:       CONVERT(date, '2100-01-01')
+   *   Trino:       date '2100-01-01'
+   *   Spark SQL:   date('2100-01-01')
+   */
+  def scdInfinityDateExpr: String
+
+  /**
+   * SQL WHERE predicate to select only active (current) SCD_2/SCD_3 records.
+   * Uses the dialect-specific [[scdInfinityDateExpr]].
+   */
+  def scdActiveFilter: String = s"valid_to_dttm = $scdInfinityDateExpr"
+
   def runSQL(in: String): Boolean
 
   def readDfSchema(tableSchema: String, tableName: String): DataFrame
