@@ -13,6 +13,6 @@ case class YamlConfigPartitionSync(
                                      odsConnection: String,
                                      odsConfigLocation: Option[String] = None,
                                      odsTable: String,
-                                     scdType: String = "scd1",
+                                     scdType: String = "SCD_1",
                                      scdActiveFilter: Option[String] = None
                                    )
