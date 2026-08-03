@@ -42,6 +42,18 @@ trait DatabaseTrait extends ConnectionTrait {
    */
   def scdActiveFilter: String = s"valid_to_dttm = $scdInfinityDateExpr"
 
+  /**
+   * Dialect-specific SQL expression to cast a value to string/varchar.
+   * Default: standard SQL CAST(expr AS VARCHAR).
+   * Override in connectors where syntax differs (e.g., Spark SQL uses STRING).
+   *
+   * Examples:
+   *   Standard SQL / Trino / Postgres: CAST(expr AS VARCHAR)
+   *   MSSQL:                           CAST(expr AS NVARCHAR(MAX))
+   *   Spark SQL:                       CAST(expr AS STRING)
+   */
+  def castToString(expr: String): String = s"CAST($expr AS VARCHAR)"
+
   def runSQL(in: String): Boolean
 
   def readDfSchema(tableSchema: String, tableName: String): DataFrame

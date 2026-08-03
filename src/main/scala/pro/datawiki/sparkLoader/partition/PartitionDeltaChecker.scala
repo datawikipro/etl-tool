@@ -53,8 +53,12 @@ object PartitionDeltaChecker extends LoggingTrait {
     }
 
     val hashExpr = config.hashExpression.getOrElse("1")
+    val castExpr = srcConn match {
+      case db: DatabaseTrait => db.castToString(hashExpr)
+      case _                 => s"CAST($hashExpr AS STRING)" // Spark SQL
+    }
     val query =
-      s"""SELECT $partCol AS part_val, COUNT(1) AS row_cnt, COALESCE(CAST($hashExpr AS STRING), '') AS hash_val
+      s"""SELECT $partCol AS part_val, COUNT(1) AS row_cnt, COALESCE($castExpr, '') AS hash_val
          |FROM $srcTableName
          |WHERE $baseFilter
          |GROUP BY $partCol""".stripMargin
@@ -86,8 +90,12 @@ object PartitionDeltaChecker extends LoggingTrait {
 
     val whereClause = s"($activeFilter) AND ($partitionsFilter)"
     val hashExpr = config.hashExpression.getOrElse("1")
+    val castExpr = odsConn match {
+      case db: DatabaseTrait => db.castToString(hashExpr)
+      case _                 => s"CAST($hashExpr AS STRING)" // Spark SQL / Iceberg
+    }
     val query =
-      s"""SELECT $partCol AS part_val, COUNT(1) AS row_cnt, COALESCE(CAST($hashExpr AS STRING), '') AS hash_val
+      s"""SELECT $partCol AS part_val, COUNT(1) AS row_cnt, COALESCE($castExpr, '') AS hash_val
          |FROM ${config.odsTable}
          |WHERE $whereClause
          |GROUP BY $partCol""".stripMargin
