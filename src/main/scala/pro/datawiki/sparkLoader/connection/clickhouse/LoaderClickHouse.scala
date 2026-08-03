@@ -17,6 +17,9 @@ class LoaderClickHouse(sourceName: String, configYaml: YamlConfig, configLocatio
   
   logInfo("Creating ClickHouse connection")
 
+  /** ClickHouse dialect: toDate('2100-01-01') */
+  override def scdInfinityDateExpr: String = s"toDate('${SCDType.INFINITY_YEAR}-01-01')"
+
   override def getDataFrameBySQL(sql: String): DataFrame = {
     val startTime = logOperationStart("ClickHouse SQL query", s"source: $sourceName, sql: ${sql.take(100)}...")
 

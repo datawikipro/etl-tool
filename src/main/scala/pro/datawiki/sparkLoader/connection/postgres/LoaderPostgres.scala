@@ -22,6 +22,9 @@ import scala.util.Random
 class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends ConnectionTrait, DatabaseTrait, KafkaMetadataTrait, SupportIdMap, LoggingTrait {
   var schemaName: String = ""
 
+  /** PostgreSQL dialect: to_date('2100','yyyy') */
+  override def scdInfinityDateExpr: String = s"to_date('${SCDType.INFINITY_YEAR}','yyyy')"
+
   private def defaultSchema: String = {
     if schemaName != "" then return schemaName
     schemaName = s"tmp__${Random.alphanumeric.filter(_.isLetter).take(16).mkString}"
@@ -87,7 +90,7 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
     val deltaTableSql =
       s"""
          |select ${(uniqueKey).map(col => s""""${col}"""").mkString(",")} from $tableSchema.$tableName
-         |where valid_to_dttm = to_date('2100','yyyy')
+         |where valid_to_dttm = $scdInfinityDateExpr
          |except
          | select ${uniqueKey.map(col => s""""${col}"""").mkString(",")} from ${cache.getLocation} where ${uniqueKey.head} is not null
          |""".stripMargin
@@ -99,7 +102,7 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
          |update $tableSchema.$tableName tgt
          |   set valid_to_dttm = now() - interval '1 microsecond'
          |  from ${cache.getLocation}_4 src
-         | where tgt.valid_to_dttm = to_date('2100','yyyy')
+         | where tgt.valid_to_dttm = $scdInfinityDateExpr
          |   and ${uniqueKey.map(col => s"""src."${col}" = tgt."${col}"""").mkString(" and ")}
          |""".stripMargin
 
@@ -190,7 +193,7 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
              |update ${table.getTableAlias} tgt
              |   set valid_to_dttm = src.valid_from_dttm - interval '1 microsecond'
              |  from ${cache.getLocation}_3 src
-             | where tgt.valid_to_dttm = to_date('2100','yyyy')
+             | where tgt.valid_to_dttm = $scdInfinityDateExpr
              |   and src.update_command = 'Update'
              |   and $joinString
              |""".stripMargin
@@ -245,12 +248,12 @@ class LoaderPostgres(configYaml: YamlConfig, configLocation: String) extends Con
     scdType match {
       case SCDType.SCD_3 => {
         locDf = locDf.withColumn("valid_from_dttm", org.apache.spark.sql.functions.current_timestamp())
-        locDf = locDf.withColumn("valid_to_dttm", org.apache.spark.sql.functions.to_timestamp(org.apache.spark.sql.functions.lit("2100-01-01 00:00:00")))
+        locDf = locDf.withColumn("valid_to_dttm", org.apache.spark.sql.functions.to_timestamp(org.apache.spark.sql.functions.lit(SCDType.INFINITY_TIMESTAMP)))
         locDf = locDf.withColumn("run_id", org.apache.spark.sql.functions.lit(s"${ApplicationContext.getRunId}"))
       }
       case SCDType.SCD_2 => {
         locDf = locDf.withColumn("valid_from_dttm", org.apache.spark.sql.functions.current_timestamp())
-        locDf = locDf.withColumn("valid_to_dttm", org.apache.spark.sql.functions.to_timestamp(org.apache.spark.sql.functions.lit("2100-01-01 00:00:00")))
+        locDf = locDf.withColumn("valid_to_dttm", org.apache.spark.sql.functions.to_timestamp(org.apache.spark.sql.functions.lit(SCDType.INFINITY_TIMESTAMP)))
       }
       case SCDType.SCD_0 => {
       }

@@ -50,6 +50,13 @@ class LoaderMsSql(configYaml: YamlConfig, configLocation: String) extends Connec
     }
   }
 
+  /** MSSQL does not support to_date(). Use CONVERT(date, ...) instead. */
+  override def scdInfinityDateExpr: String =
+    s"CONVERT(date, '${pro.datawiki.sparkLoader.dictionaryEnum.SCDType.INFINITY_YEAR}-01-01')"
+
+  /** MSSQL uses NVARCHAR(MAX) for string casting. */
+  override def castToString(expr: String): String = s"CAST($expr AS NVARCHAR(MAX))"
+
   override def getDataFrameBySQL(sql: String): DataFrame = {
     val cleanSql = applyLimitToSql(sql, 0)
     val startTime = logOperationStart("MS SQL query", s"sql: ${cleanSql.take(100)}...")

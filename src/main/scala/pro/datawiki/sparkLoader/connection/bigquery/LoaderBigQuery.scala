@@ -16,6 +16,9 @@ class LoaderBigQuery(configYaml: YamlConfig, configLocation: String) extends Con
   
   logInfo("Creating BigQuery connection")
 
+  /** BigQuery dialect: DATE('2100-01-01') */
+  override def scdInfinityDateExpr: String = s"DATE('${SCDType.INFINITY_YEAR}-01-01')"
+
   def readDfBigQuery(projectId: String,
                      datasetId: String,
                      tableId: String): DataFrame = {
