@@ -67,6 +67,7 @@ COPY run_etl.sh /app/run_etl.sh
 COPY run_all_partitions.sh /app/run_all_partitions.sh
 RUN mkdir -p /app/configs/connections /app/configs/pipelines
 RUN chmod +x /app/run_etl.sh /app/run_all_partitions.sh
+RUN $JAVA_HOME/bin/keytool -import -noprompt -trustcacerts -alias yandex_s3 -file /app/yandex_s3.crt -cacerts -storepass changeit
 
 # Default entrypoint: java with Spark jars + staged libraries
 ENTRYPOINT ["java", \
