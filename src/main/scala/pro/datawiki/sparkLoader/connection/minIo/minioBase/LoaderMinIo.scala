@@ -243,10 +243,9 @@ case class LoaderMinIo(format: FileBaseFormat,
     modifySparkParameter("fs.s3a.temporary.file.cleanup.interval", configYaml.temporaryFileCleanupInterval)
     modifySparkParameter("fs.s3a.disable.temporary.files", configYaml.disableTemporaryFiles)
 
-    // SSL configuration
-    //    modifySparkParameter("fs.s3a.connection.ssl.enabled", configYaml.sslEnabled.getOrElse(false).toString)
-    //    modifySparkParameter("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-
+    // SSL configuration - disable cert checking for self-signed certificates (MinIO / Lenovo S3)
+    SparkObject.setHadoopConfiguration("fs.s3a.ssl.channel.mode", "Insecure")
+    modifySparkParameter("fs.s3a.connection.ssl.enabled", configYaml.sslEnabled.map(_.toString))
   }
 
   private def getMinIoHost: String = {
