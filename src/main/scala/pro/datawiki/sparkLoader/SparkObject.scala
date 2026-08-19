@@ -57,6 +57,12 @@ object SparkObject extends LoggingTrait {
     conf.set("spark.sql.adaptive.skewJoin.enabled", "true")
     conf.set("spark.sql.adaptive.localShuffleReader.enabled", "true")
 
+    // Datetime rebasing modes for ancient dates (< 1582-10-15) in Avro/Parquet (e.g. 1C default dates)
+    conf.set("spark.sql.avro.datetimeRebaseModeInWrite", "CORRECTED")
+    conf.set("spark.sql.avro.datetimeRebaseModeInRead", "CORRECTED")
+    conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "CORRECTED")
+    conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "CORRECTED")
+
     // ── Iceberg support ──────────────────────────────────────────────────────
     // Extensions must be set before SparkSession is created
     conf.set("spark.sql.extensions",
