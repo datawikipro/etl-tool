@@ -25,6 +25,16 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
     val endpoint = getMinIoHost
     val cat = configYaml.catalog
 
+    val disableCert = configYaml.disableCertChecking.contains(true) ||
+                      configYaml.sslChannelMode.exists(_.equalsIgnoreCase("Insecure")) ||
+                      sys.env.get("DISABLE_CERT_CHECKING").contains("true") ||
+                      sys.props.get("com.amazonaws.sdk.disableCertChecking").contains("true")
+
+    if (disableCert) {
+      System.setProperty("com.amazonaws.sdk.disableCertChecking", "true")
+      System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true")
+    }
+
     // 1. Set Iceberg catalog Spark configs BEFORE calling setHadoopConfiguration (which triggers SparkSession creation)
     SparkObject.setConf(s"spark.sql.catalog.$cat", "org.apache.iceberg.spark.SparkCatalog")
     val catType = configYaml.catalogType.getOrElse(
@@ -53,9 +63,17 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
     SparkObject.setHadoopConfiguration("fs.s3a.path.style.access",
       configYaml.pathStyleAccess.getOrElse(true).toString)
     SparkObject.setHadoopConfiguration("fs.s3a.establish.timeout",
-      configYaml.establishTimeout.getOrElse("15000"))
+      configYaml.establishTimeout.getOrElse("10000"))
     SparkObject.setHadoopConfiguration("fs.s3a.connection.timeout",
-      configYaml.connectionTimeout.getOrElse("60000"))
+      configYaml.connectionTimeout.getOrElse("15000"))
+    SparkObject.setHadoopConfiguration("fs.s3a.api.call.timeout",
+      configYaml.apiCallTimeout.getOrElse("15000"))
+    SparkObject.setHadoopConfiguration("fs.s3a.request.timeout",
+      configYaml.requestTimeout.getOrElse("15000"))
+    SparkObject.setHadoopConfiguration("fs.s3a.fast.upload",
+      configYaml.fastUpload.getOrElse("true"))
+    SparkObject.setHadoopConfiguration("fs.s3a.fast.upload.buffer",
+      configYaml.fastUploadBuffer.getOrElse("disk"))
     SparkObject.setHadoopConfiguration("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
     SparkObject.setHadoopConfiguration("fs.s3a.aws.credentials.provider",
       "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")

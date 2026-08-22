@@ -246,7 +246,11 @@ case class LoaderMinIo(format: FileBaseFormat,
     modifySparkParameter("fs.s3a.disable.temporary.files", configYaml.disableTemporaryFiles)
 
     // SSL configuration
-    if (configYaml.sslChannelMode.exists(_.equalsIgnoreCase("Insecure"))) {
+    val disableCert = configYaml.sslChannelMode.exists(_.equalsIgnoreCase("Insecure")) ||
+                      sys.props.get("com.amazonaws.sdk.disableCertChecking").contains("true") ||
+                      sys.env.get("DISABLE_CERT_CHECKING").contains("true")
+
+    if (disableCert) {
       System.setProperty("com.amazonaws.sdk.disableCertChecking", "true")
       System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true")
     } else {

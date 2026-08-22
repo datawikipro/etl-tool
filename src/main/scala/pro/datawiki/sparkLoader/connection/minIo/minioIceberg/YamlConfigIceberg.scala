@@ -16,6 +16,8 @@ case class YamlConfigIceberg(
                               establishTimeout: Option[String],
                               connectionTimeout: Option[String],
                               sslEnabled: Option[Boolean],
+                              sslChannelMode: Option[String] = None,
+                              disableCertChecking: Option[Boolean] = None,
                               region: Option[String] = None,
                               catalogType: Option[String] = None,
                               register: Option[YamlConfigRegister] = None,
