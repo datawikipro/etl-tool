@@ -104,7 +104,7 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
     }
   }
 
-  private def parseLocation(location: String): (String, String) = {
+  def parseLocation(location: String): (String, String) = {
     val isHive = configYaml.catalogType.contains("hive")
     if (location.contains('/')) {
       val lastSlashIdx = location.lastIndexOf('/')

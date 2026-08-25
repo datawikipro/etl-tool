@@ -111,33 +111,29 @@ case class YamlConfigTargetFileSystem(
             logWarning(s"Could not evolve schema for $targetRef: ${e.getMessage}")
         }
 
-        val lastSlashIdx = effectiveTargetFile.lastIndexOf('/')
-        val s3SchemaFolder = if (lastSlashIdx != -1) effectiveTargetFile.substring(0, lastSlashIdx) else s"$schemaName.db"
+        val (locSchemaName, _) = icebergLoader.parseLocation(effectiveTargetFile)
+        val s3SchemaFolder = if (locSchemaName.endsWith(".db")) locSchemaName else locSchemaName + ".db"
         val tempTableLocation = s"$s3SchemaFolder/$tempTable"
 
         logInfo(s"Step A: Writing DataFrame to temp table $tempTableName in Spark catalog $catalog")
         icebergLoader.writeDf(df.getDataFrame, tempTableName, tempTableLocation, WriteMode.overwriteTable, partitionBy)
         
-        val tableLocation = s"$warehouse/$s3SchemaFolder/$tempTable"
-        
         icebergLoader.getTrinoLoader match {
           case Some(trinoRegistry) =>
-            logInfo(s"Step B: Registering temp table $tempTableName in Trino")
-            trinoRegistry.registerTable(catalog, schemaName, tempTable, tableLocation)
-            
             try {
-              logInfo(s"Step C: Executing MERGE in Trino")
+              logInfo(s"Step B: Executing MERGE in Trino")
               trinoRegistry.executeMerge(catalog, schemaName, targetTable, tempTable, mergeKeys, df.getDataFrame.columns.toList)
             } finally {
-              logInfo(s"Step D: Dropping temp table $tempTableName in Trino")
+              logInfo(s"Step C: Dropping temp table $tempTableName in Trino")
               trinoRegistry.dropTable(catalog, schemaName, tempTable)
               
-              logInfo(s"Step E: Dropping temp table $tempTableName in Spark")
+              logInfo(s"Step D: Dropping temp table $tempTableName in Spark")
               try {
-                SparkObject.spark.sql(s"DROP TABLE IF EXISTS $catalog.`$s3SchemaFolder`.$tempTable")
+                val tempRef = icebergLoader.fullRef(tempTableLocation)
+                SparkObject.spark.sql(s"DROP TABLE IF EXISTS $tempRef")
               } catch {
                 case e: Exception =>
-                  logWarning(s"Failed to drop temp table $tempTable in Spark database $s3SchemaFolder: ${e.getMessage}")
+                  logWarning(s"Failed to drop temp table in Spark: ${e.getMessage}")
               }
             }
             
