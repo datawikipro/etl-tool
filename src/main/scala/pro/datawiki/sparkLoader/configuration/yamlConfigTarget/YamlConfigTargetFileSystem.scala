@@ -94,6 +94,23 @@ case class YamlConfigTargetFileSystem(
           return true
         }
 
+        // Schema evolution: ensure target table has all columns from incoming DataFrame
+        try {
+          val targetSchema = SparkObject.spark.table(targetRef).schema
+          val targetColNames = targetSchema.fieldNames.map(_.toLowerCase).toSet
+          val missingFields = df.getDataFrame.schema.fields.filterNot(f => targetColNames.contains(f.name.toLowerCase))
+          
+          if (missingFields.nonEmpty) {
+            logInfo(s"Target table $targetRef is missing ${missingFields.length} columns: ${missingFields.map(_.name).mkString(", ")}. Adding them via ALTER TABLE.")
+            val alterColsDef = missingFields.map(f => s"`${f.name}` ${f.dataType.sql}").mkString(", ")
+            SparkObject.spark.sql(s"ALTER TABLE $targetRef ADD COLUMNS ($alterColsDef)")
+            logInfo(s"Successfully evolved schema for $targetRef")
+          }
+        } catch {
+          case e: Exception =>
+            logWarning(s"Could not evolve schema for $targetRef: ${e.getMessage}")
+        }
+
         val lastSlashIdx = effectiveTargetFile.lastIndexOf('/')
         val s3SchemaFolder = if (lastSlashIdx != -1) effectiveTargetFile.substring(0, lastSlashIdx) else s"$schemaName.db"
         val tempTableLocation = s"$s3SchemaFolder/$tempTable"
