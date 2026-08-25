@@ -105,6 +105,7 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   }
 
   private def parseLocation(location: String): (String, String) = {
+    val isHive = configYaml.catalogType.contains("hive")
     if (location.contains('/')) {
       val lastSlashIdx = location.lastIndexOf('/')
       val pathBefore = location.substring(0, lastSlashIdx)
@@ -114,14 +115,14 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
       } else {
         pathBefore
       }
-      val schemaName = if (rawSchemaName.endsWith(".db")) rawSchemaName.stripSuffix(".db") else rawSchemaName
+      val schemaName = if (isHive && rawSchemaName.endsWith(".db")) rawSchemaName.stripSuffix(".db") else rawSchemaName
       (schemaName, tableName)
     } else {
       val lastDotIdx = location.lastIndexOf('.')
       if (lastDotIdx != -1) {
         val rawSchemaName = location.substring(0, lastDotIdx)
         val tableName = location.substring(lastDotIdx + 1)
-        val schemaName = if (rawSchemaName.endsWith(".db")) rawSchemaName.stripSuffix(".db") else rawSchemaName
+        val schemaName = if (isHive && rawSchemaName.endsWith(".db")) rawSchemaName.stripSuffix(".db") else rawSchemaName
         (schemaName, tableName)
       } else {
         ("default", location)
