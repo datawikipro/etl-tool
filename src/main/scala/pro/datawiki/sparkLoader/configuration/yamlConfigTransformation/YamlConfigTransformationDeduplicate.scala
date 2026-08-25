@@ -28,7 +28,7 @@ case class YamlConfigTransformationDeduplicate(
           var df = SparkObject.spark.table(sourceTable)
           var updated = false
           uniqueKey.foreach { keyCol =>
-            if (!df.columns.contains(keyCol)) {
+            if (!df.columns.exists(_.equalsIgnoreCase(keyCol))) {
               df = df.withColumn(keyCol, org.apache.spark.sql.functions.lit(null).cast("string"))
               updated = true
             }
