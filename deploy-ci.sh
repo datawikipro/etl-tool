@@ -20,7 +20,7 @@ echo "$GITHUB_TOKEN" | podman login ghcr.io -u datawikipro --password-stdin
 # 2. Build & Push Docker image
 echo -e "\033[0;36m[Phase 2] Building and pushing image...\033[0m"
 podman build -f Dockerfile -t "$IMAGE_NAME" .
-podman push --creds "datawikipro:${GITHUB_TOKEN}" "$IMAGE_NAME"
+podman push --format docker --creds "datawikipro:${GITHUB_TOKEN}" "$IMAGE_NAME"
 
 # 3. Import image to K3s on target server (Removed - node 100.89.122.84 is deprecated)
 # echo -e "\033[0;36m[Phase 3] Pulling new image into K3S on remote server...\033[0m"
