@@ -39,6 +39,9 @@ case class YamlConfig(minioHost: List[YamlConfigHost],
                       fastUpload: Option[String], // Enable fast upload//TODO Boolean
                       fastUploadBuffer: Option[String], // Fast upload buffer type
 
+                      // Write compression
+                      compression: Option[String], // Compression codec: snappy | zstd | gzip | lz4 | none
+
                       // Committer configuration
                       committerName: Option[String], // Committer type
                       committerStagingConflictMode: Option[String], // Conflict resolution mode

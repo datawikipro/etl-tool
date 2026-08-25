@@ -39,11 +39,14 @@ class LoaderMinIoBatch(format: FileBaseFormat, configYaml: YamlConfig, configLoc
         }
       }
 
-      // Add options for better reliability
+      // Compression and upload buffer from YAML config (with sensible defaults)
+      val compressionCodec  = configYaml.compression.getOrElse("zstd")
+      val uploadBuffer      = configYaml.fastUploadBuffer.getOrElse("arrayByteBuffer")
+
       writer
-        .option("compression", "snappy")
+        .option("compression", compressionCodec)
         .option("fs.s3a.fast.upload", "true")
-        .option("fs.s3a.fast.upload.buffer", "disk")
+        .option("fs.s3a.fast.upload.buffer", uploadBuffer)
         .option("fs.s3a.committer.name", "directory")
         .option("fs.s3a.committer.staging.unique-filenames", "true")
 
