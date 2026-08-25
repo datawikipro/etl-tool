@@ -269,14 +269,44 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
     writeDf(df, tableName, location, writeMode, partitionName)
   }
 
+  private def resolveDirectPath(location: String): Option[String] = {
+    try {
+      val (schemaName, tableName) = parseLocation(location)
+      val s3SchemaFolder = if (schemaName.endsWith(".db")) schemaName else schemaName + ".db"
+      val schemaPathUri = s"${configYaml.warehouse}/$s3SchemaFolder"
+      val hadoopConf = SparkObject.spark.sparkContext.hadoopConfiguration
+      val fs = org.apache.hadoop.fs.FileSystem.get(new java.net.URI(configYaml.warehouse), hadoopConf)
+      val p = new org.apache.hadoop.fs.Path(schemaPathUri)
+      if (fs.exists(p)) {
+        val statuses = fs.listStatus(p)
+        statuses.filter(s => s.isDirectory && (s.getPath.getName == tableName || s.getPath.getName.startsWith(s"${tableName}-")))
+          .sortBy(_.getModificationTime)
+          .lastOption
+          .map(_.getPath.toString)
+      } else {
+        None
+      }
+    } catch {
+      case e: Exception =>
+        logWarning(s"Failed to discover S3 table directory for $location: ${e.getMessage}")
+        None
+    }
+  }
+
   // ─── Read ─────────────────────────────────────────────────────────────────
 
   override def readDf(location: String): DataFrame = {
     modifySpark()
     createSchemaIfNotExists(location)
-    val ref = fullRef(location)
-    logInfo(s"Reading Iceberg table: $ref")
-    SparkObject.spark.read.format("iceberg").load(ref)
+    resolveDirectPath(location) match {
+      case Some(directPath) =>
+        logInfo(s"Reading Iceberg table from discovered S3 path: $directPath")
+        SparkObject.spark.read.format("iceberg").load(directPath)
+      case None =>
+        val ref = fullRef(location)
+        logInfo(s"Reading Iceberg table from catalog ref: $ref")
+        SparkObject.spark.read.format("iceberg").load(ref)
+    }
   }
 
   override def readDf(location: String, keyPartitions: List[String],
@@ -298,7 +328,12 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   override def readDfSchema(location: String): DataFrame = {
     modifySpark()
     createSchemaIfNotExists(location)
-    SparkObject.spark.read.format("iceberg").load(fullRef(location)).limit(0)
+    resolveDirectPath(location) match {
+      case Some(directPath) =>
+        SparkObject.spark.read.format("iceberg").load(directPath).limit(0)
+      case None =>
+        SparkObject.spark.read.format("iceberg").load(fullRef(location)).limit(0)
+    }
   }
 
   // ─── Unsupported operations ───────────────────────────────────────────────
