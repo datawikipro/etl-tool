@@ -41,7 +41,9 @@ class LoaderMinIoBatch(format: FileBaseFormat, configYaml: YamlConfig, configLoc
 
       // Compression and upload buffer from YAML config (with sensible defaults)
       val compressionCodec  = configYaml.compression.getOrElse("zstd")
-      val uploadBuffer      = configYaml.fastUploadBuffer.getOrElse("arrayByteBuffer")
+      // Valid S3A buffer values: disk | array | bytebuffer
+      // "array" = in-memory byte[] — no disk writes, eliminates ephemeral-storage eviction
+      val uploadBuffer      = configYaml.fastUploadBuffer.getOrElse("array")
 
       writer
         .option("compression", compressionCodec)
