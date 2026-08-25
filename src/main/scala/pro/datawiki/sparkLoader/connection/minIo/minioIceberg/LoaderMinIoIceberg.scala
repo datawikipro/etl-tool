@@ -269,7 +269,7 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
     writeDf(df, tableName, location, writeMode, partitionName)
   }
 
-  private def resolveDirectPath(location: String): Option[String] = {
+  private def resolveTableRef(location: String): String = {
     try {
       val (schemaName, tableName) = parseLocation(location)
       val s3SchemaFolder = if (schemaName.endsWith(".db")) schemaName else schemaName + ".db"
@@ -279,17 +279,25 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
       val p = new org.apache.hadoop.fs.Path(schemaPathUri)
       if (fs.exists(p)) {
         val statuses = fs.listStatus(p)
-        statuses.filter(s => s.isDirectory && (s.getPath.getName == tableName || s.getPath.getName.startsWith(s"${tableName}-")))
+        val discoveredFolder = statuses.filter(s => s.isDirectory && (s.getPath.getName == tableName || s.getPath.getName.startsWith(s"${tableName}-")))
           .sortBy(_.getModificationTime)
           .lastOption
-          .map(_.getPath.toString)
+          .map(_.getPath.getName)
+        discoveredFolder match {
+          case Some(folderName) =>
+            val resolvedRef = s"${configYaml.catalog}.`$s3SchemaFolder`.`$folderName`"
+            logInfo(s"Discovered S3 table folder for $location -> ref: $resolvedRef")
+            resolvedRef
+          case None =>
+            fullRef(location)
+        }
       } else {
-        None
+        fullRef(location)
       }
     } catch {
       case e: Exception =>
         logWarning(s"Failed to discover S3 table directory for $location: ${e.getMessage}")
-        None
+        fullRef(location)
     }
   }
 
@@ -298,14 +306,14 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   override def readDf(location: String): DataFrame = {
     modifySpark()
     createSchemaIfNotExists(location)
-    resolveDirectPath(location) match {
-      case Some(directPath) =>
-        logInfo(s"Reading Iceberg table from discovered S3 path: $directPath")
-        SparkObject.spark.read.format("iceberg").load(directPath)
-      case None =>
-        val ref = fullRef(location)
-        logInfo(s"Reading Iceberg table from catalog ref: $ref")
-        SparkObject.spark.read.format("iceberg").load(ref)
+    val ref = resolveTableRef(location)
+    logInfo(s"Reading Iceberg table from catalog ref: $ref")
+    try {
+      SparkObject.spark.read.format("iceberg").load(ref)
+    } catch {
+      case e: Exception =>
+        logWarning(s"Failed to load table via load($ref): ${e.getMessage}. Retrying via spark.table($ref)...")
+        SparkObject.spark.table(ref)
     }
   }
 
@@ -328,11 +336,12 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
   override def readDfSchema(location: String): DataFrame = {
     modifySpark()
     createSchemaIfNotExists(location)
-    resolveDirectPath(location) match {
-      case Some(directPath) =>
-        SparkObject.spark.read.format("iceberg").load(directPath).limit(0)
-      case None =>
-        SparkObject.spark.read.format("iceberg").load(fullRef(location)).limit(0)
+    val ref = resolveTableRef(location)
+    try {
+      SparkObject.spark.read.format("iceberg").load(ref).limit(0)
+    } catch {
+      case e: Exception =>
+        SparkObject.spark.table(ref).limit(0)
     }
   }
 
