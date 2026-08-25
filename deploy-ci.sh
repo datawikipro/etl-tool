@@ -19,6 +19,8 @@ echo "$GITHUB_TOKEN" | podman login ghcr.io -u datawikipro --password-stdin
 
 # 2. Build & Push Docker image
 echo -e "\033[0;36m[Phase 2] Building and pushing image...\033[0m"
+podman system prune -f || true
+rm -rf /var/tmp/container_images_storage* 2>/dev/null || true
 podman build -f Dockerfile -t "$IMAGE_NAME" .
 podman push --format docker --creds "datawikipro:${GITHUB_TOKEN}" "$IMAGE_NAME"
 
