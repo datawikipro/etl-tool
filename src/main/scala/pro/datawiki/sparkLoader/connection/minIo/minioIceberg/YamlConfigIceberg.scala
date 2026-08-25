@@ -12,10 +12,14 @@ case class YamlConfigIceberg(
                               hiveMetastoreUri: String,       // e.g. "thrift://hive-metastore:9083"
                               catalog: String = "iceberg",   // catalog name in spark.sql.catalog.*
                               // S3A connection settings
-                              pathStyleAccess: Option[Boolean],
-                              establishTimeout: Option[String],
-                              connectionTimeout: Option[String],
-                              sslEnabled: Option[Boolean],
+                              pathStyleAccess: Option[Boolean] = None,
+                              establishTimeout: Option[String] = None,
+                              connectionTimeout: Option[String] = None,
+                              apiCallTimeout: Option[String] = None,
+                              requestTimeout: Option[String] = None,
+                              fastUpload: Option[String] = None,
+                              fastUploadBuffer: Option[String] = None,
+                              sslEnabled: Option[Boolean] = None,
                               sslChannelMode: Option[String] = None,
                               disableCertChecking: Option[Boolean] = None,
                               region: Option[String] = None,
