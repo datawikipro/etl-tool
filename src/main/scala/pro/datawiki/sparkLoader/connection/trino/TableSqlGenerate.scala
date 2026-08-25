@@ -26,7 +26,7 @@ object TableSqlGenerate {
 
   def generateMergeSql(catalogName: String, schemaName: String, targetTable: String, tempTable: String, mergeKeys: List[String], columns: List[String]): String = {
     val joinConditions = mergeKeys.map(k => s"""t."$k" = s."$k"""").mkString(" AND ")
-    val nonKeyColumns = columns.filterNot(c => mergeKeys.exists(_.equalsIgnoreCase(c)))
+    val nonKeyColumns = columns.filterNot(c => mergeKeys.contains(c))
     
     val updateClause = if (nonKeyColumns.nonEmpty) {
       val updateAssignments = nonKeyColumns.map(c => s""""$c" = s."$c"""").mkString(", ")

@@ -97,8 +97,8 @@ case class YamlConfigTargetFileSystem(
         // Schema evolution: ensure target table has all columns from incoming DataFrame
         try {
           val targetSchema = SparkObject.spark.table(targetRef).schema
-          val targetColNames = targetSchema.fieldNames.map(_.toLowerCase).toSet
-          val missingFields = df.getDataFrame.schema.fields.filterNot(f => targetColNames.contains(f.name.toLowerCase))
+          val targetColNames = targetSchema.fieldNames.toSet
+          val missingFields = df.getDataFrame.schema.fields.filterNot(f => targetColNames.contains(f.name))
           
           if (missingFields.nonEmpty) {
             logInfo(s"Target table $targetRef is missing ${missingFields.length} columns: ${missingFields.map(_.name).mkString(", ")}. Adding them via ALTER TABLE.")

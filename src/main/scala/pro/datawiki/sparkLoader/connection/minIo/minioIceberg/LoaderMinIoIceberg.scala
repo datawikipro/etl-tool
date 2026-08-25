@@ -109,17 +109,19 @@ class LoaderMinIoIceberg(val configYaml: YamlConfigIceberg, val configLocation: 
       val lastSlashIdx = location.lastIndexOf('/')
       val pathBefore = location.substring(0, lastSlashIdx)
       val tableName = location.substring(lastSlashIdx + 1)
-      val schemaName = if (pathBefore.contains('/')) {
+      val rawSchemaName = if (pathBefore.contains('/')) {
         pathBefore.substring(pathBefore.lastIndexOf('/') + 1)
       } else {
         pathBefore
       }
+      val schemaName = if (rawSchemaName.endsWith(".db")) rawSchemaName.stripSuffix(".db") else rawSchemaName
       (schemaName, tableName)
     } else {
       val lastDotIdx = location.lastIndexOf('.')
       if (lastDotIdx != -1) {
-        val schemaName = location.substring(0, lastDotIdx)
+        val rawSchemaName = location.substring(0, lastDotIdx)
         val tableName = location.substring(lastDotIdx + 1)
+        val schemaName = if (rawSchemaName.endsWith(".db")) rawSchemaName.stripSuffix(".db") else rawSchemaName
         (schemaName, tableName)
       } else {
         ("default", location)
