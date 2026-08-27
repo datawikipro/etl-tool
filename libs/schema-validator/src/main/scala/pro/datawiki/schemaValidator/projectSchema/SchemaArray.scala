@@ -17,11 +17,23 @@ case class SchemaArray(
   }
 
   @JsonIgnore
+  private def createPrimitiveTemplate(typeStr: String, ignorable: Boolean): BaseSchemaTemplate = {
+    SchemaType(typeStr) match {
+      case SchemaType.String => BaseSchemaStringTemplate(ignorable)
+      case SchemaType.Int | SchemaType.Long => BaseSchemaIntTemplate(ignorable)
+      case SchemaType.Boolean => BaseSchemaBooleanTemplate(ignorable)
+      case SchemaType.Double => BaseSchemaDoubleTemplate(ignorable)
+      case SchemaType.Null => BaseSchemaNullTemplate(ignorable)
+      case _ => throw NotImplementedException(s"Unsupported primitive type in array: $typeStr")
+    }
+  }
+
+  @JsonIgnore
   private def getBaseType(isIgnorable:Boolean): BaseSchemaTemplate = {
     getLogic match
       case null => return null
-      case x: SchemaObject => return x.getBaseSchemaTemplate(isIgnorable)//TODO
-      case x: String => BaseSchemaStringTemplate(isIgnorable)//TODO
+      case x: SchemaObject => return x.getBaseSchemaTemplate(isIgnorable)
+      case x: String => createPrimitiveTemplate(x, isIgnorable)
       case _ => {
         throw NotImplementedException("Method not implemented")
       }
