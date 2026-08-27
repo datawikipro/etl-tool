@@ -29,6 +29,8 @@ lazy val root = (project in file("."))
             MergeStrategy.discard
           case ps@(x :: xs) if ps.last.endsWith(".sf") || ps.last.endsWith(".dsa") =>
             MergeStrategy.discard
+          case "services" :: "java.net.spi.inetaddressresolverprovider" :: Nil =>
+            MergeStrategy.discard
           case "services" :: _ => MergeStrategy.filterDistinctLines
           case _ => MergeStrategy.first
         }

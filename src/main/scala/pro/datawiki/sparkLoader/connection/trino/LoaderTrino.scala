@@ -114,9 +114,56 @@ class LoaderTrino(val url: String, val user: String, val configLocation: String 
     executeWithRetry(sql, ignoreNonTransientErrors = true)
   }
 
-  def executeMerge(catalogName: String, schemaName: String, targetTable: String, tempTable: String, mergeKeys: List[String], columns: List[String]): Unit = {
+  def getTableColumns(catalogName: String, schemaName: String, tableName: String): Map[String, String] = {
+    var stmt: Statement = null
+    var rs: java.sql.ResultSet = null
+    val result = scala.collection.mutable.Map[String, String]()
+    try {
+      val conn = getConnection
+      stmt = conn.createStatement()
+      val describeSql = s"DESCRIBE $catalogName.$schemaName.$tableName"
+      logInfo(s"Fetching table columns from Trino: $describeSql")
+      rs = stmt.executeQuery(describeSql)
+      while (rs.next()) {
+        val colName = rs.getString(1)
+        val colType = rs.getString(2)
+        result.put(colName.toLowerCase, colType)
+      }
+    } catch {
+      case e: Exception =>
+        logWarning(s"Failed to fetch table columns for $catalogName.$schemaName.$tableName: ${e.getMessage}")
+    } finally {
+      if (rs != null) try { rs.close() } catch { case _: Exception => }
+      if (stmt != null) try { stmt.close() } catch { case _: Exception => }
+    }
+    result.toMap
+  }
+
+  def syncTargetSchema(catalogName: String, schemaName: String, tableName: String, dfSchema: org.apache.spark.sql.types.StructType): Map[String, String] = {
+    val existingColumns = getTableColumns(catalogName, schemaName, tableName)
+    if (existingColumns.isEmpty) {
+      logInfo(s"Target table $catalogName.$schemaName.$tableName does not exist or has no columns in Trino.")
+      return Map.empty
+    }
+
+    val missingFields = dfSchema.fields.filterNot(f => existingColumns.contains(f.name.toLowerCase))
+    if (missingFields.nonEmpty) {
+      logInfo(s"Target table $catalogName.$schemaName.$tableName is missing ${missingFields.length} columns in Trino: ${missingFields.map(_.name).mkString(", ")}. Adding via Trino DDL.")
+      for (field <- missingFields) {
+        val trinoType = TableSqlGenerate.sparkTypeToTrinoSql(field.dataType)
+        val addColSql = TableSqlGenerate.generateAddColumnSql(catalogName, schemaName, tableName, field.name, trinoType)
+        runSQLIgnoreErrors(addColSql)
+      }
+      // Re-fetch updated columns
+      getTableColumns(catalogName, schemaName, tableName)
+    } else {
+      existingColumns
+    }
+  }
+
+  def executeMerge(catalogName: String, schemaName: String, targetTable: String, tempTable: String, mergeKeys: List[String], columns: List[String], targetColumns: Option[Set[String]] = None): Unit = {
     logInfo(s"Executing MERGE for $schemaName.$targetTable using temp table $tempTable")
-    val mergeSql = TableSqlGenerate.generateMergeSql(catalogName, schemaName, targetTable, tempTable, mergeKeys, columns)
+    val mergeSql = TableSqlGenerate.generateMergeSql(catalogName, schemaName, targetTable, tempTable, mergeKeys, columns, targetColumns)
     runSQL(mergeSql)
     logInfo(s"Successfully completed MERGE for $schemaName.$targetTable!")
   }

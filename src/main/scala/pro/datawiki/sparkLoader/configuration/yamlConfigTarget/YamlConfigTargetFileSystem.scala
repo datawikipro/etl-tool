@@ -1,7 +1,9 @@
 package pro.datawiki.sparkLoader.configuration.yamlConfigTarget
 
 import com.fasterxml.jackson.annotation.{JsonIgnore, JsonInclude}
-import org.apache.spark.sql.functions.lit
+import org.apache.spark.sql.{DataFrame, Column}
+import org.apache.spark.sql.functions.{col, lit, struct, transform}
+import org.apache.spark.sql.types.{ArrayType, DataType, StructType}
 import pro.datawiki.datawarehouse.DataFrameTrait
 import pro.datawiki.sparkLoader.configuration.YamlConfigTargetTrait
 import pro.datawiki.sparkLoader.connection.FileStorageTrait
@@ -69,6 +71,51 @@ case class YamlConfigTargetFileSystem(
     return true
   }
 
+  private def alignToTargetSchema(df: DataFrame, targetSchema: StructType): DataFrame = {
+    def alignStruct(parentCol: Column, sourceStruct: StructType, targetStruct: StructType): Column = {
+      val sourceFieldMap = sourceStruct.fields.map(f => f.name.toLowerCase -> f).toMap
+      val targetFields = targetStruct.fields.map { targetField =>
+        sourceFieldMap.get(targetField.name.toLowerCase) match {
+          case Some(srcField) =>
+            val subCol = parentCol.getField(srcField.name)
+            alignDataType(subCol, srcField.dataType, targetField.dataType).as(targetField.name)
+          case None =>
+            lit(null).cast(targetField.dataType).as(targetField.name)
+        }
+      }
+      struct(targetFields*)
+    }
+
+    def alignDataType(colExpr: Column, srcType: DataType, targetType: DataType): Column = {
+      (srcType, targetType) match {
+        case (srcStruct: StructType, tgtStruct: StructType) =>
+          alignStruct(colExpr, srcStruct, tgtStruct)
+        case (ArrayType(srcElem: StructType, _), ArrayType(tgtElem: StructType, _)) =>
+          transform(colExpr, (x: Column) => alignStruct(x, srcElem, tgtElem))
+        case _ =>
+          colExpr
+      }
+    }
+
+    try {
+      val targetFieldMap = targetSchema.fields.map(f => f.name.toLowerCase -> f).toMap
+      val projectedCols = df.schema.fields.map { srcField =>
+        targetFieldMap.get(srcField.name.toLowerCase) match {
+          case Some(tgtField) =>
+            val colExpr = col(s"`${srcField.name}`")
+            alignDataType(colExpr, srcField.dataType, tgtField.dataType).as(srcField.name)
+          case None =>
+            col(s"`${srcField.name}`")
+        }
+      }
+      df.select(projectedCols*)
+    } catch {
+      case e: Exception =>
+        logWarning(s"Failed to automatically align DataFrame struct schema to target table: ${e.getMessage}. Proceeding with original DataFrame.")
+        df
+    }
+  }
+
   def writeMerge(df: DataFrameTrait): Boolean = {
     if (mergeKeys.isEmpty) throw IllegalArgumentException("mergeKeys cannot be empty for merge mode")
     
@@ -94,21 +141,31 @@ case class YamlConfigTargetFileSystem(
           return true
         }
 
-        // Schema evolution: ensure target table has all columns from incoming DataFrame
-        try {
+        // 1. Trino Schema Evolution & Column discovery
+        val trinoTargetCols: Option[Set[String]] = icebergLoader.getTrinoLoader.map { trino =>
+          val syncedColsMap = trino.syncTargetSchema(catalog, schemaName, targetTable, df.getDataFrame.schema)
+          if (syncedColsMap.nonEmpty) syncedColsMap.keySet else Set.empty[String]
+        }.filter(_.nonEmpty)
+
+        // 2. Spark Schema Evolution & Target Schema Struct Alignment
+        val alignedDf = try {
           val targetSchema = SparkObject.spark.table(targetRef).schema
           val targetColNames = targetSchema.fieldNames.toSet
           val missingFields = df.getDataFrame.schema.fields.filterNot(f => targetColNames.contains(f.name))
           
           if (missingFields.nonEmpty) {
-            logInfo(s"Target table $targetRef is missing ${missingFields.length} columns: ${missingFields.map(_.name).mkString(", ")}. Adding them via ALTER TABLE.")
+            logInfo(s"Target table $targetRef is missing ${missingFields.length} columns in Spark: ${missingFields.map(_.name).mkString(", ")}. Adding them via ALTER TABLE.")
             val alterColsDef = missingFields.map(f => s"`${f.name}` ${f.dataType.sql}").mkString(", ")
             SparkObject.spark.sql(s"ALTER TABLE $targetRef ADD COLUMNS ($alterColsDef)")
-            logInfo(s"Successfully evolved schema for $targetRef")
+            logInfo(s"Successfully evolved schema in Spark for $targetRef")
           }
+          
+          val updatedTargetSchema = SparkObject.spark.table(targetRef).schema
+          alignToTargetSchema(df.getDataFrame, updatedTargetSchema)
         } catch {
           case e: Exception =>
-            logWarning(s"Could not evolve schema for $targetRef: ${e.getMessage}")
+            logWarning(s"Could not evolve/align schema in Spark for $targetRef: ${e.getMessage}")
+            df.getDataFrame
         }
 
         val (locSchemaName, _) = icebergLoader.parseLocation(effectiveTargetFile)
@@ -116,13 +173,13 @@ case class YamlConfigTargetFileSystem(
         val tempTableLocation = s"$s3SchemaFolder/$tempTable"
 
         logInfo(s"Step A: Writing DataFrame to temp table $tempTableName in Spark catalog $catalog")
-        icebergLoader.writeDf(df.getDataFrame, tempTableName, tempTableLocation, WriteMode.overwriteTable, partitionBy)
+        icebergLoader.writeDf(alignedDf, tempTableName, tempTableLocation, WriteMode.overwriteTable, partitionBy)
         
         icebergLoader.getTrinoLoader match {
           case Some(trinoRegistry) =>
             try {
               logInfo(s"Step B: Executing MERGE in Trino")
-              trinoRegistry.executeMerge(catalog, schemaName, targetTable, tempTable, mergeKeys, df.getDataFrame.columns.toList)
+              trinoRegistry.executeMerge(catalog, schemaName, targetTable, tempTable, mergeKeys, alignedDf.columns.toList, trinoTargetCols)
             } finally {
               logInfo(s"Step C: Dropping temp table $tempTableName in Trino")
               trinoRegistry.dropTable(catalog, schemaName, tempTable)
